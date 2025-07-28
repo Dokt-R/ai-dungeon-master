@@ -1,1 +1,3 @@
 venv/
+# Ignore environment variable files
+.env
