@@ -1,13 +1,13 @@
 import pytest
 from backend.server_config import SecretStr
 from backend.api_key_service import APIKeyService
-from backend.memory_service import MemoryService
+from backend.server_settings_manager import ServerSettingsManager
 from backend.server_config import ServerConfig
 
 
 @pytest.fixture
 def memory_service():
-    return MemoryService()
+    return ServerSettingsManager()
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def test_store_and_retrieve_api_key(api_key_service):
         api_key=SecretStr("test_api_key"),  # Use SecretStr for the test
         dm_roll_visibility="public",
         player_roll_mode="manual_physical_total",
-        character_sheet_mode="digital_sheet"
+        character_sheet_mode="digital_sheet",
     )
     api_key_service.store_api_key(server_config)
 
@@ -35,7 +35,7 @@ def test_store_empty_api_key(api_key_service):
         api_key="",  # Test with an empty API key
         dm_roll_visibility="public",  # Provide required fields
         player_roll_mode="manual_physical_total",
-        character_sheet_mode="digital_sheet"
+        character_sheet_mode="digital_sheet",
     )
 
     with pytest.raises(ValueError, match="API key must not be empty."):
@@ -54,7 +54,7 @@ def test_store_and_retrieve_encrypted_api_key(api_key_service):
         # Provide a valid API key for the test
         dm_roll_visibility="public",
         player_roll_mode="manual_physical_total",
-        character_sheet_mode="digital_sheet"
+        character_sheet_mode="digital_sheet",
     )
     api_key_service.store_api_key(server_config)
 

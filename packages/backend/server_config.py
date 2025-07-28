@@ -43,5 +43,5 @@ class ServerConfig(BaseSettings):
             "dm_roll_visibility": "DM_VISIBILITY",
             "player_roll_mode": "PLAYER_ROLL_MODE",
             "character_sheet_mode": "CHARACTER_SHEET_MODE",
-        }
+        },
     )
