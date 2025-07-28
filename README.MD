@@ -26,5 +26,11 @@
   ```
 - Use the `/ping` command in any channel where the bot is present to test its functionality.
 
-**Note:**
+# Storage and Retrieval Process
+- The application utilizes a database to store user data, bot configurations, and other relevant information.
+- Data is stored in a structured format, following the defined database schema located in `packages/backend/database_schema_extension.sql`.
+- The retrieval process involves querying the database using the appropriate service methods defined in the application, ensuring efficient access to the stored data.
+- For more details on the database schema and how to interact with it, refer to the `database_schema_extension.sql` file.
+
+**Note**
 If the bot does not respond to commands in servers, ensure that the "Message Content Intent" is enabled in the Discord Developer Portal for your bot, and that the bot has the required permissions in your server.

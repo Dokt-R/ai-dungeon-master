@@ -1,8 +1,12 @@
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, Field
+import os
 from typing import Literal
 
 
 class ServerConfig(BaseModel):
+    api_key: SecretStr = Field(
+        default_factory=lambda: SecretStr(os.getenv("API_KEY", ""))
+    )
     server_id: str
     api_key: SecretStr
     dm_roll_visibility: Literal["public", "hidden"]

@@ -15,19 +15,18 @@ class APIKeyService:
 
     def store_api_key(self, server_config: ServerConfig) -> None:
         """Store the API key for a specific server."""
-        if (
-            not server_config.api_key.get_secret_value() or
-            server_config.api_key.get_secret_value() == ""
-        ):
+        if not server_config.api_key.get_secret_value():
             raise ValueError("API key must not be empty.")
+        """Store the API key for a specific server."""
+        # The API key validation is handled by Pydantic's SecretStr
         encrypted_api_key = self.encrypt_api_key(
-            server_config.api_key.get_secret_value()
+            server_config.api_key.get_secret_value()  # This remains unchanged
         )
         self.memory_service.store_api_key(
             server_config.server_id,
             encrypted_api_key
-            )
-            
+        )
+        
     def retrieve_api_key(self, server_id: str) -> Optional[str]:
         """Retrieve the API key for a specific server."""
         encrypted_api_key = self.memory_service.retrieve_api_key(server_id)
@@ -37,10 +36,10 @@ class APIKeyService:
 
     def encrypt_api_key(self, api_key: str) -> str:
         """Encrypt the API key before storing it."""
-        # Implement encryption logic here
-        return api_key  # Placeholder for actual encryption logic
+        encrypted_api_key = cipher_suite.encrypt(api_key.encode())
+        return encrypted_api_key.decode()  # Return as string
 
     def decrypt_api_key(self, encrypted_api_key: str) -> str:
         """Decrypt the API key when retrieving it."""
-        # Implement decryption logic here
-        return encrypted_api_key  # Placeholder for actual decryption logic
+        decrypted_api_key = cipher_suite.decrypt(encrypted_api_key.encode())
+        return decrypted_api_key.decode()  # Return as string
