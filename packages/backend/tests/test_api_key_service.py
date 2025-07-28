@@ -1,43 +1,38 @@
 import pytest
-from pydantic import SecretStr
-from packages.backend.api_key_service import APIKeyService
-from packages.backend.server_config import ServerConfig
-# from packages.backend.memory_service import MemoryService
+from backend.api_key_service import APIKeyService
+from backend.memory_service import MemoryService
+from backend.server_config import ServerConfig
 
 
-class MockMemoryService:
-    def __init__(self):
-        self.store = {}
-
-    def save(self, server_id, api_key):
-        self.store[server_id] = api_key
-
-    def get(self, server_id):
-        return self.store.get(server_id)
+@pytest.fixture
+def memory_service():
+    return MemoryService()
 
 
-def test_store_api_key():
-    memory_service = MockMemoryService()
-    api_key_service = APIKeyService(memory_service)
+@pytest.fixture
+def api_key_service(memory_service):
+    return APIKeyService(memory_service)
+
+
+def test_store_and_retrieve_api_key(api_key_service):
     server_config = ServerConfig(
-        server_id="123",
-        api_key=SecretStr("my_secret_key"),
+        server_id="test_server",
+        api_key="test_api_key",  # Provide a valid API key for the test
         dm_roll_visibility="public",
         player_roll_mode="manual_physical_total",
         character_sheet_mode="digital_sheet"
     )
-
     api_key_service.store_api_key(server_config)
-    assert memory_service.get("123") == "my_secret_key"
+
+    retrieved_key = api_key_service.retrieve_api_key("test_server")
+    assert retrieved_key == "test_api_key"  # Compare with the decrypted value
 
 
-def test_store_empty_api_key():
-    memory_service = MockMemoryService()
-    api_key_service = APIKeyService(memory_service)
+def test_store_empty_api_key(api_key_service):
     server_config = ServerConfig(
-        server_id="123",
-        api_key=SecretStr(""),
-        dm_roll_visibility="public",
+        server_id="test_server",
+        api_key="",  # Test with an empty API key
+        dm_roll_visibility="public",  # Provide required fields
         player_roll_mode="manual_physical_total",
         character_sheet_mode="digital_sheet"
     )
@@ -46,18 +41,6 @@ def test_store_empty_api_key():
         api_key_service.store_api_key(server_config)
 
 
-def test_retrieve_api_key():
-    memory_service = MockMemoryService()
-    api_key_service = APIKeyService(memory_service)
-    server_config = ServerConfig(
-        server_id="123",
-        api_key=SecretStr("my_secret_key"),
-        dm_roll_visibility="public",
-        player_roll_mode="manual_physical_total",
-        character_sheet_mode="digital_sheet"
-    )
-
-    api_key_service.store_api_key(server_config)
-    retrieved_key = api_key_service.retrieve_api_key("123")
-    assert retrieved_key == "my_secret_key"
-
+def test_retrieve_nonexistent_api_key(api_key_service):
+    retrieved_key = api_key_service.retrieve_api_key("nonexistent_server")
+    assert retrieved_key is None
