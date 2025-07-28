@@ -1,42 +1,34 @@
 import pytest
-
-# Removed unused import
-from unittest.mock import AsyncMock, patch, PropertyMock
-
-# Assuming the bot is defined in bot.py
-from bot.bot import bot
+from bot import bot  # Assuming the bot's main logic is in bot.py
 
 
 @pytest.fixture
-def mock_message():
-    """Create a mock message object for testing."""
-    message = AsyncMock()
-    message.content = "/ping"
-    message.author.id = 123
-    return message
+def client():
+    """Fixture to create a test client for the bot."""
+    return bot  # Replace with actual bot initialization if needed
 
 
-@pytest.mark.asyncio
-async def test_bot_startup():
+def test_bot_startup(client):
     """Test that the bot starts up without errors."""
-    assert bot is not None  # Ensure the bot instance is created
+    assert client is not None  # Ensure the bot client is initialized
 
 
 @pytest.mark.asyncio
-async def test_ping_command(mock_message):
-    """Test ping command"""
-    # Patch the bot.user property to a mock with a different ID
-    with patch.object(type(bot), "user", new_callable=PropertyMock) as mock_user:
-        mock_user.return_value.id = 999
+async def test_ping_command(client):
+    """Test the /ping command response."""
 
-        # Get the context
-        ctx = await bot.get_context(mock_message)
+    class MockInteraction:
+        def __init__(self):
+            self.response = self
 
-        # Patch ctx.send with a mock so we can inspect it
-        ctx.send = AsyncMock()
+        async def send_message(self, message):
+            self.message = message
 
-        # Invoke the command
-        await bot.invoke(ctx)
-
-        # Assert the "pong" response was sent
-        ctx.send.assert_called_once_with("pong")
+    interaction = MockInteraction()
+    await client.tree.get_command("ping").callback(interaction)
+    expected_response = "Pong!"
+    assert (
+        interaction.message == expected_response
+    )  # Check if the response is as expected
+    # Ensure the response is correct
+    # No need for a response variable; the assertion is already handled
