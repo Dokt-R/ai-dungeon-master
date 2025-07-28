@@ -31,4 +31,3 @@ async def test_ping_command(client):
         interaction.message == expected_response
     )  # Check if the response is as expected
     # Ensure the response is correct
-    # No need for a response variable; the assertion is already handled
