@@ -3,9 +3,10 @@
 2. Navigate to your application and select the "OAuth2" tab.
 3. Under "Scopes", select the `bot` checkbox.
 4. Under "Bot Permissions", select the following permissions:
-   - Read Messages/View Channels
+   - View Channels
    - Send Messages
    - Send Messages in Threads
+   - Embed Links
    - Read Message History
    - Use Slash Commands
    - (Optional, for advanced features: Manage Messages, Embed Links, Attach Files, etc.)

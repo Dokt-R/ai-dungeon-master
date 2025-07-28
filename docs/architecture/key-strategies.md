@@ -7,3 +7,4 @@
 * **Type Hints:** All function signatures and variable declarations must include full, correct type hints. This is critical for both code clarity and for the AI agents' understanding.
 * **Naming Conventions:** snake_case for variables, functions, and modules. PascalCase for classes. Constants should be in ALL_CAPS.
 * **Use the Abstraction Layers:** All data access must go through the MemoryService. Direct database calls from other components are forbidden.
+* **Discord Bot Commands** should use tree in order to be visible inside server. Example: ```@tree.command(name="{command}", description="{command_description}")```
