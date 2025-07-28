@@ -1,5 +1,5 @@
 import pytest
-from bot import bot  # Assuming the bot's main logic is in bot.py
+from bot import bot
 
 
 @pytest.fixture

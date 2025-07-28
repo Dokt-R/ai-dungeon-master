@@ -12,7 +12,3 @@ Our approach for the MVP is to define a small set of custom formatting rules to 
   * **Game Mechanics & Dice Rolls:** Use Inline Code Markdown (`` ` ``).
   * **Out-of-Character System Messages:** Use standard, unformatted text.
 
-### Iconography (Bot Avatar)
-
-The avatar will be a **hooded owl**. The style should be a monochromatic ink drawing of a mysterious, hooded owl figure hunched over a glowing tome.
-
