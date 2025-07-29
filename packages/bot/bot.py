@@ -50,7 +50,7 @@ async def server_setup(interaction: discord.Interaction):
 settings_manager = ServerSettingsManager()
 
 
-@tree.command(name="server-setkey", description="Submit the server's shared API key")
+@tree.command(name="server-setkey", description="Set the server's shared API key")
 async def server_setkey(interaction: discord.Interaction, api_key: str):
     # Check for Administrator or Manage Guild permissions
     perms = interaction.user.guild_permissions

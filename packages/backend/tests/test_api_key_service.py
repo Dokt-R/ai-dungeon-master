@@ -7,7 +7,8 @@ from backend.server_config import ServerConfig
 
 @pytest.fixture
 def memory_service():
-    return ServerSettingsManager()
+    # Use an in-memory SQLite database for test isolation
+    return ServerSettingsManager(db_path=":memory:")
 
 
 @pytest.fixture

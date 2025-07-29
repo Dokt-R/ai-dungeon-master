@@ -1,5 +1,18 @@
-venv/
+# Ignore virtual environments
 .venv/
-.env
+env/
+venv/
+
+# Ignore Python cache
+.pytest_cache/
+__pycache__/
+*/__pycache__/*
+
+# Other
 .ruff_cache/
 .vscode/
+
+# Ignore logs and temp files
+*.log
+logs/
+tmp/

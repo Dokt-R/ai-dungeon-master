@@ -5,14 +5,43 @@ import json
 import os
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
+import sqlite3
 
 load_dotenv()  # Load environment variables from .env file
 
 
 class ServerSettingsManager:
-    def __init__(self):
-        self.storage: Dict[str, ServerConfig] = {}
+    def __init__(self, db_path: str = "server_settings.db"):
         self.key = self.load_encryption_key()
+        self.db_path = db_path
+        # For in-memory DB, keep a persistent connection
+        if db_path == ":memory:":
+            self._conn = sqlite3.connect(db_path)
+            self._init_db(self._conn)
+        else:
+            self._conn = None
+            self._init_db()
+
+    def _init_db(self, conn=None):
+        """Initialize the SQLite database and ensure the ServerAPIKeys table exists."""
+        if conn is None:
+            conn = sqlite3.connect(self.db_path)
+            close_conn = True
+        else:
+            close_conn = False
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS ServerAPIKeys (
+                        server_id TEXT PRIMARY KEY,
+                        api_key TEXT NOT NULL
+                    )
+                    """
+                )
+        finally:
+            if close_conn:
+                conn.close()
 
     def load_encryption_key(self) -> bytes:
         """Load the encryption key from an environment variable
@@ -34,42 +63,43 @@ class ServerSettingsManager:
         return fernet.decrypt(encrypted_data.encode()).decode()
 
     def store_api_key(self, server_id: str, api_key: str) -> None:
-        """Store the API key securely."""
+        """Store the API key securely in SQLite."""
         encrypted_key = self.encrypt(api_key)
-        self.storage[server_id] = ServerConfig(
-            server_id=server_id, api_key=SecretStr(encrypted_key)
-        )
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO ServerAPIKeys (server_id, api_key)
+                    VALUES (?, ?)
+                    ON CONFLICT(server_id) DO UPDATE SET api_key=excluded.api_key
+                    """,
+                    (server_id, encrypted_key),
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
 
     def retrieve_api_key(self, server_id: str) -> Optional[str]:
-        """Retrieve the API key for the given server ID."""
-        config = self.storage.get(server_id)
-        if config:
-            return self.decrypt(config.api_key.get_secret_value())
-        return None
-
-    # TODO: This should probably be change to us SQLite later
-    def save_to_file(self, filename: str) -> None:
-        """Save the storage to a JSON file."""
-        with open(filename, "w") as f:
-            json.dump(
-                {
-                    server_id: config.dict()
-                    for server_id, config in self.storage.items()
-                },
-                f,
+        """Retrieve the API key for the given server ID from SQLite."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT api_key FROM ServerAPIKeys WHERE server_id = ?",
+                (server_id,),
             )
-
-    def load_from_file(self, filename: str) -> None:
-        """Load the storage from a JSON file."""
-        if os.path.exists(filename):
-            with open(filename, "r") as f:
-                data = json.load(f)
-                for server_id, config in data.items():
-                    self.storage[server_id] = ServerConfig(**config)
-
-
-# Example usage
-if __name__ == "__main__":
-    service = ServerSettingsManager()
-    service.store_api_key("12345", "my_secret_api_key")
-    print(service.retrieve_api_key("12345"))
+            row = cur.fetchone()
+            if row:
+                encrypted_key = row[0]
+                return self.decrypt(encrypted_key)
+            return None
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
