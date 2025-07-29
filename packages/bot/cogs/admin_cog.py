@@ -1,13 +1,13 @@
 import discord
 from discord.ext import commands
-from packages.backend.server_settings_manager import ServerSettingsManager
+import httpx
 
 class AdminCog(commands.Cog):
     """Admin commands for server setup and API key management."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.settings_manager = ServerSettingsManager()
+        self.api_base_url = "http://localhost:8000"  # Adjust if backend runs elsewhere
 
     @discord.app_commands.command(
         name="server-setup",
@@ -45,15 +45,29 @@ class AdminCog(commands.Cog):
             return
 
         server_id = str(interaction.guild_id)
-        try:
-            self.settings_manager.store_api_key(server_id, api_key)
-            await interaction.response.send_message(
-                "API key securely stored for this server.", ephemeral=True
-            )
-        except Exception as e:
-            await interaction.response.send_message(
-                f"Failed to store API key: {str(e)}", ephemeral=True
-            )
+        url = f"{self.api_base_url}/servers/{server_id}/config"
+        payload = {
+            "api_key": api_key,
+            # Default values; could be extended to accept from user
+            "dm_roll_visibility": "public",
+            "player_roll_mode": "public",
+            "character_sheet_mode": "digital_sheet"
+        }
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.put(url, json=payload, timeout=10)
+                if response.status_code == 200:
+                    await interaction.response.send_message(
+                        "API key securely stored for this server.", ephemeral=True
+                    )
+                else:
+                    await interaction.response.send_message(
+                        f"Failed to store API key: {response.text}", ephemeral=True
+                    )
+            except Exception as e:
+                await interaction.response.send_message(
+                    f"Failed to contact backend: {str(e)}", ephemeral=True
+                )
 
 async def setup(bot):
     await bot.add_cog(AdminCog(bot))
