@@ -26,6 +26,22 @@
   ```
 - Use the `/ping` command in any channel where the bot is present to test its functionality.
 
+# Server Key Onboarding Command Flow
+
+## Commands
+
+- `/server-setup`: Explains the shared API key model and how to submit a key. Only users with "Administrator" or "Manage Server" permissions can run this command.
+- `/server-setkey [API_KEY]`: Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely stored and never shown to other users.
+
+## Security Considerations
+
+- API keys are encrypted at rest using Fernet symmetric encryption.
+- Keys are never exposed in logs or non-ephemeral messages.
+- All key submission and confirmation messages are sent as ephemeral responses, ensuring only the submitting admin can view them.
+- Only users with the required permissions can submit or update the server API key.
+- All secrets are managed via environment variables and never hardcoded.
+
+
 # Storage and Retrieval Process
 - The application utilizes a database to store user data, bot configurations, and other relevant information.
 - Data is stored in a structured format, following the defined database schema located in `packages/backend/database_schema_extension.sql`.
