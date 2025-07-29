@@ -1,4 +1,6 @@
-# Bot Invite Instructions
+# AI Dungeon Master – Monorepo
+
+## Bot Invite Instructions
 1. Go to the Discord Developer Portal.
 2. Navigate to your application and select the "OAuth2" tab.
 3. Under "Scopes", select the `bot` checkbox.
@@ -12,41 +14,115 @@
    - (Optional, for advanced features: Manage Messages, Embed Links, Attach Files, etc.)
 5. In the "Bot" section of the Developer Portal, under "Privileged Gateway Intents", enable the **Message Content Intent**. This is required for the bot to respond to commands in servers.
 6. Click Reset Token if necessary and note the token somewhere for now.
-7. Copy the generated OAuth2 URL and use it to invite the bot to your server. This can be easily done by pasting the url in your server.
+7. Copy the generated OAuth2 URL and use it to invite the bot to your server.
 
-# Usage Instructions
-- To start the bot, ensure you have created a `.env` file in the root of your project with the following line:
+---
+
+## Project Structure
+
+```
+/ai-dungeon-master/
+├── README.MD
+├── pyproject.toml
+├── packages/
+│   ├── bot/         # Discord bot (Gateway)
+│   │   ├── main.py
+│   │   └── cogs/
+│   ├── backend/     # FastAPI backend service (AI Brain)
+│   │   ├── main.py
+│   │   ├── api/
+│   │   ├── components/
+│   └── shared/      # Shared Pydantic models
+```
+
+---
+
+## Usage Instructions
+
+### 1. Environment Setup
+
+- Create a `.env` file in the root of your project with:
   ```
   DISCORD_BOT_TOKEN=your_bot_token_here
+  ENCRYPTION_KEY=your_encryption_key_here
   ```
-  Replace `your_bot_token_here` with your actual bot token.
-- Run the bot using the command:
+  Replace DISCORD_BOT_TOKEN with the token from step 7 and ENCRYPTION_KEY with the generated key below.
+
+- To generate a Fernet **ENCRYPTION_KEY** run this Python command in your terminal:
   ```bash
-  python packages/bot/bot.py
+  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
   ```
+
+
+### 2. Start the Backend Service
+
+- The backend is a FastAPI app. Start it with:
+  ```bash
+  uvicorn packages.backend.main:app --reload
+  ```
+  By default, it runs on `http://localhost:8000`.
+
+- If you do not have **uvicorn** installed, install it with:
+  ```bash
+  pip install uvicorn[standard]
+  ```
+
+### 3. Start the Bot
+
+- In a separate terminal, run:
+  ```bash
+  python packages/bot/main.py
+  ```
+
+### 4. Test the Bot
+
 - Use the `/ping` command in any channel where the bot is present to test its functionality.
 
-# Server Key Onboarding Command Flow
+---
 
-## Commands
+## Server Key Onboarding Command Flow
+
+### Commands
 
 - `/server-setup`: Explains the shared API key model and how to submit a key. Only users with "Administrator" or "Manage Server" permissions can run this command.
-- `/server-setkey [API_KEY]`: Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely stored and never shown to other users.
+- `/server-setkey [API_KEY]`: Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely sent to the backend and never shown to other users.
 
-## Security Considerations
+### How It Works
 
-- API keys are encrypted at rest using Fernet symmetric encryption.
-- Keys are never exposed in logs or non-ephemeral messages.
+- The bot does **not** store API keys locally. When `/server-setkey` is used, the bot makes a secure API call to the backend service, which handles encryption and storage.
 - All key submission and confirmation messages are sent as ephemeral responses, ensuring only the submitting admin can view them.
 - Only users with the required permissions can submit or update the server API key.
 - All secrets are managed via environment variables and never hardcoded.
 
+---
 
-# Storage and Retrieval Process
-- The application utilizes a database to store user data, bot configurations, and other relevant information.
+## Storage and Retrieval Process
+
+- The backend service uses a database to store server API keys and configuration.
 - Data is stored in a structured format, following the defined database schema located in `packages/backend/database_schema_extension.sql`.
-- The retrieval process involves querying the database using the appropriate service methods defined in the application, ensuring efficient access to the stored data.
+- The backend exposes RESTful endpoints (see `docs/architecture/api-specification.md`) for the bot and other clients to interact with server settings.
 - For more details on the database schema and how to interact with it, refer to the `database_schema_extension.sql` file.
 
-**Note**
+---
+
+## Security Considerations
+
+- API keys are encrypted at rest by the backend using Fernet symmetric encryption.
+- Keys are never exposed in logs or non-ephemeral messages.
+- All secrets are managed via environment variables.
+
+---
+
+## Development & Testing
+
+- All code is organized as a modular monolith, with clear separation between bot, backend, and shared models.
+- Unit and integration tests are located in `packages/bot/tests/` and `packages/backend/tests/`.
+- Run all tests with:
+  ```bash
+  pytest --maxfail=1 --disable-warnings -v
+  ```
+
+---
+
+**Note:**  
 If the bot does not respond to commands in servers, ensure that the "Message Content Intent" is enabled in the Discord Developer Portal for your bot, and that the bot has the required permissions in your server.

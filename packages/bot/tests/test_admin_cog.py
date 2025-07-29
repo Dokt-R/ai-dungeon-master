@@ -1,7 +1,7 @@
 import pytest
-import discord
 from unittest.mock import AsyncMock, patch, MagicMock
 from packages.bot.cogs.admin_cog import AdminCog
+
 
 @pytest.mark.asyncio
 async def test_server_setkey_success(monkeypatch):
@@ -17,13 +17,16 @@ async def test_server_setkey_success(monkeypatch):
     class MockResponse:
         status_code = 200
         text = "OK"
+
     async def mock_put(*args, **kwargs):
         return MockResponse()
+
     with patch("httpx.AsyncClient.put", new=mock_put):
-        await cog.server_setkey(interaction, "testkey")
+        await cog.server_setkey.callback(cog, interaction, "testkey")
         interaction.response.send_message.assert_awaited_with(
             "API key securely stored for this server.", ephemeral=True
         )
+
 
 @pytest.mark.asyncio
 async def test_server_setkey_failure(monkeypatch):
@@ -38,10 +41,12 @@ async def test_server_setkey_failure(monkeypatch):
     class MockResponse:
         status_code = 500
         text = "Internal Server Error"
+
     async def mock_put(*args, **kwargs):
         return MockResponse()
+
     with patch("httpx.AsyncClient.put", new=mock_put):
-        await cog.server_setkey(interaction, "testkey")
+        await cog.server_setkey.callback(cog, interaction, "testkey")
         interaction.response.send_message.assert_awaited_with(
             "Failed to store API key: Internal Server Error", ephemeral=True
         )

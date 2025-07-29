@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import httpx
 
+
 class AdminCog(commands.Cog):
     """Admin commands for server setup and API key management."""
 
@@ -11,7 +12,7 @@ class AdminCog(commands.Cog):
 
     @discord.app_commands.command(
         name="server-setup",
-        description="Explain the shared API key model and submission process"
+        description="Explain the shared API key model and submission process",
     )
     async def server_setup(self, interaction: discord.Interaction):
         perms = interaction.user.guild_permissions
@@ -32,8 +33,7 @@ class AdminCog(commands.Cog):
         await interaction.response.send_message(explanation, ephemeral=True)
 
     @discord.app_commands.command(
-        name="server-setkey",
-        description="Set the server's shared API key"
+        name="server-setkey", description="Set the server's shared API key"
     )
     async def server_setkey(self, interaction: discord.Interaction, api_key: str):
         perms = interaction.user.guild_permissions
@@ -51,7 +51,7 @@ class AdminCog(commands.Cog):
             # Default values; could be extended to accept from user
             "dm_roll_visibility": "public",
             "player_roll_mode": "public",
-            "character_sheet_mode": "digital_sheet"
+            "character_sheet_mode": "digital_sheet",
         }
         async with httpx.AsyncClient() as client:
             try:
@@ -68,6 +68,7 @@ class AdminCog(commands.Cog):
                 await interaction.response.send_message(
                     f"Failed to contact backend: {str(e)}", ephemeral=True
                 )
+
 
 async def setup(bot):
     await bot.add_cog(AdminCog(bot))

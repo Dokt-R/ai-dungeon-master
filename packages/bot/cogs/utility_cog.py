@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 
+
 class UtilityCog(commands.Cog):
     """Utility commands such as /ping."""
 
@@ -15,6 +16,7 @@ class UtilityCog(commands.Cog):
     @discord.app_commands.command(name="ping", description="Check if the bot is alive")
     async def ping(self, interaction: discord.Interaction):
         await interaction.response.send_message("Pong!")
+
 
 async def setup(bot):
     await bot.add_cog(UtilityCog(bot))
