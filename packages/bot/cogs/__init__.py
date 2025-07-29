@@ -1,1 +1,0 @@
-# Cog package initializer

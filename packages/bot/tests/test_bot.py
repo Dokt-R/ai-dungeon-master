@@ -1,9 +1,11 @@
 import pytest
+import pytest_asyncio
 import asyncio
 import os
 
 import discord
 from discord.ext import commands
+from packages.bot.cogs.admin_cog import AdminCog
 
 import sys
 import importlib
@@ -31,22 +33,22 @@ class MockInteraction:
         self.message = message
         self.ephemeral = ephemeral
 
-@pytest.fixture(scope="module")
+@pytest_asyncio.fixture(scope="module")
 def event_loop():
     loop = asyncio.get_event_loop()
     yield loop
     loop.close()
 
-@pytest.fixture(scope="module")
+@pytest_asyncio.fixture(scope="module")
 async def client():
     # Create a new bot instance for testing
     intents = discord.Intents.default()
     intents.messages = True
     intents.guilds = True
     intents.message_content = True
-    bot = commands.Bot(command_prefix="/", intents=intents)
-    await bot.load_extension("bot.cogs.utility_cog")
-    await bot.load_extension("bot.cogs.admin_cog")
+    bot = commands.Bot(command_prefix="/", intents=intents, application_id=123)
+    await bot.load_extension("packages.bot.cogs.utility_cog")
+    await bot.load_extension("packages.bot.cogs.admin_cog")
     return bot
 
 def test_bot_startup(client):
@@ -97,7 +99,9 @@ async def test_server_setkey_permissions(client):
             cmd = command
             break
     assert cmd is not None
-    await cmd.callback(cmd, interaction, "dummy_key")
+    cog = client.get_cog("AdminCog")
+    assert cog is not None
+    await cog.server_setkey.callback(cog, interaction, "dummy_key")
     assert "You need Administrator or Manage Server permissions" in interaction.message
     assert interaction.ephemeral is True
 
@@ -114,6 +118,8 @@ async def test_server_setkey_success(client):
             cmd = command
             break
     assert cmd is not None
-    await cmd.callback(cmd, interaction, "dummy_key")
+    cog = client.get_cog("AdminCog")
+    assert cog is not None
+    await cog.server_setkey.callback(cog, interaction, "dummy_key")
     assert "API key securely stored" in interaction.message
     assert interaction.ephemeral is True

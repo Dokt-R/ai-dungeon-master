@@ -1,6 +1,6 @@
 from typing import Optional
-from backend.server_config import ServerConfig
-from backend.server_settings_manager import ServerSettingsManager
+from packages.backend.server_config import ServerConfig
+from packages.backend.server_settings_manager import ServerSettingsManager
 from cryptography.fernet import Fernet
 
 # Generate a key for encryption and decryption

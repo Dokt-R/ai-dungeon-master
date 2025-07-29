@@ -1,8 +1,8 @@
 import pytest
-from backend.server_config import SecretStr
-from backend.api_key_service import APIKeyService
-from backend.server_settings_manager import ServerSettingsManager
-from backend.server_config import ServerConfig
+from packages.backend.server_config import SecretStr
+from packages.backend.api_key_service import APIKeyService
+from packages.backend.server_settings_manager import ServerSettingsManager
+from packages.backend.server_config import ServerConfig
 
 
 @pytest.fixture

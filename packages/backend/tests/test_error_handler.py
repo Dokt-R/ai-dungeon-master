@@ -1,7 +1,7 @@
 import pytest
 
 
-from backend.error_handler import handle_error, NotFoundError, ValidationError
+from packages.backend.error_handler import handle_error, NotFoundError, ValidationError
 
 
 def test_handle_error():

@@ -7,7 +7,8 @@ name = "ai_dm_project"
 version = "0.1.0"
 description = "AI Dungeon Master build with BMAD v4"
 authors = [
-    { name = "Nikolaos Papadopoulos", email = "nikolaospap94@gmail.com" }
+    { name = "Nikolaos Papadopoulos",
+    email = "nikolaospap94@gmail.com" }
 ]
 dependencies = []
 
