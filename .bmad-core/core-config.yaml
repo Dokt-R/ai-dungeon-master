@@ -14,7 +14,8 @@ customTechnicalDocuments: null
 devLoadAlwaysFiles:
   - docs/architecture/key-strategies.md
   - docs/architecture/tech-stack.md
-  - docs/architecture/source-tree.md
+  - docs/architecture/unified-project-structure
+  - docs/architecture/high-level-architecture.md
 devDebugLog: .ai/debug-log.md
 devStoryLocation: docs/stories
 slashPrefix: BMad
