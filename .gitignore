@@ -13,6 +13,7 @@ __pycache__/
 .ruff_cache/
 .vscode/
 ai_dm_project.egg-info/
+server_settings.db
 
 # Ignore logs and temp files
 *.log
