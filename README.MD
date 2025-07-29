@@ -36,25 +36,52 @@
 ```
 
 ---
-
 ## Usage Instructions
 
-### 1. Environment Setup
+### Quick Start (Docker Compose)
 
-- Create a `.env` file in the root of your project with:
+The recommended way to run the project is with Docker Compose. This will start both the backend API and the Discord bot with a single command.
+
+1. **Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/).**
+
+2. **Clone the repository and navigate to the project root:**
+   ```sh
+   git clone https://github.com/your-org/ai-dungeon-master.git
+   cd ai-dungeon-master
+   ```
+
+3. **Set up the bot environment variables:**
+   - Copy the example file and set your Discord bot token:
+     ```sh
+     cp packages/bot/.env.example packages/bot/.env
+     ```
+   - Edit `packages/bot/.env` and set `DISCORD_BOT_TOKEN` to your bot's token.
+
+4. **Build and run the stack:**
+   ```sh
+   docker-compose up --build
+   ```
+   - The backend API will be available at [http://localhost:8000](http://localhost:8000).
+   - The Discord bot will start and connect to Discord using the provided token.
+
+5. **Test the Bot:**
+   - Use the `/ping` command in any channel where the bot is present to test its functionality.
+
+---
+
+### Manual Setup (Advanced)
+
+If you prefer to run the services manually (not recommended for most users):
+
+#### 1. Environment Setup
+
+- Create a `.env` file in `packages/bot/` with:
   ```
   DISCORD_BOT_TOKEN=your_bot_token_here
-  ENCRYPTION_KEY=your_encryption_key_here
   ```
-  Replace DISCORD_BOT_TOKEN with the token from step 7 and ENCRYPTION_KEY with the generated key below.
+  Replace `DISCORD_BOT_TOKEN` with your bot's token.
 
-- To generate a Fernet **ENCRYPTION_KEY** run this Python command in your terminal:
-  ```bash
-  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-  ```
-
-
-### 2. Start the Backend Service
+#### 2. Start the Backend Service
 
 - The backend is a FastAPI app. Start it with:
   ```bash
@@ -67,7 +94,7 @@
   pip install uvicorn[standard]
   ```
 
-### 3. Start the Bot
+#### 3. Start the Bot
 
 - In a separate terminal, run:
   ```bash

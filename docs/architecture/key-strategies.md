@@ -10,3 +10,5 @@
 * **Discord Bot Commands** should use tree in order to be visible inside server. Example: ```@tree.command(name="{command}", description="{command_description}")```
 * * **Backend Service:** The structure will follow the patterns of the **FastAPI** framework for a clean, service-oriented design.
 * **Discord Bot:** The code will be organized using the **Cogs** pattern, which is the best practice for the `discord.py` library.
+* **Command flow** will use the flow: /command -> Bot Gateway -> API Call -> Backend Service (containing the ServerSettingsManager) -> SQLite Table
+* **Deployment** The project must support easy self-hosting using **Docker Compose** and will be updated as the project grows.

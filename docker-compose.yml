@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./packages/backend
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: ./packages/bot
+    env_file:
+      - ./packages/bot/.env
+    restart: unless-stopped
