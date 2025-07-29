@@ -1,4 +1,5 @@
 # Ignore virtual environments
+.env
 .venv/
 env/
 venv/
@@ -11,6 +12,7 @@ __pycache__/
 # Other
 .ruff_cache/
 .vscode/
+ai_dm_project.egg-info/
 
 # Ignore logs and temp files
 *.log

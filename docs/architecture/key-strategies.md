@@ -8,3 +8,5 @@
 * **Naming Conventions:** snake_case for variables, functions, and modules. PascalCase for classes. Constants should be in ALL_CAPS.
 * **Use the Abstraction Layers:** All data access must go through the MemoryService. Direct database calls from other components are forbidden.
 * **Discord Bot Commands** should use tree in order to be visible inside server. Example: ```@tree.command(name="{command}", description="{command_description}")```
+* * **Backend Service:** The structure will follow the patterns of the **FastAPI** framework for a clean, service-oriented design.
+* **Discord Bot:** The code will be organized using the **Cogs** pattern, which is the best practice for the `discord.py` library.
