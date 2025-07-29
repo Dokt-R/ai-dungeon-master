@@ -6,7 +6,7 @@
 ### Story 2.1: Basic AI Narrative Generation
 **As a** player, **I want** to send a prompt to the bot and receive a narrative response from the AI, **so that** I can begin to interact with the game world.
 #### Acceptance Criteria
-1. The bot uses the server's configured API key to send a user's text prompt to the specified AI service.
+1. The bot retrieves the server's encrypted API key from the ServerConfig database table and uses it to send a user's text prompt to the specified AI service.
 2. The AI's text-based narrative response is successfully received from the service.
 3. The narrative response is displayed clearly in the Discord channel.
 4. The system gracefully handles and reports any errors during the AI API call.
@@ -39,4 +39,4 @@
 3. The AI's text response is successfully converted to speech audio.
 4. The generated audio is played back to the user in the voice channel.
 5. The average roundtrip latency (from end of user speech to beginning of bot speech) for a standard interaction meets the `NFR1` target of under 4 seconds.
-
+
