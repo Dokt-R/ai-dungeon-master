@@ -5,11 +5,17 @@
 ---
 ### Story 2.1: Basic AI Narrative Generation
 **As a** player, **I want** to send a prompt to the bot and receive a narrative response from the AI, **so that** I can begin to interact with the game world.
+#### Tasks / Subtasks
+- [ ] **Task 1 (Enabler):** Integrate the LLM Observability library (e.g., LangSmith) into the backend service to enable tracing for all future AI calls.
+- [ ] **Task 2 (AC: #1):** Create a function that retrieves the server's API key from the `ServerConfig` database table.
+- [ ] **Task 3 (AC: #1, #2, #3):** Implement the API endpoint (`/action`) that receives the player's prompt, calls the AI provider with the correct context and key, and returns the narrative response.
+- [ ] **Task 4 (AC: #4):** Implement error handling for the AI API call.
 #### Acceptance Criteria
-1. The bot retrieves the server's encrypted API key from the ServerConfig database table and uses it to send a user's text prompt to the specified AI service.
-2. The AI's text-based narrative response is successfully received from the service.
-3. The narrative response is displayed clearly in the Discord channel.
-4. The system gracefully handles and reports any errors during the AI API call.
+1.  **The bot retrieves the server's encrypted API key from the `ServerConfig` database table** and uses it to send a user's text prompt to the specified AI service.
+2.  The AI's text-based narrative response is successfully received from the service.
+3.  The narrative response is displayed clearly in the Discord channel.
+4.  The system gracefully handles and reports any errors during the AI API call.
+
 
 ---
 ### Story 2.2: D&D 5.1 SRD Ruleset Integration

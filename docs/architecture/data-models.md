@@ -11,24 +11,26 @@ from pydantic import BaseModel, SecretStr
 from typing import List, Optional, Literal
 
 class ServerConfig(BaseModel):
-    server\_id: str
-    api\_key: SecretStr
-    dm\_roll\_visibility: Literal\['public', 'hidden']
-    player\_roll\_mode: Literal\['manual\_physical\_total', 'manual\_physical\_raw', 'manual\_digital', 'auto\_visible', 'auto\_hidden']
-    character\_sheet\_mode: Literal\['digital\_sheet', 'physical\_sheet']
+    server_id: str
+    api_key: SecretStr
+    dm_roll_visibility: Literal['public', 'hidden']
+    player_roll_mode: Literal['manual_physical', 'manual_digital', 'auto_visible', 'auto_hidden']
+    character_sheet_mode: Literal['digital_sheet', 'physical_sheet']
 
 class Campaign(BaseModel):
-    campaign\_id: str
-    server\_id: str
+    # The historical memory_log is now managed in a separate chronicle.yaml file
+    # as per our tiered persistence strategy.
+    campaign_id: str
+    server_id: str
     name: str
-    active\_player\_ids: List\[str]
+    active_player_ids: List[str]
 
 class PlayerCharacter(BaseModel):
-    character\_id: str
-    player\_discord\_id: str
-    campaign\_id: str
+    character_id: str
+    player_discord_id: str
+    campaign_id: str
     name: str
-    character\_sheet\_url: Optional\[str] = None
-    preferred\_output\_mode: Literal\['text', 'voice'] = 'text'
+    character_sheet_url: Optional[str] = None
+    preferred_output_mode: Literal['text', 'voice'] = 'text'
 ```
-
+

@@ -3,15 +3,16 @@ from packages.shared.models import ServerConfig, ServerConfigRequest
 from packages.backend.api_key_service import APIKeyService
 import os
 
-router = APIRouter()
-
 # Initialize services (should be refactored for DI in production)
 from packages.backend.server_settings_manager import ServerSettingsManager
+
+
+router = APIRouter()
 
 settings_manager = ServerSettingsManager(
     db_path=os.getenv("SERVER_SETTINGS_DB", "server_settings.db")
 )
-api_key_service = APIKeyService(memory_service=settings_manager)
+api_key_service = APIKeyService(manager=settings_manager)
 
 
 @router.put(

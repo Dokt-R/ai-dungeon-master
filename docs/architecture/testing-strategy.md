@@ -15,7 +15,7 @@ This document outlines the comprehensive test strategy for the AI DM project, as
 * [cite_start]**Location:** Test files will be located in a `tests/` directory within each package (e.g., `packages/backend/tests/`). [cite: 800]
 
 ### Integration Tests
-* [cite_start]**Scope:** We will write tests to verify that our internal components (e.g., `AIOrchestrator` and `Memory Service`) interact with each other as expected according to the defined API contracts. [cite: 812]
+* [cite_start]**Scope:** We will write tests to verify that our internal components (e.g., `AIOrchestrator` and `CampaignMemory Service`) interact with each other as expected according to the defined API contracts. [cite: 812]
 * [cite_start]**Test Infrastructure:** Integration tests may use in-memory versions of dependencies or a dedicated test instance of the SQLite database. [cite: 813]
 
 ## 3. Continuous Testing
