@@ -1,13 +1,13 @@
 import pytest
-
-
+from fastapi import HTTPException
 from packages.shared.error_handler import handle_error, NotFoundError, ValidationError
 
 
 def test_handle_error():
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         handle_error(Exception("Test error"))
-    assert str(exc_info.value) == "Test error"
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail == "Test error"
 
 
 def test_not_found_error():
