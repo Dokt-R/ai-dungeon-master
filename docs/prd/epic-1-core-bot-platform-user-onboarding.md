@@ -46,4 +46,11 @@
 #### Acceptance Criteria
 1. The bot responds to a `/help` command with a list of available commands, clarifying that `/server-setup` and `/server-setkey` are for server owners/admins.
 2. The bot responds to a `/cost` command with a message explaining the BYOK model and linking to the transparent cost-average data.
-
+
+### Story 1.6: Campaign Transcript Logging
+**As a** developer and future campaign host, **I want** every in-character player message and AI response to be saved to a persistent `transcript.log` file, **so that** I have a complete record for debugging and future summarization features.
+#### Acceptance Criteria
+1. A logging mechanism is created that can write to a file specific to the active campaign (e.g., `data/saves/[campaign_save_id]/transcript.log`).
+2. When a player sends a message that is processed as an in-game action, the message content and its author are appended to the log.
+3. When the AI generates a narrative response, that response is appended to the log.
+4. Each log entry should be structured (e.g., with a timestamp, author, and message content) for easy parsing.
