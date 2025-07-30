@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Path
 from packages.shared.models import ServerConfigModel, ServerConfig
-from packages.backend.api_key_service import APIKeyService
+from packages.backend.components.api_key_service import APIKeyService
 import os
 
 # Initialize services (should be refactored for DI in production)
-from packages.backend.server_settings_manager import ServerSettingsManager
+from packages.backend.components.server_settings_manager import ServerSettingsManager
 
 
 router = APIRouter()

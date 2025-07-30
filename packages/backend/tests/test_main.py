@@ -12,7 +12,7 @@ def test_set_server_config_success(monkeypatch):
 
     app.dependency_overrides = {}
     monkeypatch.setattr(
-        "packages.backend.api_key_service.APIKeyService.store_api_key",
+        "packages.backend.components.api_key_service.APIKeyService.store_api_key",
         lambda self, server_config: mock_store_api_key(server_config),
     )
     payload = {
@@ -31,7 +31,7 @@ def test_set_server_config_failure(monkeypatch):
         raise Exception("DB error")
 
     monkeypatch.setattr(
-        "packages.backend.api_key_service.APIKeyService.store_api_key",
+        "packages.backend.components.api_key_service.APIKeyService.store_api_key",
         lambda self, server_config: mock_store_api_key(server_config),
     )
     payload = {
