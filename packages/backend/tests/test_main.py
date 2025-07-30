@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from packages.backend.main import app
 
@@ -19,7 +18,7 @@ def test_set_server_config_success(monkeypatch):
     payload = {
         "api_key": "testkey",
         "dm_roll_visibility": "public",
-        "player_roll_mode": "public",
+        "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
     response = client.put("/servers/123/config", json=payload)
@@ -38,7 +37,7 @@ def test_set_server_config_failure(monkeypatch):
     payload = {
         "api_key": "testkey",
         "dm_roll_visibility": "public",
-        "player_roll_mode": "public",
+        "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
     response = client.put("/servers/123/config", json=payload)

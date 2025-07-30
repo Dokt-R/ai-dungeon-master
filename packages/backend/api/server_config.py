@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Path
-from packages.shared.models import ServerConfig, ServerConfigRequest
+from packages.shared.models import ServerConfigModel, ServerConfig
 from packages.backend.api_key_service import APIKeyService
 import os
 
@@ -20,7 +20,7 @@ api_key_service = APIKeyService(manager=settings_manager)
 )
 def set_server_config(
     server_id: str = Path(..., description="The Discord server ID"),
-    config: ServerConfigRequest = ...,
+    config: ServerConfigModel = ...,
 ):
     try:
         server_config = ServerConfig(
