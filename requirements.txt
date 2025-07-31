@@ -1,0 +1,8 @@
+asyncio
+cryptography
+discord.py
+fastapi
+httpx
+python-dotenv
+pydantic
+uvicorn

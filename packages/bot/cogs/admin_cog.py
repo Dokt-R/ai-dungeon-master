@@ -1,11 +1,13 @@
 import discord
 from discord.ext import commands
 import httpx
+from dotenv import load_dotenv
 from packages.shared.error_handler import (
     handle_error,
     ValidationError,
     NotFoundError,
 )  # noqa: F401
+import os
 
 
 class AdminCog(commands.Cog):
@@ -13,7 +15,7 @@ class AdminCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.api_base_url = "http://localhost:8000"  # Adjust if backend runs elsewhere
+        self.api_base_url = os.getenv("FAST_API", "http://localhost:8000") # Adjust if backend runs elsewhere
 
     @discord.app_commands.command(
         name="server-setup",

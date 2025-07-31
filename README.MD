@@ -36,7 +36,15 @@
 ```
 
 ---
-## Usage Instructions
+# Installation
+
+### Environment Setup
+
+- Create a `.env` file in `packages/bot/` with:
+  ```
+  DISCORD_BOT_TOKEN=your_bot_token_here
+  ```
+  Replace `DISCORD_BOT_TOKEN` with your bot's token.
 
 ### Quick Start (Docker Compose)
 
@@ -50,64 +58,22 @@ The recommended way to run the project is with Docker Compose. This will start b
    cd ai-dungeon-master
    ```
 
-3. **Set up the bot environment variables:**
-   - Copy the example file and set your Discord bot token:
-     ```sh
-     cp packages/bot/.env.example packages/bot/.env
-     ```
-   - Edit `packages/bot/.env` and set `DISCORD_BOT_TOKEN` to your bot's token.
-
-4. **Build and run the stack:**
+3. **Build and run the stack:**
    ```sh
-   docker-compose up --build
+   # May need sudo rights
+   docker compose up --build
    ```
    - The backend API will be available at [http://localhost:8000](http://localhost:8000).
    - The Discord bot will start and connect to Discord using the provided token.
 
-5. **Test the Bot:**
+4. **Test the Bot:**
    - Use the `/ping` command in any channel where the bot is present to test its functionality.
 
----
-
-### Manual Setup (Advanced)
-
-If you prefer to run the services manually (not recommended for most users):
-
-#### 1. Environment Setup
-
-- Create a `.env` file in `packages/bot/` with:
-  ```
-  DISCORD_BOT_TOKEN=your_bot_token_here
-  ```
-  Replace `DISCORD_BOT_TOKEN` with your bot's token.
-
-#### 2. Start the Backend Service
-
-- The backend is a FastAPI app. Start it with:
-  ```bash
-  uvicorn packages.backend.main:app --reload
-  ```
-  By default, it runs on `http://localhost:8000`.
-
-- If you do not have **uvicorn** installed, install it with:
-  ```bash
-  pip install uvicorn[standard]
-  ```
-
-#### 3. Start the Bot
-
-- In a separate terminal, run:
-  ```bash
-  python packages/bot/main.py
-  ```
-
-### 4. Test the Bot
-
-- Use the `/ping` command in any channel where the bot is present to test its functionality.
+#### You can also find the process to manually run services [here](#manual-setup-advanced)
 
 ---
 
-## Server Key Onboarding Command Flow
+# Server Key Onboarding Command Flow
 
 ### Commands
 
@@ -153,3 +119,40 @@ If you prefer to run the services manually (not recommended for most users):
 
 **Note:**  
 If the bot does not respond to commands in servers, ensure that the "Message Content Intent" is enabled in the Discord Developer Portal for your bot, and that the bot has the required permissions in your server.
+
+---
+
+# Manual Setup (Advanced)
+
+If you prefer to run the services manually (not recommended for most users):
+
+#### 1. Install Dependencies
+
+- From the root folder install the prerequisites using `requirements.txt`
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+#### 2. Start the Backend Service
+
+- The backend is a FastAPI app. Start it with:
+  ```bash
+  uvicorn packages.backend.main:app --reload
+  ```
+  By default, it runs on `http://localhost:8000`.
+
+- If you do not have **uvicorn** installed, install it with:
+  ```bash
+  pip install uvicorn[standard]
+  ```
+
+#### 3. Start the Bot
+
+- In a separate terminal, run:
+  ```bash
+  python packages/bot/main.py
+  ```
+
+### 4. Test the Bot
+
+- Use the `/ping` command in any channel where the bot is present to test its functionality.

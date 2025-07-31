@@ -1,0 +1,34 @@
+# Ignore virtual environments
+.env
+.venv/
+env/
+venv/
+
+# Ignore Python and specific files
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.md
+
+# Ignore tests
+tests/
+test_*.py
+**_test.py
+**/test_*.py
+**/tests/
+__pycache__/
+**/__pycache__/
+
+# Other
+.bmad-core/
+docs/
+.ruff_cache/
+.vscode/
+ai_dm_project.egg-info/
+server_settings.db
+
+# Ignore logs and temp files
+*.log
+logs/
+tmp/

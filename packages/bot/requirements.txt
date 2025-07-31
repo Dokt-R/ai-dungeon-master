@@ -1,2 +1,5 @@
+asyncio
 discord.py
+fastapi
+httpx
 python-dotenv
