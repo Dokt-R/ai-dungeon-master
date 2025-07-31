@@ -76,9 +76,16 @@ The recommended way to run the project is with Docker Compose. This will start b
 # Server Key Onboarding Command Flow
 
 ### Commands
-
+- `/help`: Lists all available commands and references advanced help.
+- `/getting-started`: Step-by-step onboarding guide for new users and server owners.
+- `/cost`: API usage cost info and transparency, with a link to full documentation.
 - `/server-setup`: Explains the shared API key model and how to submit a key. Only users with "Administrator" or "Manage Server" permissions can run this command.
 - `/server-setkey [API_KEY]`: Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely sent to the backend and never shown to other users.
+- `/ping`: Check if the bot is alive.
+
+> All commands return ephemeral messages by default to avoid channel clutter.
+> For advanced help, see [Command Reference](docs/commands.md).
+
 
 ### How It Works
 
