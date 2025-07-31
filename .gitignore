@@ -2,7 +2,7 @@
 .env
 .venv/
 env/
-venv/
+venv*/
 
 # Ignore Python cache
 .pytest_cache/

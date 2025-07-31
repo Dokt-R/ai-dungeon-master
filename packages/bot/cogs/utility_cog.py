@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from packages.shared.error_handler import handle_error, ValidationError, NotFoundError
+from packages.shared.error_handler import handle_error, ValidationError, NotFoundError, discord_error_handler
 
 
 class UtilityCog(commands.Cog):
@@ -15,15 +15,9 @@ class UtilityCog(commands.Cog):
         pass
 
     @discord.app_commands.command(name="ping", description="Check if the bot is alive")
+    @discord_error_handler()
     async def ping(self, interaction: discord.Interaction):
-        try:
-            await interaction.response.send_message("Pong!")
-        except Exception as e:
-            handle_error(e)
-            await interaction.response.send_message(
-                "An unexpected error occurred while processing your request.",
-                ephemeral=True,
-            )
+        await interaction.response.send_message("Pong!")
 
 
 async def setup(bot):

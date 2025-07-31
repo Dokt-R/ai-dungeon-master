@@ -3,6 +3,7 @@
 .venv/
 env/
 venv/
+venv*/
 
 # Ignore Python and specific files
 *.pyc
