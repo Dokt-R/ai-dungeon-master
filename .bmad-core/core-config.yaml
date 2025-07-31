@@ -16,6 +16,7 @@ devLoadAlwaysFiles:
   - docs/architecture/tech-stack.md
   - docs/architecture/unified-project-structure
   - docs/architecture/high-level-architecture.md
+  - docs/architecture/components.md
 devDebugLog: .ai/debug-log.md
 devStoryLocation: docs/stories
 slashPrefix: BMad
