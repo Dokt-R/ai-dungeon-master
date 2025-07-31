@@ -70,7 +70,7 @@ class AdminCog(commands.Cog):
                 "api_key": api_key,
                 # Default values; could be extended to accept from user
                 "dm_roll_visibility": "public",
-                "player_roll_mode": "public",
+                "player_roll_mode": "digital",
                 "character_sheet_mode": "digital_sheet",
             }
             async with httpx.AsyncClient() as client:
