@@ -163,3 +163,22 @@ If you prefer to run the services manually (not recommended for most users):
 ### 4. Test the Bot
 
 - Use the `/ping` command in any channel where the bot is present to test its functionality.
+
+# Observability
+
+## Campaign Transcript Logging
+
+- Every campaign has a persistent transcript log saved at `data/saves/[campaign_id]/transcript.log`.
+- All in-character player messages and AI responses are recorded in this file.
+- Log files are automatically rotated when they exceed 10 MB, with up to 3 rotated logs retained.
+- For details on log file format and rotation policy, see `docs/architecture/observability.md`.
+
+
+### Developer Notes: Campaign Transcript Logging
+
+- Logging is implemented via an async, thread-safe utility: [`packages/shared/transcript_logger.py`](packages/shared/transcript_logger.py:1).
+- All log entries are structured as JSONL with `timestamp`, `author`, and `message` fields.
+- Campaign IDs are validated for filesystem safety; invalid IDs are rejected and not logged.
+- The logging system is fully covered by unit and integration tests (see [`packages/backend/tests/test_transcript_logger.py`](packages/backend/tests/test_transcript_logger.py:1) and [`packages/backend/tests/test_message_processor.py`](packages/backend/tests/test_message_processor.py:1)).
+- For the full development story, see [`docs/stories/1.6.story.md`](docs/stories/1.6.story.md:1).
+- For log format and rotation policy, see [`docs/architecture/observability.md`](docs/architecture/observability.md:1).
