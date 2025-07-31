@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from packages.bot.cogs.utility_cog import UtilityCog
 
+
 @pytest.mark.asyncio
 async def test_getting_started_command():
     bot = MagicMock()
@@ -13,6 +14,7 @@ async def test_getting_started_command():
     assert "getting started" in args[0].lower()
     assert kwargs.get("ephemeral") is True
 
+
 @pytest.mark.asyncio
 async def test_cost_command():
     bot = MagicMock()
@@ -23,6 +25,7 @@ async def test_cost_command():
     args, kwargs = interaction.response.send_message.call_args
     assert "cost" in args[0].lower()
     assert kwargs.get("ephemeral") is True
+
 
 @pytest.mark.asyncio
 async def test_help_command():

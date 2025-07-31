@@ -2,7 +2,7 @@
 
 | Category | Technology | Version | Purpose | Rationale |
 | :--- | :--- | :--- | :--- | :--- |
-| **Backend Language** | Python | 3.11 | Primary language for all backend logic. | Modern, robust, and has an extensive ecosystem for AI and web services. |
+| **Backend Language** | Python | 3.13 | Primary language for all backend logic. | Modern, robust, and has an extensive ecosystem for AI and web services. |
 | **Backend Framework**| FastAPI | 0.111.0 | Provides the structure for our backend service. | High performance, excellent for building APIs, and has automatic documentation. |
 | **AI Framework** | LangGraph | Latest | Manages the stateful, cyclical AI logic. | Provides explicit, stateful control over complex processes, a perfect fit for a rule-heavy game loop. |
 | **Bot Interface** | discord.py | 2.3.2 | Connects our application to the Discord API. | The leading and most robust library for creating Discord bots in Python. |
