@@ -1,6 +1,11 @@
 import discord
 from discord.ext import commands
-from packages.shared.error_handler import handle_error, ValidationError, NotFoundError, discord_error_handler
+from packages.shared.error_handler import (
+    handle_error,
+    ValidationError,
+    NotFoundError,
+    discord_error_handler,
+)
 
 
 class UtilityCog(commands.Cog):

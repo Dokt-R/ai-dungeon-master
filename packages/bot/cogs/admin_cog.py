@@ -16,7 +16,9 @@ class AdminCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.api_base_url = os.getenv("FAST_API", "http://localhost:8000") # Adjust if backend runs elsewhere
+        self.api_base_url = os.getenv(
+            "FAST_API", "http://localhost:8000"
+        )  # Adjust if backend runs elsewhere
 
     @discord.app_commands.command(
         name="server-setup",
@@ -66,9 +68,7 @@ class AdminCog(commands.Cog):
                     "API key securely stored for this server.", ephemeral=True
                 )
             else:
-                raise ValidationError(
-                    f"Failed to store API key: {response.text}"
-                )
+                raise ValidationError(f"Failed to store API key: {response.text}")
 
 
 async def setup(bot):

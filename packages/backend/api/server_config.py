@@ -1,7 +1,12 @@
 from fastapi import APIRouter, HTTPException, Path
 from packages.shared.models import ServerConfigModel, ServerConfig
 from packages.backend.components.api_key_service import APIKeyService
-from packages.shared.error_handler import handle_error, ValidationError, NotFoundError, fastapi_error_handler
+from packages.shared.error_handler import (
+    handle_error,
+    ValidationError,
+    NotFoundError,
+    fastapi_error_handler,
+)
 import os
 
 # Initialize services (should be refactored for DI in production)
