@@ -25,6 +25,12 @@ This document outlines the official folder and file structure for the AI DM mono
 │   │   ├── api/             # API endpoint definitions (routers)
 │   │   ├── components/      # Core logic components (AIOrchestrator, etc.)
 │   │   └── core/            # Core logic, e.g., security
+│   │   └── agents/          # For defining our AI agent personas & LangGraph graphs
+│   │       ├── __init__.py
+│   │       └── dm_graph.py
+│   │   └── tools/          # For our deterministic rule functions (e.g., dice rolls)
+│   │       ├── __init__.py
+│   │       └── dice_tools.py
 │   │
 │   └── shared/              # Shared code used by both bot and backend
 │       ├── __init__.py

@@ -16,9 +16,18 @@ The project will use a monorepo structure that separates the reusable campaign m
 │   │       └── player_characters.yaml
 │   └── srd_database.sqlite
 ├── packages/
-│   ├── bot/
-│   ├── backend/
-│   └── shared/
+|    └── backend/
+|        ├── __init__.py
+|        ├── main.py          # FastAPI application entrypoint
+|        ├── api/             # API endpoint definitions (routers)
+|        ├── components/      # Our high-level service components (CampaignMemoryService, etc.)
+|        ├── core/            # Core logic, e.g., security
+|        ├── agents/          # <-- For defining our AI agent personas & LangGraph graphs
+|        │   ├── __init__.py
+|        │   └── dm_graph.py
+|        └── tools/             # <-- For our deterministic rule functions (e.g., dice rolls)
+|            ├── __init__.py
+|            └── dice_tools.py
 └── docs/
 ```
-
+

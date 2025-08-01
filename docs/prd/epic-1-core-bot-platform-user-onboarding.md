@@ -54,3 +54,27 @@
 2. When a player sends a message that is processed as an in-game action, the message content and its author are appended to the log.
 3. When the AI generates a narrative response, that response is appended to the log.
 4. Each log entry should be structured (e.g., with a timestamp, author, and message content) for easy parsing.
+
+---
+
+### Story 1.7: Campaign & Party Lifecycle Management
+**As a** server owner or player, **I want** clear, consolidated commands to create, join, continue, end, and delete a campaign, **so that** I can easily manage my game sessions from a single command group.
+#### Tasks / Subtasks
+- [ ] Implement the `/campaign new [name]` command.
+- [ ] Implement the `/campaign join [name]` command.
+- [ ] Implement the `/campaign continue` command.
+- [ ] Implement the `/campaign end` command.
+- [ ] Implement the `/campaign delete [name]` command with a confirmation step.
+- [ ] Implement the explicit state transition messages for entering and exiting role-playing mode.
+- [ ] Refactor the main `/help` command that lists topics.
+- [ ] Implement subcommands like `/help campaign` and `/help setup`.
+#### Acceptance Criteria
+1. A user can create a new campaign using `/campaign new "[name]"`.
+2. The bot provides instructions for other players to join using `/campaign join "[name]"`.
+3. A user can resume the last played campaign using `/campaign continue`. The bot responds with the narrative from the last "clean save point".
+4. Upon starting or continuing a campaign, the bot **must** display the message: "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**"
+5. A user can end the current session using `/campaign end`. This triggers a final autosave.
+6. Upon ending a campaign, the bot **must** display the message: "**Exiting immersive mode. Progress has been saved. You are now in command mode.**"
+7. A user can delete a campaign using `/campaign delete "[name]"`, which will only proceed after the user confirms the action.
+8. The bot responds to `/help` with a list of help topics (e.g., Campaign, Setup).
+9. The bot responds to `/help <topic>` with detailed information for that topic.
