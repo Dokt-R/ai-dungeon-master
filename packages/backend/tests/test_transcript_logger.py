@@ -101,9 +101,12 @@ async def test_log_message_handles_invalid_campaign_id():
     finally:
         logger.__class__.__dict__["__init__"].__globals__["LOG_BASE_DIR"] = orig_base
         shutil.rmtree(temp_dir)
+
+
 @pytest.mark.asyncio
 async def test_log_rotation_and_size_limit():
     import random
+
     temp_dir = tempfile.mkdtemp()
     logger = TranscriptLogger()
     campaign_id = "rotation_test"
@@ -128,14 +131,20 @@ async def test_log_rotation_and_size_limit():
         rotated2 = f"{log_path}.2"
         rotated3 = f"{log_path}.3"
         rotated4 = f"{log_path}.4"
-        assert not os.path.exists(rotated4), "No more than 3 rotated logs should be kept"
+        assert not os.path.exists(rotated4), (
+            "No more than 3 rotated logs should be kept"
+        )
         # The current log file should be smaller than or equal to 10 MB
-        assert os.path.getsize(log_path) <= 10 * 1024 * 1024 + 4096  # allow a small margin
+        assert (
+            os.path.getsize(log_path) <= 10 * 1024 * 1024 + 4096
+        )  # allow a small margin
         # Write another entry and ensure it goes into the new log file
         await logger.log_message(campaign_id, author, "final message")
         with open(log_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
-        assert any("final message" in line for line in lines), "New entries should go into the new log file after rotation"
+        assert any("final message" in line for line in lines), (
+            "New entries should go into the new log file after rotation"
+        )
     finally:
         logger.__class__.__dict__["__init__"].__globals__["LOG_BASE_DIR"] = orig_base
         shutil.rmtree(temp_dir)

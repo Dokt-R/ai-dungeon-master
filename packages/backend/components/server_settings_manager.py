@@ -36,8 +36,168 @@ class ServerSettingsManager:
                     )
                     """
                 )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS Campaigns (
+                        campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        server_id TEXT NOT NULL,
+                        campaign_name TEXT NOT NULL,
+                        owner_id TEXT NOT NULL,
+                        state TEXT,
+                        last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(server_id, campaign_name)
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS CampaignPlayers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        campaign_id INTEGER NOT NULL,
+                        player_id TEXT NOT NULL,
+                        character_name TEXT,
+                        player_status TEXT,
+                        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
+                        UNIQUE(campaign_id, player_id)
+                    )
+                    """
+                )
         finally:
             if close_conn:
+                conn.close()
+
+    # --- Campaign Management Methods ---
+
+    def create_campaign(
+        self, server_id: str, campaign_name: str, owner_id: str, state: str = None
+    ):
+        """Create a new campaign in the Campaigns table."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO Campaigns (server_id, campaign_name, owner_id, state)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (server_id, campaign_name, owner_id, state),
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def get_campaign(self, server_id: str, campaign_name: str):
+        """Retrieve a campaign by server_id and campaign_name."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT campaign_id, server_id, campaign_name, owner_id, state, last_save FROM Campaigns WHERE server_id = ? AND campaign_name = ?",
+                (server_id, campaign_name),
+            )
+            row = cur.fetchone()
+            if row:
+                return {
+                    "campaign_id": row[0],
+                    "server_id": row[1],
+                    "campaign_name": row[2],
+                    "owner_id": row[3],
+                    "state": row[4],
+                    "last_save": row[5],
+                }
+            return None
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def add_player_to_campaign(
+        self,
+        campaign_id: int,
+        player_id: str,
+        character_name: str = None,
+        player_status="joined",
+    ):
+        """Add a player to a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO CampaignPlayers (campaign_id, player_id, character_name, player_status)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(campaign_id, player_id) DO NOTHING
+                    """,
+                    (campaign_id, player_id, character_name, player_status),
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+
+    # TODO: Review
+    def remove_player_from_campaign(
+        self, campaign_id: int, player_id: str, character_name: str = None
+    ):
+        """Add a player to a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    UPDATE CampaignPlayers SET state = 'cmd', joined_at = CURRENT_TIMESTAMP WHERE campaign_id = ? AND player_id= ?
+                    """,
+                    (campaign_id, player_id, character_name),
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def get_campaign_players(self, campaign_id: int):
+        """Get all players in a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT player_id, character_name, joined_at FROM CampaignPlayers WHERE campaign_id = ?",
+                (campaign_id,),
+            )
+            return cur.fetchall()
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def update_campaign_state(self, campaign_id: int, state: str):
+        """Update the state and last_save of a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    UPDATE Campaigns SET state = ?, last_save = CURRENT_TIMESTAMP WHERE campaign_id = ?
+                    """,
+                    (state, campaign_id),
+                )
+        finally:
+            if self.db_path != ":memory:":
                 conn.close()
 
     def load_encryption_key(self) -> bytes:

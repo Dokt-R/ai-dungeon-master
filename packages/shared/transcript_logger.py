@@ -95,7 +95,7 @@ class TranscriptLogger:
             # Shift rotated logs up
             for i in range(MAX_ROTATED_LOGS - 1, 0, -1):
                 src = f"{log_path}.{i}"
-                dst = f"{log_path}.{i+1}"
+                dst = f"{log_path}.{i + 1}"
                 if os.path.exists(src):
                     os.rename(src, dst)
             # Rotate current log
