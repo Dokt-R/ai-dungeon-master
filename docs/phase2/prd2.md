@@ -33,6 +33,7 @@ The initial MVP was designed to prove the core viability of an AI-driven Dungeon
 10. **FR10 (Human DM Assistant Mode):** The system shall provide a mode where the AI DM's narrative generation is disabled, but all other multimedia and organizational tools are available to a human DM.
 11. **FR11 (Campaign Wiki):** The system shall auto-generate a locally hosted web interface to allow users to browse and edit their campaign's lore files.
 12. **FR12 (AI Conversation Director):** The system shall provide an optional mode where the bot can analyze voice chat for off-topic drift and gently re-engage the party with narrative prompts.
+13. **FR13 (Character Chronicle):** The `AI Notetaker` agent must build and maintain a "Character-Specific Chronicle" for each player character. This chronicle will be a dynamic log of that character's specific actions and dialogue, to be used as the primary context for the "AI Auto-Play" feature.
 
 ### Non-Functional Requirements
 1.  **NFR1 (Multimedia Latency):** The generation and delivery of new multimedia assets (voice and images) should not significantly disrupt the narrative flow of the game.
