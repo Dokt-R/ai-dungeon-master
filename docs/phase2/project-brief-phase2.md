@@ -1,8 +1,3 @@
-Of course. It's a great idea to have the complete brief for reference as we move forward. Here is the full and final text of the **Project Brief for Phase 2**, which captures the grand vision we've designed together.
-
-You can copy the content from the code block below and save it as `docs/project-brief-phase-2.md`.
-
-```markdown
 # Project Brief - Phase 2: Grand Vision
 
 ## Section 1: Executive Summary
@@ -211,4 +206,3 @@ This phase of development is designed to serve three key user segments, each wit
     10. For the **"Auto-Generated Campaign Wiki,"** what is the best lightweight technology stack for a locally hosted web interface, and how do we handle real-time synchronization between edits made in the wiki and the backend's YAML files?
     11. For the **"Human DM Assistant" Mode,** what is the optimal user experience for a human DM to interact with the AI's tools (maps, music, etc.) without it feeling intrusive or breaking their narrative flow?
     12. How should we design a system for users to optionally **share their homebrew creations** with the wider community in a structured and searchable way?
-```
