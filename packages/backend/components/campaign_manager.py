@@ -13,21 +13,6 @@ class CampaignManager:
             server_id, campaign_name, owner_id, state="{}"
         )
 
-    def join_campaign(
-        self,
-        campaign_name: str,
-        server_id: str,
-        player_id: str,
-        character_name: str = None,
-    ):
-        campaign = self.settings_manager.get_campaign(server_id, campaign_name)
-        if not campaign:
-            raise ValueError(f"No campaign named '{campaign_name}' exists.")
-        self.settings_manager.add_player_to_campaign(
-            campaign["campaign_id"], player_id, character_name
-        )
-        # return {"player_status": "joined"} #! Line could be deleted
-
     def resume_campaign(
         self, campaign_name: str, player_discord_id: str, server_id: str = None
     ):

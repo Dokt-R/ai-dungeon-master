@@ -13,12 +13,6 @@ class CampaignCreateRequest(BaseModel):
     owner_id: str
 
 
-class CampaignJoinRequest(BaseModel):
-    server_id: str
-    campaign_name: str
-    player_id: str
-
-
 class CampaignContinueRequest(BaseModel):
     server_id: str
     campaign_name: str
@@ -31,7 +25,7 @@ class CampaignEndRequest(BaseModel):
     player_id: str
 
 
-@router.post("/campaigns/", summary="Create a new campaign")
+@router.post("/campaigns/new", summary="Create a new campaign")
 @fastapi_error_handler
 def create_campaign(req: CampaignCreateRequest):
     campaign_manager.create_campaign(
@@ -40,17 +34,6 @@ def create_campaign(req: CampaignCreateRequest):
         owner_id=req.owner_id,
     )
     return {"message": "Campaign created successfully."}
-
-
-@router.post("/campaigns/join", summary="Join an existing campaign")
-@fastapi_error_handler
-def join_campaign(req: CampaignJoinRequest):
-    result = campaign_manager.join_campaign(
-        server_id=req.server_id,
-        campaign_name=req.campaign_name,
-        player_id=req.player_id,
-    )
-    return {"message": "Campaign joined successfully.", "result": result}
 
 
 @router.post(

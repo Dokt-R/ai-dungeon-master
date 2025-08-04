@@ -37,7 +37,7 @@ class CampaignCog(commands.Cog):
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    f"{self.api_base_url}/campaigns/",
+                    f"{self.api_base_url}/campaigns/new",
                     json={
                         "server_id": str(interaction.guild.id),
                         "campaign_name": campaign_name,
@@ -79,7 +79,7 @@ class CampaignCog(commands.Cog):
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    f"{self.api_base_url}/campaigns/join",
+                    f"{self.api_base_url}/players/join_campaign",
                     json={
                         "server_id": str(interaction.guild.id),
                         "campaign_name": campaign_name,
