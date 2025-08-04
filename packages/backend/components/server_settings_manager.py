@@ -38,6 +38,28 @@ class ServerSettingsManager:
                 )
                 conn.execute(
                     """
+                    CREATE TABLE IF NOT EXISTS Players (
+                        user_id TEXT PRIMARY KEY,
+                        username TEXT,
+                        last_active_campaign TEXT,
+                        FOREIGN KEY (last_active_campaign) REFERENCES Campaigns(campaign_name)
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS Characters (
+                        character_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        player_id TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        dnd_beyond_url TEXT,
+                        FOREIGN KEY (player_id) REFERENCES Players(user_id),
+                        UNIQUE(player_id, name)
+                    )
+                    """
+                )
+                conn.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS Campaigns (
                         campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
                         server_id TEXT NOT NULL,
@@ -55,10 +77,12 @@ class ServerSettingsManager:
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         campaign_id INTEGER NOT NULL,
                         player_id TEXT NOT NULL,
-                        character_name TEXT,
-                        player_status TEXT,
+                        character_id INTEGER,
+                        player_status TEXT CHECK(player_status IN ('joined', 'cmd')) NOT NULL DEFAULT 'joined',
                         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
+                        FOREIGN KEY (player_id) REFERENCES Players(user_id),
+                        FOREIGN KEY (character_id) REFERENCES Characters(character_id),
                         UNIQUE(campaign_id, player_id)
                     )
                     """
@@ -117,52 +141,7 @@ class ServerSettingsManager:
             if self.db_path != ":memory:":
                 conn.close()
 
-    def add_player_to_campaign(
-        self,
-        campaign_id: int,
-        player_id: str,
-        character_name: str = None,
-        player_status="joined",
-    ):
-        """Add a player to a campaign."""
-        if self.db_path == ":memory:":
-            conn = self._conn
-        else:
-            conn = sqlite3.connect(self.db_path)
-        try:
-            with conn:
-                conn.execute(
-                    """
-                    INSERT INTO CampaignPlayers (campaign_id, player_id, character_name, player_status)
-                    VALUES (?, ?, ?, ?)
-                    ON CONFLICT(campaign_id, player_id) DO NOTHING
-                    """,
-                    (campaign_id, player_id, character_name, player_status),
-                )
-        finally:
-            if self.db_path != ":memory:":
-                conn.close()
-
-    # TODO: Review
-    def remove_player_from_campaign(
-        self, campaign_id: int, player_id: str, character_name: str = None
-    ):
-        """Add a player to a campaign."""
-        if self.db_path == ":memory:":
-            conn = self._conn
-        else:
-            conn = sqlite3.connect(self.db_path)
-        try:
-            with conn:
-                conn.execute(
-                    """
-                    UPDATE CampaignPlayers SET state = 'cmd', joined_at = CURRENT_TIMESTAMP WHERE campaign_id = ? AND player_id= ?
-                    """,
-                    (campaign_id, player_id, character_name),
-                )
-        finally:
-            if self.db_path != ":memory:":
-                conn.close()
+    # All player join/end/status logic is now handled by PlayerManager.
 
     def get_campaign_players(self, campaign_id: int):
         """Get all players in a campaign."""

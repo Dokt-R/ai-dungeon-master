@@ -36,36 +36,6 @@ def create_campaign(req: CampaignCreateRequest):
     return {"message": "Campaign created successfully."}
 
 
-@router.post(
-    "/campaigns/end", summary="Temporarily exit a campaign into the command state"
-)
-@fastapi_error_handler
-def end_campaign(req: CampaignContinueRequest):
-    result = campaign_manager.resume_campaign(
-        player_discord_id=req.player_id,
-        campaign_name=req.campaign_name,
-        server_id=req.server_id,
-    )
-    return {
-        "message": "Campaign exited successfully.",
-        "narrative": result["narrative"],
-    }
-
-
-@router.post("/campaigns/continue", summary="Continue last active campaign")
-@fastapi_error_handler
-def continue_campaign(req: CampaignContinueRequest):
-    result = campaign_manager.resume_campaign(
-        player_discord_id=req.player_id,
-        campaign_name=req.campaign_name,
-        server_id=req.server_id,
-    )
-    return {
-        "message": "Campaign joined successfully.",
-        "narrative": result["narrative"],
-    }
-
-
 #! ALL CODE BELOW THIS LINE IS A PLACEHOLDER AND SHOULD BE IGNORED UNLESS REQUESTED
 
 # @router.post("/campaigns/kick", summary="Kick a player from the campaign")

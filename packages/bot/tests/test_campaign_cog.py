@@ -147,55 +147,90 @@ async def test_campaign_join_backend_error(cog):
         )
 
 
-# @pytest.mark.asyncio
-# async def test_campaign_continue_success(cog):
-#     interaction = MagicMock()
-#     interaction.user.id = 123
-#     interaction.response = AsyncMock()
-#     campaign_name = "existing_campaign"
+@pytest.mark.asyncio
+async def test_campaign_join_no_campaign_name_uses_last_active(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1001
+    interaction.response = AsyncMock()
+    # Simulate backend returns success when no campaign_name is given (uses last_active_campaign)
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = AsyncMock(return_value={})
+        await cog._handle_campaign_join(interaction, None)
+        interaction.response.send_message.assert_called_once()
+        assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
-#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-#         mock_post.return_value.status_code = 200
-#         mock_post.return_value.json = AsyncMock(
-#             return_value={"narrative": "Resumed narrative"}
-#         )
-#         await cog._handle_campaign_continue(interaction, campaign_name)
-#         interaction.response.send_message.assert_called_once()
-#         assert "Resumed narrative" in interaction.response.send_message.call_args[0][0]
+@pytest.mark.asyncio
+async def test_campaign_join_already_joined_fails(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1002
+    interaction.response = AsyncMock()
+    campaign_name = "campaign1"
+    # Simulate backend returns error for already joined
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 400
+        mock_post.return_value.json = AsyncMock(return_value={"detail": "Player is already joined to an active campaign on this server."})
+        await cog._handle_campaign_join(interaction, campaign_name)
+        interaction.response.send_message.assert_called_once()
+        assert "already joined" in interaction.response.send_message.call_args[0][0]
 
+@pytest.mark.asyncio
+async def test_campaign_join_new_player_and_character(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1003
+    interaction.response = AsyncMock()
+    campaign_name = "new_campaign"
+    # Simulate backend returns success for new player/character
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = AsyncMock(return_value={})
+        await cog._handle_campaign_join(interaction, campaign_name)
+        interaction.response.send_message.assert_called_once()
+        assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
-# @pytest.mark.asyncio
-# async def test_campaign_continue_nonexistent(cog):
-#     interaction = MagicMock()
-#     interaction.user.id = 123
-#     interaction.response = AsyncMock()
-#     campaign_name = "nonexistent_campaign"
+@pytest.mark.asyncio
+async def test_campaign_end_and_join_another(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1004
+    interaction.response = AsyncMock()
+    campaign_name1 = "campaignA"
+    campaign_name2 = "campaignB"
+    # End campaignA
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = AsyncMock(return_value={})
+        await cog._handle_campaign_end(interaction, campaign_name1)
+        interaction.response.send_message.assert_called_once()
+        # Now join campaignB
+        interaction.response.reset_mock()
+        mock_post.return_value.status_code = 200
+        await cog._handle_campaign_join(interaction, campaign_name2)
+        interaction.response.send_message.assert_called_once()
+        assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
-#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-#         mock_post.return_value.status_code = 400
-#         mock_post.return_value.json = AsyncMock(
-#             return_value={"detail": "Campaign does not exist"}
-#         )
-#         await cog._handle_campaign_continue(interaction, campaign_name)
-#         interaction.response.send_message.assert_called_once()
-#         assert (
-#             "Failed to continue campaign"
-#             in interaction.response.send_message.call_args[0][0]
-#         )
+@pytest.mark.asyncio
+async def test_campaign_join_no_last_active_campaign_fails(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1005
+    interaction.response = AsyncMock()
+    # Simulate backend returns error for no last_active_campaign
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 400
+        mock_post.return_value.json = AsyncMock(return_value={"detail": "No campaign specified and no last active campaign found for player."})
+        await cog._handle_campaign_join(interaction, None)
+        interaction.response.send_message.assert_called_once()
+        assert "no last active campaign" in interaction.response.send_message.call_args[0][0].lower()
 
-
-# @pytest.mark.asyncio
-# async def test_campaign_continue_unexpected_error(cog):
-#     interaction = MagicMock()
-#     interaction.user.id = 123
-#     interaction.response = AsyncMock()
-#     campaign_name = "existing_campaign"
-
-#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-#         mock_post.side_effect = Exception("unexpected error")
-#         await cog._handle_campaign_continue(interaction, campaign_name)
-#         interaction.response.send_message.assert_called_once()
-#         assert (
-#             "Failed to continue campaign"
-#             in interaction.response.send_message.call_args[0][0]
-#         )
+@pytest.mark.asyncio
+async def test_campaign_join_new_character_linked(cog):
+    interaction = MagicMock()
+    interaction.user.id = 1006
+    interaction.response = AsyncMock()
+    campaign_name = "campaignC"
+    # Simulate backend returns success for new character
+    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+        mock_post.return_value.status_code = 200
+        mock_post.return_value.json = AsyncMock(return_value={})
+        await cog._handle_campaign_join(interaction, campaign_name)
+        interaction.response.send_message.assert_called_once()
+        assert "joined campaign" in interaction.response.send_message.call_args[0][0]

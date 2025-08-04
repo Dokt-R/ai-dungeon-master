@@ -106,21 +106,26 @@ class CampaignCog(commands.Cog):
                     f"Failed to join campaign: {e}", ephemeral=True
                 )
 
-    # TODO: Continue here
     @campaign.command(
         name="end",
         description="Exit the current campaign immersive mode and enter command mode.",
     )
-    async def _handle_campaign_end(self, interaction: discord.Interaction):
-        # Call backend API to join campaign
+    async def end(self, interaction: discord.Interaction):
+        await self._handle_campaign_end(interaction)
+
+    async def _handle_campaign_end(self, interaction: discord.Interaction, campaign_name: str = None):
+        # Call backend API to end campaign
+        payload = {
+            "server_id": str(interaction.guild.id),
+            "player_id": str(interaction.user.id),
+        }
+        if campaign_name:
+            payload["campaign_name"] = campaign_name
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    f"{self.api_base_url}/campaigns/end",
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "player_id": str(interaction.user.id),
-                    },
+                    f"{self.api_base_url}/players/end_campaign",
+                    json=payload,
                 )
                 if response.status_code == 200:
                     await interaction.response.send_message(
