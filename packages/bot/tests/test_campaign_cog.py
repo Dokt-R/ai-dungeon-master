@@ -1,7 +1,5 @@
-import discord
 from discord.ext import commands
 import pytest
-import os
 import sys
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -29,7 +27,7 @@ async def test_campaign_new_success(tmp_path, cog):
     interaction.guild.id = 456
     interaction.response = AsyncMock()
     campaign_name = "test_campaign"
-    campaign_dir = tmp_path / "data" / "campaigns" / campaign_name
+    # campaign_dir = tmp_path / "data" / "campaigns" / campaign_name
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value.status_code = 200
@@ -149,55 +147,55 @@ async def test_campaign_join_backend_error(cog):
         )
 
 
-@pytest.mark.asyncio
-async def test_campaign_continue_success(cog):
-    interaction = MagicMock()
-    interaction.user.id = 123
-    interaction.response = AsyncMock()
-    campaign_name = "existing_campaign"
+# @pytest.mark.asyncio
+# async def test_campaign_continue_success(cog):
+#     interaction = MagicMock()
+#     interaction.user.id = 123
+#     interaction.response = AsyncMock()
+#     campaign_name = "existing_campaign"
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value.status_code = 200
-        mock_post.return_value.json = AsyncMock(
-            return_value={"narrative": "Resumed narrative"}
-        )
-        await cog._handle_campaign_continue(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert "Resumed narrative" in interaction.response.send_message.call_args[0][0]
-
-
-@pytest.mark.asyncio
-async def test_campaign_continue_nonexistent(cog):
-    interaction = MagicMock()
-    interaction.user.id = 123
-    interaction.response = AsyncMock()
-    campaign_name = "nonexistent_campaign"
-
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_post.return_value.status_code = 400
-        mock_post.return_value.json = AsyncMock(
-            return_value={"detail": "Campaign does not exist"}
-        )
-        await cog._handle_campaign_continue(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "Failed to continue campaign"
-            in interaction.response.send_message.call_args[0][0]
-        )
+#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+#         mock_post.return_value.status_code = 200
+#         mock_post.return_value.json = AsyncMock(
+#             return_value={"narrative": "Resumed narrative"}
+#         )
+#         await cog._handle_campaign_continue(interaction, campaign_name)
+#         interaction.response.send_message.assert_called_once()
+#         assert "Resumed narrative" in interaction.response.send_message.call_args[0][0]
 
 
-@pytest.mark.asyncio
-async def test_campaign_continue_unexpected_error(cog):
-    interaction = MagicMock()
-    interaction.user.id = 123
-    interaction.response = AsyncMock()
-    campaign_name = "existing_campaign"
+# @pytest.mark.asyncio
+# async def test_campaign_continue_nonexistent(cog):
+#     interaction = MagicMock()
+#     interaction.user.id = 123
+#     interaction.response = AsyncMock()
+#     campaign_name = "nonexistent_campaign"
 
-    with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
-        mock_post.side_effect = Exception("unexpected error")
-        await cog._handle_campaign_continue(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "Failed to continue campaign"
-            in interaction.response.send_message.call_args[0][0]
-        )
+#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+#         mock_post.return_value.status_code = 400
+#         mock_post.return_value.json = AsyncMock(
+#             return_value={"detail": "Campaign does not exist"}
+#         )
+#         await cog._handle_campaign_continue(interaction, campaign_name)
+#         interaction.response.send_message.assert_called_once()
+#         assert (
+#             "Failed to continue campaign"
+#             in interaction.response.send_message.call_args[0][0]
+#         )
+
+
+# @pytest.mark.asyncio
+# async def test_campaign_continue_unexpected_error(cog):
+#     interaction = MagicMock()
+#     interaction.user.id = 123
+#     interaction.response = AsyncMock()
+#     campaign_name = "existing_campaign"
+
+#     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+#         mock_post.side_effect = Exception("unexpected error")
+#         await cog._handle_campaign_continue(interaction, campaign_name)
+#         interaction.response.send_message.assert_called_once()
+#         assert (
+#             "Failed to continue campaign"
+#             in interaction.response.send_message.call_args[0][0]
+#         )

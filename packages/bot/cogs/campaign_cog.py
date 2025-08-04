@@ -105,12 +105,12 @@ class CampaignCog(commands.Cog):
                 await interaction.response.send_message(
                     f"Failed to join campaign: {e}", ephemeral=True
                 )
-#TODO: Continue here
+
+    # TODO: Continue here
     @campaign.command(
         name="end",
         description="Exit the current campaign immersive mode and enter command mode.",
     )
-
     async def _handle_campaign_end(self, interaction: discord.Interaction):
         # Call backend API to join campaign
         async with httpx.AsyncClient() as client:

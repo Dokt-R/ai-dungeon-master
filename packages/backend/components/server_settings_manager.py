@@ -143,7 +143,6 @@ class ServerSettingsManager:
             if self.db_path != ":memory:":
                 conn.close()
 
-
     # TODO: Review
     def remove_player_from_campaign(
         self, campaign_id: int, player_id: str, character_name: str = None

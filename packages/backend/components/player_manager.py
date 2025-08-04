@@ -2,10 +2,7 @@ class PlayerManager:
     def __init__(self):
         # Should populate upon creation when player joins server probably
         # Or when a player joins server he should populate the DB and set
-        return {
-            # "player_id": player_id,
-            "status": "outsider",
-        }
+        self.status = "outsider"
 
     def join_campaign(
         self, campaign_name: str, player_id: str, character_name: str = None
@@ -24,9 +21,9 @@ class PlayerManager:
             "status": "joined",
         }
 
-        def end_campaign(
-            self, campaign_name: str, player_id: str, character_name: str = None
-        ):
+    def end_campaign(
+        self, campaign_name: str, player_id: str, character_name: str = None
+    ):
             # This is a stub. In a real implementation, this would:
             # - Check if the campaign exists
             # - Add the player to the campaign's player list

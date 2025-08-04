@@ -1,3 +1,4 @@
+import functools
 import logging
 from fastapi import HTTPException
 
@@ -55,8 +56,6 @@ Usage:
 
 Do NOT use handle_error in low-level service or database code; propagate exceptions up to the API or command handler layer.
 """
-
-import functools
 
 
 def discord_error_handler(
