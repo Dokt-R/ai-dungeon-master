@@ -1,8 +1,27 @@
 import sqlite3
+from packages.shared.error_handler import ValidationError, NotFoundError
 
 
 class PlayerManager:
-    def __init__(self, db_path: str = "server_settings.db"):
+    """
+    Manages player participation, campaign membership, and character associations.
+
+    Handles player joining, leaving, and ending campaigns, as well as retrieving player status.
+    Interacts with the database to enforce campaign membership rules and maintain player state.
+    """
+
+    def __init__(self, db_path: str = None):
+        """
+        Initialize the PlayerManager.
+
+        Args:
+            db_path (str, optional): Path to the SQLite database file. If None, uses the DB_PATH
+                environment variable or defaults to 'server_settings.db'.
+        """
+        import os
+
+        if db_path is None:
+            db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.db_path = db_path
 
     def join_campaign(
@@ -15,9 +34,27 @@ class PlayerManager:
         dnd_beyond_url: str = None,
     ):
         """
-        Join a campaign. If campaign_name is None, use last_active_campaign.
-        Enforces only one 'joined' campaign per player at a time.
-        Updates last_active_campaign on join.
+        Join a campaign as a player, optionally associating a character.
+
+        If `campaign_name` is None, uses the player's last active campaign.
+        Enforces that a player can only be 'joined' to one campaign per server at a time.
+        Updates the player's last active campaign on join.
+
+        Args:
+            player_id (str): Unique identifier for the player.
+            server_id (str): Unique identifier for the server.
+            campaign_name (str, optional): Name of the campaign to join. If None, uses last active campaign.
+            username (str, optional): Username of the player (used if creating a new player).
+            character_name (str, optional): Name of the character to associate with the campaign.
+            dnd_beyond_url (str, optional): D&D Beyond URL for the character.
+
+        Returns:
+            dict: Information about the joined campaign, player, and character.
+
+        Raises:
+            NotFoundError: If the specified campaign or last active campaign does not exist.
+            ValidationError: If no campaign is specified and no last active campaign is found,
+                or if the player is already joined to an active campaign on this server.
         """
         conn = sqlite3.connect(self.db_path)
         try:
@@ -45,14 +82,14 @@ class PlayerManager:
                 )
                 campaign_row = cur.fetchone()
                 if not campaign_row:
-                    raise ValueError(
+                    raise NotFoundError(
                         f"Campaign '{campaign_name}' does not exist on server '{server_id}'"
                     )
                 campaign_id = campaign_row[0]
             else:
                 # Use last_active_campaign
                 if not last_active_campaign:
-                    raise ValueError(
+                    raise ValidationError(
                         "No campaign specified and no last active campaign found for player."
                     )
                 campaign_id = last_active_campaign
@@ -62,7 +99,9 @@ class PlayerManager:
                 )
                 row = cur.fetchone()
                 if not row:
-                    raise ValueError("Last active campaign not found on this server.")
+                    raise NotFoundError(
+                        f"Last active campaign (ID: {campaign_id}) not found on server '{server_id}'."
+                    )
                 campaign_name = row[0]
 
             # Enforce only one joined campaign per player
@@ -75,7 +114,7 @@ class PlayerManager:
                 (player_id, server_id),
             )
             if cur.fetchone():
-                raise ValueError(
+                raise ValidationError(
                     "Player is already joined to an active campaign on this server."
                 )
 
@@ -124,8 +163,21 @@ class PlayerManager:
 
     def end_campaign(self, player_id: str, server_id: str, campaign_name: str = None):
         """
-        End a campaign for a player (set status to 'cmd').
-        If campaign_name is None, use last_active_campaign.
+        End a campaign for a player by setting their status to 'cmd' (command state).
+
+        If `campaign_name` is None, uses the player's last active campaign.
+
+        Args:
+            player_id (str): Unique identifier for the player.
+            server_id (str): Unique identifier for the server.
+            campaign_name (str, optional): Name of the campaign to end. If None, uses last active campaign.
+
+        Returns:
+            dict: Information about the ended campaign and player status.
+
+        Raises:
+            NotFoundError: If the specified campaign or last active campaign does not exist.
+            ValidationError: If no campaign is specified and no last active campaign is found.
         """
         conn = sqlite3.connect(self.db_path)
         try:
@@ -138,7 +190,7 @@ class PlayerManager:
                 )
                 campaign_row = cur.fetchone()
                 if not campaign_row:
-                    raise ValueError(
+                    raise NotFoundError(
                         f"Campaign '{campaign_name}' does not exist on server '{server_id}'"
                     )
                 campaign_id = campaign_row[0]
@@ -149,7 +201,7 @@ class PlayerManager:
                 )
                 row = cur.fetchone()
                 if not row or not row[0]:
-                    raise ValueError(
+                    raise ValidationError(
                         "No campaign specified and no last active campaign found for player."
                     )
                 campaign_id = row[0]
@@ -159,7 +211,9 @@ class PlayerManager:
                 )
                 name_row = cur.fetchone()
                 if not name_row:
-                    raise ValueError("Last active campaign not found on this server.")
+                    raise NotFoundError(
+                        f"Last active campaign (ID: {campaign_id}) not found on server '{server_id}'."
+                    )
                 campaign_name = name_row[0]
 
             # Set player_status to 'cmd'
@@ -176,6 +230,149 @@ class PlayerManager:
                 "campaign_name": campaign_name,
                 "player_id": player_id,
                 "player_status": "cmd",
+            }
+        finally:
+            conn.close()
+
+    def leave_campaign(self, player_id: str, server_id: str, campaign_name: str = None):
+        """
+        Remove a player from a campaign (deletes from CampaignPlayers).
+
+        If `campaign_name` is None, uses the player's last active campaign.
+        If the player leaves their last active campaign, clears last_active_campaign.
+
+        Args:
+            player_id (str): Unique identifier for the player.
+            server_id (str): Unique identifier for the server.
+            campaign_name (str, optional): Name of the campaign to leave. If None, uses last active campaign.
+
+        Returns:
+            dict: Information about the campaign left and player.
+
+        Raises:
+            NotFoundError: If the specified campaign or last active campaign does not exist.
+            ValidationError: If no campaign is specified and no last active campaign is found.
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            # Determine campaign to leave
+            if campaign_name:
+                cur.execute(
+                    "SELECT campaign_id FROM Campaigns WHERE server_id = ? AND campaign_name = ?",
+                    (server_id, campaign_name),
+                )
+                campaign_row = cur.fetchone()
+                if not campaign_row:
+                    raise NotFoundError(
+                        f"Campaign '{campaign_name}' does not exist on server '{server_id}'"
+                    )
+                campaign_id = campaign_row[0]
+            else:
+                cur.execute(
+                    "SELECT last_active_campaign FROM Players WHERE user_id = ?",
+                    (player_id,),
+                )
+                row = cur.fetchone()
+                if not row or not row[0]:
+                    raise ValidationError(
+                        "No campaign specified and no last active campaign found for player."
+                    )
+                campaign_id = row[0]
+                cur.execute(
+                    "SELECT campaign_name FROM Campaigns WHERE campaign_id = ? AND server_id = ?",
+                    (campaign_id, server_id),
+                )
+                name_row = cur.fetchone()
+                if not name_row:
+                    raise NotFoundError(
+                        f"Last active campaign (ID: {campaign_id}) not found on server '{server_id}'."
+                    )
+                campaign_name = name_row[0]
+
+            # Delete player from campaign
+            cur.execute(
+                "DELETE FROM CampaignPlayers WHERE campaign_id = ? AND player_id = ?",
+                (campaign_id, player_id),
+            )
+            # Optionally, clear last_active_campaign if it matches
+            cur.execute(
+                "SELECT last_active_campaign FROM Players WHERE user_id = ?",
+                (player_id,),
+            )
+            row = cur.fetchone()
+            if row and str(row[0]) == str(campaign_id):
+                cur.execute(
+                    "UPDATE Players SET last_active_campaign = NULL WHERE user_id = ?",
+                    (player_id,),
+                )
+            conn.commit()
+            return {
+                "campaign_name": campaign_name,
+                "player_id": player_id,
+                "status": "left",
+            }
+        finally:
+            conn.close()
+
+    def get_player_status(self, player_id: str):
+        """
+        Retrieve a summary of the player's campaigns, characters, and current status.
+
+        Args:
+            player_id (str): Unique identifier for the player.
+
+        Returns:
+            dict: Player information, including username, last active campaign, list of campaigns
+                (with status), and all characters.
+
+        Raises:
+            NotFoundError: If the player does not exist.
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            # Get player info
+            cur.execute(
+                "SELECT username, last_active_campaign FROM Players WHERE user_id = ?",
+                (player_id,),
+            )
+            player_row = cur.fetchone()
+            if not player_row:
+                raise NotFoundError(f"Player with ID '{player_id}' not found.")
+            username, last_active_campaign = player_row
+
+            # Get campaigns player is/was in
+            cur.execute(
+                """
+                SELECT c.campaign_name, cp.player_status
+                FROM CampaignPlayers cp
+                JOIN Campaigns c ON cp.campaign_id = c.campaign_id
+                WHERE cp.player_id = ?
+                """,
+                (player_id,),
+            )
+            campaigns = [
+                {"campaign_name": row[0], "player_status": row[1]}
+                for row in cur.fetchall()
+            ]
+
+            # Get all characters for player
+            cur.execute(
+                "SELECT character_id, name, dnd_beyond_url FROM Characters WHERE player_id = ?",
+                (player_id,),
+            )
+            characters = [
+                {"character_id": row[0], "name": row[1], "dnd_beyond_url": row[2]}
+                for row in cur.fetchall()
+            ]
+
+            return {
+                "player_id": player_id,
+                "username": username,
+                "last_active_campaign": last_active_campaign,
+                "campaigns": campaigns,
+                "characters": characters,
             }
         finally:
             conn.close()

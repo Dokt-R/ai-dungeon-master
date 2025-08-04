@@ -7,30 +7,26 @@ The following Pydantic models define the core data structures for the applicatio
 
 
 ```python
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, Field
 from typing import List, Optional, Literal
+from datetime import datetime
 
-class ServerConfig(BaseModel):
-    server_id: str
-    api_key: SecretStr
-    dm_roll_visibility: Literal['public', 'hidden']
-    player_roll_mode: Literal['manual_physical', 'manual_digital', 'auto_visible', 'auto_hidden']
-    character_sheet_mode: Literal['digital_sheet', 'physical_sheet']
+class Player(BaseModel):
+    """Represents a player, typically a Discord user."""
+    user_id: str = Field(..., description="Unique identifier for the player (e.g., Discord user ID).")
+    username: Optional[str] = Field(None, description="The player's username (e.g., Discord username).")
 
-class Campaign(BaseModel):
-    # The historical memory_log is now managed in a separate chronicle.yaml file
-    # as per our tiered persistence strategy.
-    campaign_id: str
-    server_id: str
-    name: str
-    active_player_ids: List[str]
+class Character(BaseModel):
+    """Represents a character in a campaign."""
+    name: str = Field(..., description="The character's name.")
+    dnd_beyond_url: Optional[str] = Field(None, description="Optional URL to a D&D Beyond character sheet.")
 
-class PlayerCharacter(BaseModel):
-    character_id: str
-    player_discord_id: str
-    campaign_id: str
-    name: str
-    character_sheet_url: Optional[str] = None
-    preferred_output_mode: Literal['text', 'voice'] = 'text'
+class PlayerCampaign(BaseModel):
+    """Association model linking a Player to a Campaign."""
+    id: int
+    campaign_id: int
+    player_id: str
+    character_name: Optional[str] = None
+    player_status: str
+    joined_at: datetime
 ```
-

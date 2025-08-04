@@ -156,3 +156,168 @@ components:
           type: string
         character_sheet_url:
           type: string
+
+          
+# Player and Character Management Endpoints
+
+## /players/join_campaign (POST)
+- **Description:** Join an existing campaign as a player, optionally associating a character.
+- **Request Body:**
+  ```json
+  {
+    "server_id": "string",
+    "campaign_name": "string",
+    "player_id": "string",
+    "character_name": "string (optional)",
+    "dnd_beyond_url": "string (optional)"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Campaign joined successfully.",
+    "result": {
+      "campaign_name": "string",
+      "player_id": "string",
+      "character_id": "int or null",
+      "status": "joined"
+    }
+  }
+  ```
+- **Errors:** 400 (ValidationError), 404 (NotFoundError)
+
+## /players/end_campaign (POST)
+- **Description:** Temporarily exit a campaign, setting the player's status to 'cmd' (command state).
+- **Request Body:**
+  ```json
+  {
+    "server_id": "string",
+    "campaign_name": "string",
+    "player_id": "string"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Campaign exited successfully.",
+    "narrative": "string or null"
+  }
+  ```
+- **Errors:** 400 (ValidationError), 404 (NotFoundError)
+
+## /players/leave_campaign (POST)
+- **Description:** Remove a player from a campaign.
+- **Request Body:**
+  ```json
+  {
+    "server_id": "string",
+    "campaign_name": "string",
+    "player_id": "string"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "message": "Left campaign successfully.",
+    "result": {
+      "campaign_name": "string",
+      "player_id": "string",
+      "status": "left"
+    }
+  }
+  ```
+- **Errors:** 400 (ValidationError), 404 (NotFoundError)
+
+## /players/status/{player_id} (GET)
+- **Description:** Retrieve a summary of the player's campaigns, characters, and current status.
+- **Response:**
+  ```json
+  {
+    "player_status": {
+      "player_id": "string",
+      "username": "string",
+      "last_active_campaign": "int or null",
+      "campaigns": [
+        {"campaign_name": "string", "player_status": "string"}
+      ],
+      "characters": [
+        {"character_id": "int", "name": "string", "dnd_beyond_url": "string or null"}
+      ]
+    }
+  }
+  ```
+- **Errors:** 404 (NotFoundError)
+
+---
+
+## /characters/add (POST)
+- **Description:** Add a new character for a player.
+- **Request Body:**
+  ```json
+  {
+    "player_id": "string",
+    "name": "string",
+    "dnd_beyond_url": "string (optional)"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "character_id": "int"
+  }
+  ```
+- **Errors:** 400 (ValidationError), 404 (NotFoundError)
+
+## /characters/update (POST)
+- **Description:** Update an existing character's name and/or D&D Beyond URL.
+- **Request Body:**
+  ```json
+  {
+    "character_id": "int",
+    "name": "string (optional)",
+    "dnd_beyond_url": "string (optional)"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true
+  }
+  ```
+- **Errors:** 400 (ValidationError), 404 (NotFoundError)
+
+## /characters/remove (POST)
+- **Description:** Remove a character by character_id.
+- **Request Body:**
+  ```json
+  {
+    "character_id": "int"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "success": true
+  }
+  ```
+- **Errors:** 404 (NotFoundError)
+
+## /characters/list (POST)
+- **Description:** Retrieve all characters for a given player.
+- **Request Body:**
+  ```json
+  {
+    "player_id": "string"
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "characters": [
+      {"character_id": "int", "name": "string", "dnd_beyond_url": "string or null"}
+    ]
+  }
+  ```
+- **Errors:** 404 (NotFoundError)
+
+---

@@ -14,6 +14,7 @@ __pycache__/
 .vscode/
 ai_dm_project.egg-info/
 server_settings.db
+file
 
 # Ignore logs and temp files
 *.log

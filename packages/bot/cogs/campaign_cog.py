@@ -113,7 +113,9 @@ class CampaignCog(commands.Cog):
     async def end(self, interaction: discord.Interaction):
         await self._handle_campaign_end(interaction)
 
-    async def _handle_campaign_end(self, interaction: discord.Interaction, campaign_name: str = None):
+    async def _handle_campaign_end(
+        self, interaction: discord.Interaction, campaign_name: str = None
+    ):
         # Call backend API to end campaign
         payload = {
             "server_id": str(interaction.guild.id),

@@ -8,7 +8,11 @@ load_dotenv()  # Load environment variables from .env file
 
 
 class ServerSettingsManager:
-    def __init__(self, db_path: str = "server_settings.db"):
+    def __init__(self, db_path: str = None):
+        import os
+
+        if db_path is None:
+            db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.key = self.load_encryption_key()
         self.db_path = db_path
         # For in-memory DB, keep a persistent connection

@@ -160,6 +160,7 @@ async def test_campaign_join_no_campaign_name_uses_last_active(cog):
         interaction.response.send_message.assert_called_once()
         assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
+
 @pytest.mark.asyncio
 async def test_campaign_join_already_joined_fails(cog):
     interaction = MagicMock()
@@ -169,10 +170,15 @@ async def test_campaign_join_already_joined_fails(cog):
     # Simulate backend returns error for already joined
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value.status_code = 400
-        mock_post.return_value.json = AsyncMock(return_value={"detail": "Player is already joined to an active campaign on this server."})
+        mock_post.return_value.json = AsyncMock(
+            return_value={
+                "detail": "Player is already joined to an active campaign on this server."
+            }
+        )
         await cog._handle_campaign_join(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
         assert "already joined" in interaction.response.send_message.call_args[0][0]
+
 
 @pytest.mark.asyncio
 async def test_campaign_join_new_player_and_character(cog):
@@ -187,6 +193,7 @@ async def test_campaign_join_new_player_and_character(cog):
         await cog._handle_campaign_join(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
         assert "joined campaign" in interaction.response.send_message.call_args[0][0]
+
 
 @pytest.mark.asyncio
 async def test_campaign_end_and_join_another(cog):
@@ -208,6 +215,7 @@ async def test_campaign_end_and_join_another(cog):
         interaction.response.send_message.assert_called_once()
         assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
+
 @pytest.mark.asyncio
 async def test_campaign_join_no_last_active_campaign_fails(cog):
     interaction = MagicMock()
@@ -216,10 +224,18 @@ async def test_campaign_join_no_last_active_campaign_fails(cog):
     # Simulate backend returns error for no last_active_campaign
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_post.return_value.status_code = 400
-        mock_post.return_value.json = AsyncMock(return_value={"detail": "No campaign specified and no last active campaign found for player."})
+        mock_post.return_value.json = AsyncMock(
+            return_value={
+                "detail": "No campaign specified and no last active campaign found for player."
+            }
+        )
         await cog._handle_campaign_join(interaction, None)
         interaction.response.send_message.assert_called_once()
-        assert "no last active campaign" in interaction.response.send_message.call_args[0][0].lower()
+        assert (
+            "no last active campaign"
+            in interaction.response.send_message.call_args[0][0].lower()
+        )
+
 
 @pytest.mark.asyncio
 async def test_campaign_join_new_character_linked(cog):
