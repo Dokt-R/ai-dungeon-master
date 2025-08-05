@@ -28,7 +28,7 @@ class ServerSettingsManager:
             with conn:
                 conn.execute(
                     """
-                    CREATE TABLE IF NOT EXISTS ServerAPIKeys (
+                    CREATE TABLE IF NOT EXISTS Keys (
                         server_id TEXT PRIMARY KEY,
                         api_key TEXT NOT NULL
                     )
@@ -63,7 +63,7 @@ class ServerSettingsManager:
             with conn:
                 conn.execute(
                     """
-                    INSERT INTO ServerAPIKeys (server_id, api_key)
+                    INSERT INTO Keys (server_id, api_key)
                     VALUES (?, ?)
                     ON CONFLICT(server_id) DO UPDATE SET api_key=excluded.api_key
                     """,
@@ -81,7 +81,7 @@ class ServerSettingsManager:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT api_key FROM ServerAPIKeys WHERE server_id = ?",
+                "SELECT api_key FROM Keys WHERE server_id = ?",
                 (server_id,),
             )
             row = cur.fetchone()

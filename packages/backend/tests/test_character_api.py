@@ -7,7 +7,6 @@ from packages.backend.main import app
 from fastapi.testclient import TestClient
 
 
-
 @pytest.fixture(scope="session")
 def temp_db_file():
     fd, path = tempfile.mkstemp(suffix=".db")
@@ -23,7 +22,7 @@ def set_db_env_and_schema(temp_db_file):
     cur = conn.cursor()
     conn.execute(
         """
-        CREATE TABLE IF NOT EXISTS ServerAPIKeys (
+        CREATE TABLE IF NOT EXISTS Keys (
             server_id TEXT PRIMARY KEY,
             api_key TEXT NOT NULL
         )
@@ -109,7 +108,13 @@ def set_db_env_and_schema(temp_db_file):
 def clear_tables(temp_db_file, set_db_env_and_schema):
     conn = sqlite3.connect(temp_db_file)
     cur = conn.cursor()
-    for table in ["Characters", "Players", "Campaigns", "CampaignPlayers", "CampaignAutosaves"]:
+    for table in [
+        "Characters",
+        "Players",
+        "Campaigns",
+        "CampaignPlayers",
+        "CampaignAutosaves",
+    ]:
         try:
             cur.execute(f"DELETE FROM {table}")
         except sqlite3.OperationalError:
@@ -133,16 +138,21 @@ def player_id(client, temp_db_file):
     assert resp.status_code == 200
     return test_player_id
 
+
 @pytest.fixture
 def campaign_id(client, temp_db_file):
     campaign_name = "Test Campaign"
     server_id = "test-server"
     owner_id = "Test Owner"
     client.post(
-        "/campaigns/new", json={"campaign_name": campaign_name, "server_id": server_id, "owner_id": owner_id}
+        "/campaigns/new",
+        json={
+            "campaign_name": campaign_name,
+            "server_id": server_id,
+            "owner_id": owner_id,
+        },
     )
     return campaign_name
-    
 
 
 def test_add_character(client, player_id):
@@ -182,7 +192,7 @@ def test_add_character_not_found_player(client, temp_db_file):
     assert "does not exist" in resp.text
 
 
-def test_update_character_not_found(client, player_id,temp_db_file):
+def test_update_character_not_found(client, player_id, temp_db_file):
     resp = client.post(
         "/characters/update", json={"character_id": 99999, "name": "NewName"}
     )
@@ -247,6 +257,7 @@ def test_remove_character(client, player_id, temp_db_file):
     # TODO: Further update to assert not in any other command listing characters
     # TODO: Assert that when a character gets deleted, campaign char_id is null
 
+
 def test_remove_already_removed_character(client, player_id, temp_db_file):
     add_resp = add_character(client, player_id, "RemovableChar")
     char_id = add_resp.json()["character_id"]
@@ -276,7 +287,9 @@ def test_join_campaign_with_character(client, player_id, campaign_id, temp_db_fi
     assert data["character_id"] is not None
     assert data["status"] == "joined"
 
+
 # --- Helper Functions --- #
+
 
 def add_character(client, player_id, name):
     response = client.post(

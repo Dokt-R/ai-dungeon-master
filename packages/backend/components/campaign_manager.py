@@ -4,7 +4,6 @@ from packages.backend.components.server_settings_manager import ServerSettingsMa
 
 class CampaignManager:
     def __init__(self, db_path: str = "server_settings.db"):
-
         if db_path is None:
             db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.db_path = db_path

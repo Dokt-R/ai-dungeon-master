@@ -65,7 +65,7 @@ class PlayerManager:
             )
             player_row = cur.fetchone()
 
-            #TEST
+            # TEST
             cur.execute("SELECT * FROM Campaigns")
             camp = cur.fetchone()
             print(camp)

@@ -21,14 +21,17 @@ def set_db_env_and_schema(temp_db_file):
     conn = sqlite3.connect(temp_db_file)
     cur = conn.cursor()
     # Create all required tables for player API
-    cur.execute("""
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS Players (
             user_id TEXT PRIMARY KEY,
             username TEXT,
             last_active_campaign TEXT
         )
-    """)
-    cur.execute("""
+    """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS Characters (
             character_id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id TEXT NOT NULL,
@@ -37,8 +40,10 @@ def set_db_env_and_schema(temp_db_file):
             FOREIGN KEY (player_id) REFERENCES Players(user_id),
             UNIQUE(player_id, name)
         )
-    """)
-    cur.execute("""
+    """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS Campaigns (
             campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
             server_id TEXT NOT NULL,
@@ -48,8 +53,10 @@ def set_db_env_and_schema(temp_db_file):
             last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(server_id, campaign_name)
         )
-    """)
-    cur.execute("""
+    """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS CampaignPlayers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             campaign_id INTEGER NOT NULL,
@@ -62,7 +69,8 @@ def set_db_env_and_schema(temp_db_file):
             FOREIGN KEY (character_id) REFERENCES Characters(character_id),
             UNIQUE(campaign_id, player_id)
         )
-    """)
+    """
+    )
     conn.commit()
     conn.close()
 

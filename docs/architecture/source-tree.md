@@ -25,9 +25,10 @@ The project will use a monorepo structure that separates the reusable campaign m
 |        ├── agents/          # <-- For defining our AI agent personas & LangGraph graphs
 |        │   ├── __init__.py
 |        │   └── dm_graph.py
-|        └── tools/             # <-- For our deterministic rule functions (e.g., dice rolls)
-|            ├── __init__.py
-|            └── dice_tools.py
+|        ├── tools/             # <-- For our deterministic rule functions (e.g., dice rolls)
+|        │   ├── __init__.py
+|        │   └── dice_tools.py
+|        └── db/             # Database specific folder handling schema creation
 └── docs/
 ```
 

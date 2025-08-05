@@ -11,14 +11,17 @@ def setup_db():
     # Setup schema with autosave table
     conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS Players (
             user_id TEXT PRIMARY KEY,
             username TEXT,
             last_active_campaign TEXT
         )
-    """)
-    cur.execute("""
+    """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS Campaigns (
             campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
             server_id TEXT NOT NULL,
@@ -28,8 +31,10 @@ def setup_db():
             last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(server_id, campaign_name)
         )
-    """)
-    cur.execute("""
+    """
+    )
+    cur.execute(
+        """
         CREATE TABLE IF NOT EXISTS CampaignAutosaves (
             autosave_id INTEGER PRIMARY KEY AUTOINCREMENT,
             campaign_id INTEGER NOT NULL,
@@ -37,7 +42,8 @@ def setup_db():
             autosave_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id)
         )
-    """)
+    """
+    )
     conn.commit()
     conn.close()
     yield

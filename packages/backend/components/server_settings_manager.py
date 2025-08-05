@@ -3,14 +3,13 @@ import os
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import sqlite3
+from packages.backend.db.init_db import initialize_schema
 
 load_dotenv()  # Load environment variables from .env file
 
 
 class ServerSettingsManager:
     def __init__(self, db_path: str = None):
-        import os
-
         if db_path is None:
             db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.key = self.load_encryption_key()
@@ -24,84 +23,14 @@ class ServerSettingsManager:
             self._init_db()
 
     def _init_db(self, conn=None):
-        """Initialize the SQLite database and ensure the ServerAPIKeys table exists."""
+        """Initialize the SQLite database and ensure that all tables exists."""
         if conn is None:
             conn = sqlite3.connect(self.db_path)
             close_conn = True
         else:
             close_conn = False
         try:
-            with conn:
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS ServerAPIKeys (
-                        server_id TEXT PRIMARY KEY,
-                        api_key TEXT NOT NULL
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS Players (
-                        user_id TEXT PRIMARY KEY,
-                        username TEXT,
-                        last_active_campaign TEXT,
-                        FOREIGN KEY (last_active_campaign) REFERENCES Campaigns(campaign_name)
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS Characters (
-                        character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        player_id TEXT NOT NULL,
-                        name TEXT NOT NULL,
-                        dnd_beyond_url TEXT,
-                        FOREIGN KEY (player_id) REFERENCES Players(user_id),
-                        UNIQUE(player_id, name)
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS Campaigns (
-                        campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        server_id TEXT NOT NULL,
-                        campaign_name TEXT NOT NULL,
-                        owner_id TEXT NOT NULL,
-                        state TEXT,
-                        last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(server_id, campaign_name)
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS CampaignAutosaves (
-                        autosave_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        campaign_id INTEGER NOT NULL,
-                        state TEXT,
-                        autosave_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id)
-                    )
-                    """
-                )
-                conn.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS CampaignPlayers (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        campaign_id INTEGER NOT NULL,
-                        player_id TEXT NOT NULL,
-                        character_id INTEGER,
-                        player_status TEXT CHECK(player_status IN ('joined', 'cmd')) NOT NULL DEFAULT 'joined',
-                        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
-                        FOREIGN KEY (player_id) REFERENCES Players(user_id),
-                        FOREIGN KEY (character_id) REFERENCES Characters(character_id) ON DELETE SET NULL,
-                        UNIQUE(campaign_id, player_id)
-                    )
-                    """
-                )
+            initialize_schema(conn)
         finally:
             if close_conn:
                 conn.close()
@@ -363,7 +292,7 @@ class ServerSettingsManager:
             with conn:
                 conn.execute(
                     """
-                    INSERT INTO ServerAPIKeys (server_id, api_key)
+                    INSERT INTO Keys (server_id, api_key)
                     VALUES (?, ?)
                     ON CONFLICT(server_id) DO UPDATE SET api_key=excluded.api_key
                     """,
@@ -382,7 +311,7 @@ class ServerSettingsManager:
         try:
             cur = conn.cursor()
             cur.execute(
-                "SELECT api_key FROM ServerAPIKeys WHERE server_id = ?",
+                "SELECT api_key FROM Keys WHERE server_id = ?",
                 (server_id,),
             )
             row = cur.fetchone()
