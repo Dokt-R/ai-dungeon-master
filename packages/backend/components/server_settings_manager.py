@@ -10,14 +10,14 @@ load_dotenv()  # Load environment variables from .env file
 
 
 class ServerSettingsManager:
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str = None, persistent_conn=None):
         self.key = self.load_encryption_key()
         self.db_path = db_path or get_db_path()
         #! Uncomment to try and centralize memory logic
         # self._conn = setup_db_for_manager(self.db_path)
         #! Comment bellow for the centralized memory
         # For in-memory DB, keep a persistent connection
-        if self.db_path == ":memory:":
+        if db_path:
             self._conn = get_connection(db_path)
             self._init_db(self._conn)
         else:
@@ -228,6 +228,7 @@ class ServerSettingsManager:
             return None
         campaign_id = campaign["campaign_id"]
         last_save_time = campaign["last_save"]
+        print(campaign)
         autosave = self.get_latest_campaign_autosave(campaign_id)
         if autosave and autosave["autosave_time"] > last_save_time:
             return {

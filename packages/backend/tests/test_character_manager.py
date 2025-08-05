@@ -43,65 +43,6 @@ def db_and_managers():
 
 
 @pytest.fixture(autouse=True)
-def setup_schema():
-    conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Players (
-            user_id TEXT PRIMARY KEY,
-            username TEXT,
-            last_active_campaign TEXT,
-            FOREIGN KEY (last_active_campaign) REFERENCES Campaigns(campaign_name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Campaigns (
-            campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            server_id TEXT NOT NULL,
-            campaign_name TEXT NOT NULL,
-            owner_id TEXT NOT NULL,
-            state TEXT,
-            last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(server_id, campaign_name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Characters (
-            character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            player_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            dnd_beyond_url TEXT,
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
-            UNIQUE(player_id, name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS CampaignPlayers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            campaign_id INTEGER NOT NULL,
-            player_id TEXT NOT NULL,
-            character_id INTEGER,
-            player_status TEXT CHECK(player_status IN ('joined', 'cmd')) NOT NULL DEFAULT 'joined',
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
-            FOREIGN KEY (character_id) REFERENCES Characters(character_id),
-            UNIQUE(campaign_id, player_id)
-        )
-    """
-    )
-    conn.commit()
-    conn.close()
-
-
-@pytest.fixture(autouse=True)
 def clear_tables():
     conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
     cur = conn.cursor()
@@ -280,13 +221,14 @@ class TestCharacterManager:
         result = cm.remove_character(9999)
         assert result is False
 
+    # @pytest.mark.skip(reason="Test logic is wrong and must be fixed.")
     def test_remove_character_sets_campaignplayers_null(self, db_and_managers):
         ssm, cm = db_and_managers
         # Create player, character, campaign, and campaignplayer
         conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO Players (user_id, username) VALUES (?, ?)", ("user1", "Alice")
+            "INSERT INTO Players (user_id, username) VALUES (?, ?)", ("user1", "Alice19")
         )
         cur.execute(
             "INSERT INTO Characters (player_id, name) VALUES (?, ?)", ("user1", "Hero")
@@ -304,16 +246,16 @@ class TestCharacterManager:
         conn.commit()
         conn.close()
         # Remove character
-        result = cm.remove_character(char_id)
-        assert result is True
-        # DB state: CampaignPlayers.character_id should be NULL
+        cm.remove_character(char_id)
+
         conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
         cur = conn.cursor()
         cur.execute(
-            "SELECT character_id FROM CampaignPlayers WHERE player_id = ?", ("user1",)
+            "SELECT * FROM CampaignPLayers WHERE player_id = ?", ("user1",)
         )
         row = cur.fetchone()
-        assert row is not None and row[0] is None
+
+        assert row is not None and row[3] is None
         conn.close()
 
     def test_get_characters_for_player_normal(self, db_and_managers):

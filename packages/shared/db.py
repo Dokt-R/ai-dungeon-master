@@ -6,13 +6,15 @@ from packages.backend.db.init_db import initialize_schema
 
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
 
-
 def get_db_path():
     return DEFAULT_DB_PATH
 
 
 def get_connection(db_path=None):
-    return sqlite3.connect(db_path or get_db_path())
+    path = db_path if db_path else get_db_path()
+    conn = sqlite3.connect(path, uri=True)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
 
 
 @contextmanager
