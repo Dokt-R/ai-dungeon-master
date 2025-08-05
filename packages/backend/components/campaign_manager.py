@@ -1,8 +1,13 @@
+import os
 from packages.backend.components.server_settings_manager import ServerSettingsManager
 
 
 class CampaignManager:
     def __init__(self, db_path: str = "server_settings.db"):
+
+        if db_path is None:
+            db_path = os.environ.get("DB_PATH", "server_settings.db")
+        self.db_path = db_path
         self.settings_manager = ServerSettingsManager(db_path=db_path)
 
     def create_campaign(self, campaign_name: str, server_id: str, owner_id: str):
@@ -10,7 +15,7 @@ class CampaignManager:
         if self.settings_manager.get_campaign(server_id, campaign_name):
             raise ValueError(f"A campaign named '{campaign_name}' already exists.")
         self.settings_manager.create_campaign(
-            server_id, campaign_name, owner_id, state="{}"
+            server_id, campaign_name, owner_id, state="active"
         )
 
     # All player join/end logic is now handled by PlayerManager.

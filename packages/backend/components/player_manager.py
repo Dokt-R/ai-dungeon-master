@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from packages.shared.error_handler import ValidationError, NotFoundError
 
@@ -18,8 +19,6 @@ class PlayerManager:
             db_path (str, optional): Path to the SQLite database file. If None, uses the DB_PATH
                 environment variable or defaults to 'server_settings.db'.
         """
-        import os
-
         if db_path is None:
             db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.db_path = db_path
@@ -28,8 +27,8 @@ class PlayerManager:
         self,
         player_id: str,
         server_id: str,
-        campaign_name: str = None,
         username: str = None,
+        campaign_name: str = None,
         character_name: str = None,
         dnd_beyond_url: str = None,
     ):
@@ -65,7 +64,14 @@ class PlayerManager:
                 (player_id,),
             )
             player_row = cur.fetchone()
+
+            #TEST
+            cur.execute("SELECT * FROM Campaigns")
+            camp = cur.fetchone()
+            print(camp)
+
             if not player_row:
+                username = None
                 cur.execute(
                     "INSERT INTO Players (user_id, username) VALUES (?, ?)",
                     (player_id, username),

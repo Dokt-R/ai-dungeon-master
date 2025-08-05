@@ -22,7 +22,7 @@ class CreatePlayerRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=32, pattern=r"^[\w\- ]+$")
 
 
-class CampaignJoinRequest(BaseModel):
+class JoinCampaignRequest(BaseModel):
     """
     Request model for joining a campaign.
 
@@ -43,7 +43,7 @@ class CampaignJoinRequest(BaseModel):
     dnd_beyond_url: str = None
 
 
-class CampaignContinueRequest(BaseModel):
+class ContinueCampaignRequest(BaseModel):
     """
     Request model for ending or continuing a campaign.
 
@@ -73,7 +73,7 @@ class LeaveCampaignRequest(BaseModel):
 
 @router.post("/join_campaign", summary="Join an existing campaign")
 @fastapi_error_handler
-def join_campaign(req: CampaignJoinRequest):
+def join_campaign(req: JoinCampaignRequest):
     """
     Join an existing campaign as a player.
 
@@ -81,7 +81,7 @@ def join_campaign(req: CampaignJoinRequest):
     on the same server. Optionally creates a new character if character_name is provided and does not exist.
 
     Args:
-        req (CampaignJoinRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
+        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
 
     Returns:
         dict: Success message and result details.
@@ -90,6 +90,7 @@ def join_campaign(req: CampaignJoinRequest):
         ValidationError: If the player is already joined to a campaign or required fields are missing.
         NotFoundError: If the campaign or player does not exist.
     """
+    print("inside API")
     result = player_manager.join_campaign(
         campaign_name=req.campaign_name,
         player_id=req.player_id,
@@ -97,6 +98,7 @@ def join_campaign(req: CampaignJoinRequest):
         character_name=req.character_name,
         dnd_beyond_url=req.dnd_beyond_url,
     )
+    print("after API", result)
     return {"message": "Campaign joined successfully.", "result": result}
 
 
@@ -104,12 +106,12 @@ def join_campaign(req: CampaignJoinRequest):
     "/end_campaign", summary="Temporarily exit a campaign into the command state"
 )
 @fastapi_error_handler
-def end_campaign(req: CampaignContinueRequest):
+def end_campaign(req: ContinueCampaignRequest):
     """
     Temporarily exit a campaign, setting the player's status to 'cmd' (command state).
 
     Args:
-        req (CampaignContinueRequest): Request body containing server_id, campaign_name, and player_id.
+        req (ContinueCampaignRequest): Request body containing server_id, campaign_name, and player_id.
 
     Returns:
         dict: Success message and optional narrative.
@@ -159,12 +161,12 @@ def create_player(req: CreatePlayerRequest):
 
 @router.post("/continue_campaign", summary="Continue last active campaign")
 @fastapi_error_handler
-def continue_campaign(req: CampaignContinueRequest):
+def continue_campaign(req: ContinueCampaignRequest):
     """
     (Not implemented) Continue the last active campaign for a player.
 
     Args:
-        req (CampaignJoinRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
+        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
 
     Returns:
         dict: Success message and result details.

@@ -166,7 +166,7 @@ class ServerSettingsManager:
             with conn:
                 conn.execute(
                     """
-                    INSERT INTO Campaigns (server_id, campaign_name, owner_id, state)
+                    INSERT OR IGNORE INTO Campaigns (server_id, campaign_name, owner_id, state)
                     VALUES (?, ?, ?, ?)
                     """,
                     (server_id, campaign_name, owner_id, state),

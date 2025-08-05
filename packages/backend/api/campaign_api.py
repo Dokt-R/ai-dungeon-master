@@ -13,7 +13,7 @@ class CampaignCreateRequest(BaseModel):
     owner_id: str
 
 
-class CampaignContinueRequest(BaseModel):
+class ContinueCampaignRequest(BaseModel):
     server_id: str
     campaign_name: str
     player_id: str
@@ -47,7 +47,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/kick", summary="Kick a player from the campaign")
 # @fastapi_error_handler
-# def kick_campaign(req: CampaignContinueRequest):
+# def kick_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -61,7 +61,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/delete", summary="Delete a campaign")
 # @fastapi_error_handler
-# def delete_campaign(req: CampaignContinueRequest):
+# def delete_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -75,7 +75,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/invite", summary="Invite a player to the campaign")
 # @fastapi_error_handler
-# def invite_campaign(req: CampaignContinueRequest):
+# def invite_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -89,7 +89,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/leave", summary="Leave a campaign.")
 # @fastapi_error_handler
-# def leave_campaign(req: CampaignContinueRequest):
+# def leave_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -104,7 +104,7 @@ def create_campaign(req: CampaignCreateRequest):
 # # ? Could return players, assets, NPCs, lore, plot threads, story arcs, quests, locations
 # @router.post("/campaigns/list", summary="List campaign information")
 # @fastapi_error_handler
-# def list_campaign(req: CampaignContinueRequest):
+# def list_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -118,7 +118,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/summary", summary="Exit a campaign")
 # @fastapi_error_handler
-# def summary_campaign(req: CampaignContinueRequest):
+# def summary_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -132,7 +132,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/edit", summary="Exit a campaign")
 # @fastapi_error_handler
-# def edit_campaign(req: CampaignContinueRequest):
+# def edit_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -147,7 +147,7 @@ def create_campaign(req: CampaignCreateRequest):
 # # ? Start, end session. Potential get current session.
 # @router.post("/campaigns/session", summary="Exit a campaign")
 # @fastapi_error_handler
-# def session_campaign(req: CampaignContinueRequest):
+# def session_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -162,7 +162,7 @@ def create_campaign(req: CampaignCreateRequest):
 # # ? Park a campaign in case you want to hide it for the time being
 # @router.post("/campaigns/archive", summary="Exit a campaign")
 # @fastapi_error_handler
-# def archive_campaign(req: CampaignContinueRequest):
+# def archive_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -180,7 +180,7 @@ def create_campaign(req: CampaignCreateRequest):
 #     summary="States campaign name, players, permissions and important info",
 # )
 # @fastapi_error_handler
-# def info_campaign(req: CampaignContinueRequest):
+# def info_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
@@ -198,7 +198,7 @@ def create_campaign(req: CampaignCreateRequest):
 #     summary="Opens a list of current players and their permissions.",
 # )
 # @fastapi_error_handler
-# def permissions_campaign(req: CampaignContinueRequest):
+# def permissions_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
