@@ -3,6 +3,7 @@ import os
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import sqlite3
+from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
 from packages.backend.db.init_db import initialize_schema
 
 load_dotenv()  # Load environment variables from .env file
@@ -10,13 +11,14 @@ load_dotenv()  # Load environment variables from .env file
 
 class ServerSettingsManager:
     def __init__(self, db_path: str = None):
-        if db_path is None:
-            db_path = os.environ.get("DB_PATH", "server_settings.db")
         self.key = self.load_encryption_key()
-        self.db_path = db_path
+        self.db_path = db_path or get_db_path
+        #! Uncomment to try and centralize memory logic
+        # self._conn = setup_db_for_manager(self.db_path)
+        #! Comment bellow for the centralized memory
         # For in-memory DB, keep a persistent connection
-        if db_path == ":memory:":
-            self._conn = sqlite3.connect(db_path)
+        if self.db_path == ":memory:":
+            self._conn = get_connection(db_path)
             self._init_db(self._conn)
         else:
             self._conn = None
@@ -25,15 +27,11 @@ class ServerSettingsManager:
     def _init_db(self, conn=None):
         """Initialize the SQLite database and ensure that all tables exists."""
         if conn is None:
-            conn = sqlite3.connect(self.db_path)
-            close_conn = True
+            with get_connection(self.db_path) as conn:
+                initialize_schema(conn)
         else:
-            close_conn = False
-        try:
             initialize_schema(conn)
-        finally:
-            if close_conn:
-                conn.close()
+        #! HERE
 
     # --- Campaign Management Methods ---
 

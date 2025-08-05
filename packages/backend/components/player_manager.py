@@ -1,5 +1,8 @@
 import os
 import sqlite3
+from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
+from packages.shared.db.repositories import select_player
+from packages.backend.db.init_db import initialize_schema
 from packages.shared.error_handler import ValidationError, NotFoundError
 
 
@@ -19,9 +22,21 @@ class PlayerManager:
             db_path (str, optional): Path to the SQLite database file. If None, uses the DB_PATH
                 environment variable or defaults to 'server_settings.db'.
         """
-        if db_path is None:
-            db_path = os.environ.get("DB_PATH", "server_settings.db")
-        self.db_path = db_path
+        self.db_path = db_path or get_db_path
+        if self.db_path == ":memory:":
+            self._conn = get_connection(db_path)
+            self._init_db(self._conn)
+        else:
+            self._conn = None
+            self._init_db()
+
+    def _init_db(self, conn=None):
+        """Initialize the SQLite database and ensure that all tables exists."""
+        if conn is None:
+            with get_connection(self.db_path) as conn:
+                initialize_schema(conn)
+        else:
+            initialize_schema(conn)
 
     def join_campaign(
         self,
@@ -64,11 +79,6 @@ class PlayerManager:
                 (player_id,),
             )
             player_row = cur.fetchone()
-
-            # TEST
-            cur.execute("SELECT * FROM Campaigns")
-            camp = cur.fetchone()
-            print(camp)
 
             if not player_row:
                 username = None

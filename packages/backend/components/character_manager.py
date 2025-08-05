@@ -1,5 +1,6 @@
 import sqlite3
-
+from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
+from packages.backend.db.init_db import initialize_schema
 from packages.shared.error_handler import ValidationError, NotFoundError
 
 
@@ -10,14 +11,28 @@ class CharacterManager:
     Handles character uniqueness, association with players, and database operations.
     """
 
-    def __init__(self, db_path: str = "server_settings.db"):
+    def __init__(self, db_path: str = None):
         """
         Initialize the CharacterManager.
 
         Args:
             db_path (str, optional): Path to the SQLite database file. Defaults to 'server_settings.db'.
         """
-        self.db_path = db_path
+        self.db_path = db_path or get_db_path
+        if self.db_path == ":memory:":
+            self._conn = get_connection(db_path)
+            self._init_db(self._conn)
+        else:
+            self._conn = None
+            self._init_db()
+
+    def _init_db(self, conn=None):
+        """Initialize the SQLite database and ensure that all tables exists."""
+        if conn is None:
+            with get_connection(self.db_path) as conn:
+                initialize_schema(conn)
+        else:
+            initialize_schema(conn)
 
     def add_character(self, player_id: str, name: str, dnd_beyond_url: str = None):
         """
