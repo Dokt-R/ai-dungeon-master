@@ -12,7 +12,7 @@ load_dotenv()  # Load environment variables from .env file
 class ServerSettingsManager:
     def __init__(self, db_path: str = None):
         self.key = self.load_encryption_key()
-        self.db_path = db_path or get_db_path
+        self.db_path = db_path or get_db_path()
         #! Uncomment to try and centralize memory logic
         # self._conn = setup_db_for_manager(self.db_path)
         #! Comment bellow for the centralized memory

@@ -18,7 +18,7 @@ class CharacterManager:
         Args:
             db_path (str, optional): Path to the SQLite database file. Defaults to 'server_settings.db'.
         """
-        self.db_path = db_path or get_db_path
+        self.db_path = db_path or get_db_path()
         if self.db_path == ":memory:":
             self._conn = get_connection(db_path)
             self._init_db(self._conn)

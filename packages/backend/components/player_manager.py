@@ -1,7 +1,6 @@
 import os
 import sqlite3
 from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
-from packages.shared.db.repositories import select_player
 from packages.backend.db.init_db import initialize_schema
 from packages.shared.error_handler import ValidationError, NotFoundError
 
@@ -22,7 +21,7 @@ class PlayerManager:
             db_path (str, optional): Path to the SQLite database file. If None, uses the DB_PATH
                 environment variable or defaults to 'server_settings.db'.
         """
-        self.db_path = db_path or get_db_path
+        self.db_path = db_path or get_db_path()
         if self.db_path == ":memory:":
             self._conn = get_connection(db_path)
             self._init_db(self._conn)
