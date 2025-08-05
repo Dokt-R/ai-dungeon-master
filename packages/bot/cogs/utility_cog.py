@@ -26,6 +26,32 @@ COST_MESSAGE = (
     "- See the full cost breakdown and real-world examples here: [Cost Documentation](https://github.com/Dokt-R/ai-dungeon-master/blob/main/docs/costs.md)"
 )
 
+HELP_TOPICS = {
+    "campaign": (
+        "**Campaign Commands Help**\n"
+        "- `/campaign-create` — Start a new campaign with a title and description.\n"
+        "- `/campaign-join` — Join an existing campaign by code or invite.\n"
+        "- `/campaign-list` — List all campaigns you are part of.\n"
+        "- `/campaign-leave` — Leave a campaign.\n"
+        "For more, see [Campaign Guide](https://github.com/Dokt-R/ai-dungeon-master/blob/main/docs/campaigns.md)"
+    ),
+    "setup": (
+        "**Setup Help**\n"
+        "- `/server-setup` — Explains the BYOK model and how to submit your API key.\n"
+        "- `/server-setkey [API_KEY]` — Submit your server’s API key (admin only).\n"
+        "See [Setup Guide](https://github.com/Dokt-R/ai-dungeon-master/blob/main/docs/getting-started.md)"
+    ),
+}
+
+HELP_TOPIC_LIST = (
+    "**Help Topics:**\n"
+    "- `campaign` — Learn about campaign management commands.\n"
+    "- `setup` — Learn how to set up the bot and API keys.\n"
+    "\n"
+    "Type `/help <topic>` for detailed help on a topic.\n"
+    "Example: `/help campaign`"
+)
+
 HELP_MESSAGE = (
     "**Available Commands:**\n"
     "- `/getting-started` — Step-by-step onboarding guide.\n"
@@ -34,7 +60,9 @@ HELP_MESSAGE = (
     "- `/server-setkey [API_KEY]` — Submit your server’s API key (admin only).\n"
     "- `/ping` — Check if the bot is alive.\n"
     "\n"
-    "For advanced help, see [Command Reference](https://github.com/Dokt-R/ai-dungeon-master/blob/main/docs/commands.md)."
+    "For advanced help, see [Command Reference](https://github.com/Dokt-R/ai-dungeon-master/blob/main/docs/commands.md).\n"
+    "\n"
+    "For help topics, type `/help`."
 )
 
 
@@ -75,12 +103,30 @@ class UtilityCog(commands.Cog):
 
     @discord.app_commands.command(
         name="help",
-        description="List all available commands with brief descriptions and references to advanced help.",
+        description="List all available commands, or get detailed help for a topic.",
+    )
+    @discord.app_commands.describe(
+        topic="Optional: Get detailed help for a specific topic (e.g., campaign, setup)"
     )
     @discord_error_handler()
-    async def help(self, interaction: discord.Interaction):
-        """List all available commands with brief descriptions and references to advanced help."""
-        await interaction.response.send_message(HELP_MESSAGE, ephemeral=True)
+    async def help(self, interaction: discord.Interaction, topic: str = None):
+        """List all available commands, or get detailed help for a topic."""
+        if topic is None:
+            # List help topics
+            await interaction.response.send_message(
+                f"{HELP_MESSAGE}\n\n{HELP_TOPIC_LIST}", ephemeral=True
+            )
+        else:
+            topic_key = topic.lower().strip()
+            if topic_key in HELP_TOPICS:
+                await interaction.response.send_message(
+                    HELP_TOPICS[topic_key], ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    f"Unknown help topic: `{topic}`.\n\n{HELP_TOPIC_LIST}",
+                    ephemeral=True,
+                )
 
 
 async def setup(bot):

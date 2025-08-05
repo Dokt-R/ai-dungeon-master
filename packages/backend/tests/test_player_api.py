@@ -3,6 +3,8 @@ import sqlite3
 import uuid
 import os
 import tempfile
+from packages.backend.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="session")
@@ -80,9 +82,6 @@ def clear_tables(temp_db_file, set_db_env_and_schema):
 
 @pytest.fixture
 def client(temp_db_file, set_db_env_and_schema):
-    from packages.backend.main import app
-    from fastapi.testclient import TestClient
-
     return TestClient(app)
 
 
@@ -434,9 +433,6 @@ def test_end_campaign_player_never_joined(client, create_player, create_campaign
     )
     assert cur.fetchone() is None
     conn.close()
-
-
-import pytest
 
 
 @pytest.mark.parametrize(

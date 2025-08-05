@@ -132,7 +132,7 @@ def remove_character(req: RemoveCharacterRequest):
     result = character_manager.remove_character(character_id=req.character_id)
     if not result:
         raise NotFoundError("Character not found")
-    return {"success": True}
+    return {"success": result}
 
 
 @router.post("/list")

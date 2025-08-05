@@ -25,6 +25,13 @@ class CampaignEndRequest(BaseModel):
     player_id: str
 
 
+class CampaignDeleteRequest(BaseModel):
+    server_id: str
+    campaign_name: str
+    requester_id: str
+    is_admin: bool
+
+
 @router.post("/campaigns/new", summary="Create a new campaign")
 @fastapi_error_handler
 def create_campaign(req: CampaignCreateRequest):

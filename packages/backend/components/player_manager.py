@@ -161,9 +161,99 @@ class PlayerManager:
         finally:
             conn.close()
 
+    def continue_campaign(
+        self,
+        player_id: str,
+    ):
+        """
+        Continue the last active campaign as a player.
+
+        Args:
+            player_id (str): Unique identifier for the player.
+            server_id (str): Unique identifier for the server.
+            campaign_name (str, optional): Name of the campaign to join. If None, uses last active campaign.
+            username (str, optional): Username of the player (used if creating a new player).
+            character_name (str, optional): Name of the character to associate with the campaign.
+            dnd_beyond_url (str, optional): D&D Beyond URL for the character.
+
+        Returns:
+            dict: Information about the joined campaign, player, and character.
+
+        Raises:
+            NotFoundError: If the specified campaign or last active campaign does not exist.
+            ValidationError: If no campaign is specified and no last active campaign is found,
+                or if the player is already joined to an active campaign on this server.
+        """
+        conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            # Ensure player exists
+            cur.execute(
+                "SELECT last_active_campaign FROM Players WHERE user_id = ?",
+                (player_id,),
+            )
+            last_campaign_row = cur.fetchone()
+            if not last_campaign_row:
+                raise ValidationError(
+                    "No last active campaign found for player. Please join an active campaign by using /campaign join command"
+                )
+            else:
+                last_active_campaign = last_campaign_row[1]
+
+            cur.execute(
+                "SELECT campaign_name FROM Campaigns WHERE campaign_id = ?",
+                (last_active_campaign),
+            )
+            row = cur.fetchone()
+            if not row:
+                raise NotFoundError(
+                    f"Last active campaign (ID: {last_active_campaign}) not found on server'."
+                )
+            campaign_name = row[0]
+
+            # Fetch character
+            character_id = None
+
+            cur.execute(
+                """
+                SELECT c.character_id FROM Characters c
+                INNER JOIN players p ON p.user_id=c.player_id
+                WHERE p.player_id = ? AND p.last_active_campaign = ?
+                """,
+                (player_id, last_active_campaign),
+            )
+
+            char_row = cur.fetchone()
+            if not char_row:
+                raise NotFoundError(
+                    f"No active characters inside the campaign {last_active_campaign}. Please create a character and then join the campaign via the /campaign join command'."
+                )
+            character_id = char_row[0]
+
+            # Add player to campaign
+            cur.execute(
+                """
+                INSERT INTO CampaignPlayers (campaign_id, player_id, character_id, player_status)
+                VALUES (?, ?, ?, 'joined')
+                ON CONFLICT(campaign_id, player_id) DO UPDATE SET character_id=excluded.character_id, player_status='joined'
+                """,
+                (last_active_campaign, player_id, character_id),
+            )
+
+            conn.commit()
+            return {
+                "campaign_name": campaign_name,
+                "player_id": player_id,
+                "character_id": character_id,
+                "status": "joined",
+            }
+        finally:
+            conn.close()
+
     def end_campaign(self, player_id: str, server_id: str, campaign_name: str = None):
         """
         End a campaign for a player by setting their status to 'cmd' (command state).
+        Also autosaves the current campaign state.
 
         If `campaign_name` is None, uses the player's last active campaign.
 
@@ -179,13 +269,17 @@ class PlayerManager:
             NotFoundError: If the specified campaign or last active campaign does not exist.
             ValidationError: If no campaign is specified and no last active campaign is found.
         """
+        from packages.backend.components.server_settings_manager import (
+            ServerSettingsManager,
+        )
+
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.cursor()
             # Determine campaign to end
             if campaign_name:
                 cur.execute(
-                    "SELECT campaign_id FROM Campaigns WHERE server_id = ? AND campaign_name = ?",
+                    "SELECT campaign_id, state FROM Campaigns WHERE server_id = ? AND campaign_name = ?",
                     (server_id, campaign_name),
                 )
                 campaign_row = cur.fetchone()
@@ -194,6 +288,7 @@ class PlayerManager:
                         f"Campaign '{campaign_name}' does not exist on server '{server_id}'"
                     )
                 campaign_id = campaign_row[0]
+                campaign_state = campaign_row[1]
             else:
                 cur.execute(
                     "SELECT last_active_campaign FROM Players WHERE user_id = ?",
@@ -206,7 +301,7 @@ class PlayerManager:
                     )
                 campaign_id = row[0]
                 cur.execute(
-                    "SELECT campaign_name FROM Campaigns WHERE campaign_id = ? AND server_id = ?",
+                    "SELECT campaign_name, state FROM Campaigns WHERE campaign_id = ? AND server_id = ?",
                     (campaign_id, server_id),
                 )
                 name_row = cur.fetchone()
@@ -215,6 +310,13 @@ class PlayerManager:
                         f"Last active campaign (ID: {campaign_id}) not found on server '{server_id}'."
                     )
                 campaign_name = name_row[0]
+                campaign_state = name_row[1]
+
+            # AUTOSAVE: Store the current campaign state as an autosave
+            ssm = ServerSettingsManager(db_path=self.db_path)
+            ssm.set_campaign_autosave(
+                int(campaign_id), campaign_state if campaign_state is not None else ""
+            )
 
             # Set player_status to 'cmd'
             cur.execute(
@@ -226,10 +328,15 @@ class PlayerManager:
                 (campaign_id, player_id),
             )
             conn.commit()
+
+            # Placeholder: Update only the allowed sections of the story file per the develop-story workflow
+            # (This should be implemented in a dedicated service or as a separate step.)
+
             return {
                 "campaign_name": campaign_name,
                 "player_id": player_id,
                 "player_status": "cmd",
+                "autosave": True,
             }
         finally:
             conn.close()

@@ -146,11 +146,7 @@ class CharacterManager:
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.cursor()
-            # Set character_id to NULL in CampaignPlayers
-            cur.execute(
-                "UPDATE CampaignPlayers SET character_id = NULL WHERE character_id = ?",
-                (character_id,),
-            )
+
             # Delete character
             cur.execute(
                 "DELETE FROM Characters WHERE character_id = ?",

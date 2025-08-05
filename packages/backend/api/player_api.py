@@ -53,8 +53,6 @@ class CampaignContinueRequest(BaseModel):
         player_id (str): Unique identifier for the player.
     """
 
-    server_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-    campaign_name: str = Field(..., min_length=1, max_length=64)
     player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
 
 
@@ -159,7 +157,6 @@ def create_player(req: CreatePlayerRequest):
         conn.close()
 
 
-# TODO: Not used yet
 @router.post("/continue_campaign", summary="Continue last active campaign")
 @fastapi_error_handler
 def continue_campaign(req: CampaignContinueRequest):
@@ -167,13 +164,18 @@ def continue_campaign(req: CampaignContinueRequest):
     (Not implemented) Continue the last active campaign for a player.
 
     Args:
-        req (CampaignContinueRequest): Request body containing server_id, campaign_name, and player_id.
+        req (CampaignJoinRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
+
+    Returns:
+        dict: Success message and result details.
 
     Raises:
-        NotImplementedError: This endpoint is not implemented.
+        NotFoundError: If the campaign or player does not exist.
     """
-    # Not implemented: resume_campaign does not exist in PlayerManager
-    raise NotImplementedError("continue_campaign endpoint is not implemented.")
+    result = player_manager.continue_campaign(
+        player_id=req.player_id,
+    )
+    return {"message": "Campaign joined successfully.", "result": result}
 
 
 @router.post(

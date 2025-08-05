@@ -77,6 +77,17 @@ class ServerSettingsManager:
                 )
                 conn.execute(
                     """
+                    CREATE TABLE IF NOT EXISTS CampaignAutosaves (
+                        autosave_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        campaign_id INTEGER NOT NULL,
+                        state TEXT,
+                        autosave_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id)
+                    )
+                    """
+                )
+                conn.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS CampaignPlayers (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         campaign_id INTEGER NOT NULL,
@@ -86,7 +97,7 @@ class ServerSettingsManager:
                         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
                         FOREIGN KEY (player_id) REFERENCES Players(user_id),
-                        FOREIGN KEY (character_id) REFERENCES Characters(character_id),
+                        FOREIGN KEY (character_id) REFERENCES Characters(character_id) ON DELETE SET NULL,
                         UNIQUE(campaign_id, player_id)
                     )
                     """
@@ -96,6 +107,52 @@ class ServerSettingsManager:
                 conn.close()
 
     # --- Campaign Management Methods ---
+
+    def delete_campaign(
+        self, server_id: str, campaign_name: str, requester_id: str, is_admin: bool
+    ):
+        """
+        Delete a campaign and all related data if the requester is the owner or an admin.
+        Raises ValueError if not permitted or campaign does not exist.
+        """
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                # Get campaign info
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT campaign_id, owner_id FROM Campaigns WHERE server_id = ? AND campaign_name = ?",
+                    (server_id, campaign_name),
+                )
+                row = cur.fetchone()
+                if not row:
+                    raise ValueError(
+                        f"No campaign named '{campaign_name}' exists on this server."
+                    )
+                campaign_id, owner_id = row
+                if not (is_admin or requester_id == owner_id):
+                    raise PermissionError(
+                        "Only the campaign owner or a server admin can delete this campaign."
+                    )
+                # Delete autosaves
+                cur.execute(
+                    "DELETE FROM CampaignAutosaves WHERE campaign_id = ?",
+                    (campaign_id,),
+                )
+                # Delete campaign players
+                cur.execute(
+                    "DELETE FROM CampaignPlayers WHERE campaign_id = ?", (campaign_id,)
+                )
+                # Delete campaign
+                cur.execute(
+                    "DELETE FROM Campaigns WHERE campaign_id = ?", (campaign_id,)
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
 
     def create_campaign(
         self, server_id: str, campaign_name: str, owner_id: str, state: str = None
@@ -163,6 +220,100 @@ class ServerSettingsManager:
         finally:
             if self.db_path != ":memory:":
                 conn.close()
+
+    # --- Autosave Methods ---
+
+    def set_campaign_autosave(self, campaign_id: int, state: str):
+        """Store an autosave for a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    INSERT INTO CampaignAutosaves (campaign_id, state, autosave_time)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                    """,
+                    (campaign_id, state),
+                )
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def get_latest_campaign_autosave(self, campaign_id: int):
+        """Retrieve the latest autosave for a campaign."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT state, autosave_time FROM CampaignAutosaves
+                WHERE campaign_id = ?
+                ORDER BY autosave_time DESC
+                LIMIT 1
+                """,
+                (campaign_id,),
+            )
+            row = cur.fetchone()
+            if row:
+                return {"state": row[0], "autosave_time": row[1]}
+            return None
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def get_last_active_campaign(self, user_id: str):
+        """Get the last active campaign for a user."""
+        if self.db_path == ":memory:":
+            conn = self._conn
+        else:
+            conn = sqlite3.connect(self.db_path)
+        try:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT last_active_campaign FROM Players WHERE user_id = ?",
+                (user_id,),
+            )
+            row = cur.fetchone()
+            if row and row[0]:
+                return row[0]
+            return None
+        finally:
+            if self.db_path != ":memory:":
+                conn.close()
+
+    def get_campaign_to_continue(self, user_id: str, server_id: str):
+        """
+        Get the campaign and state to continue for a user:
+        - If an autosave exists and is newer than last_save, return autosave.
+        - Otherwise, return last clean save.
+        """
+        last_active_campaign = self.get_last_active_campaign(user_id)
+        if not last_active_campaign:
+            return None
+        campaign = self.get_campaign(server_id, last_active_campaign)
+        if not campaign:
+            return None
+        campaign_id = campaign["campaign_id"]
+        last_save_time = campaign["last_save"]
+        autosave = self.get_latest_campaign_autosave(campaign_id)
+        if autosave and autosave["autosave_time"] > last_save_time:
+            return {
+                "campaign": campaign,
+                "state": autosave["state"],
+                "source": "autosave",
+            }
+        else:
+            return {
+                "campaign": campaign,
+                "state": campaign["state"],
+                "source": "save",
+            }
 
     def update_campaign_state(self, campaign_id: int, state: str):
         """Update the state and last_save of a campaign."""

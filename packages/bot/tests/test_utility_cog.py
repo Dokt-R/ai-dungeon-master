@@ -28,12 +28,50 @@ async def test_cost_command():
 
 
 @pytest.mark.asyncio
-async def test_help_command():
+async def test_help_command_no_topic():
     bot = MagicMock()
     cog = UtilityCog(bot)
     interaction = AsyncMock()
-    await cog.help.callback(cog, interaction)
+    await cog.help.callback(cog, interaction, None)
     interaction.response.send_message.assert_awaited_once()
     args, kwargs = interaction.response.send_message.call_args
     assert "available commands" in args[0].lower()
+    assert "help topics" in args[0].lower()
+    assert kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_help_command_campaign_topic():
+    bot = MagicMock()
+    cog = UtilityCog(bot)
+    interaction = AsyncMock()
+    await cog.help.callback(cog, interaction, "campaign")
+    interaction.response.send_message.assert_awaited_once()
+    args, kwargs = interaction.response.send_message.call_args
+    assert "campaign commands help" in args[0].lower()
+    assert kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_help_command_setup_topic():
+    bot = MagicMock()
+    cog = UtilityCog(bot)
+    interaction = AsyncMock()
+    await cog.help.callback(cog, interaction, "setup")
+    interaction.response.send_message.assert_awaited_once()
+    args, kwargs = interaction.response.send_message.call_args
+    assert "setup help" in args[0].lower()
+    assert kwargs.get("ephemeral") is True
+
+
+@pytest.mark.asyncio
+async def test_help_command_unknown_topic():
+    bot = MagicMock()
+    cog = UtilityCog(bot)
+    interaction = AsyncMock()
+    await cog.help.callback(cog, interaction, "foobar")
+    interaction.response.send_message.assert_awaited_once()
+    args, kwargs = interaction.response.send_message.call_args
+    assert "unknown help topic" in args[0].lower()
+    assert "help topics" in args[0].lower()
     assert kwargs.get("ephemeral") is True

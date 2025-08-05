@@ -3,6 +3,9 @@ import sqlite3
 import uuid
 import os
 import tempfile
+from packages.backend.main import app
+from fastapi.testclient import TestClient
+
 
 
 @pytest.fixture(scope="session")
@@ -53,6 +56,11 @@ def clear_tables(temp_db_file, set_db_env_and_schema):
 
 
 @pytest.fixture
+def client(temp_db_file, set_db_env_and_schema):
+    return TestClient(app)
+
+
+@pytest.fixture
 def player_id(client):
     test_player_id = str(uuid.uuid4())
     username = "TestUser"
@@ -63,41 +71,29 @@ def player_id(client):
     return test_player_id
 
 
-@pytest.fixture
-def client(temp_db_file, set_db_env_and_schema):
-    from packages.backend.main import app
-    from fastapi.testclient import TestClient
-
-    return TestClient(app)
-
-
 def test_add_character(client, player_id):
-    response = client.post(
+    resp = client.post(
         "/characters/add",
         json={
             "player_id": player_id,
-            "name": "TestChar",
+            "name": "TestPlayer",
             "dnd_beyond_url": "http://example.com",
         },
     )
-    assert response.status_code == 200
-    data = response.json()
+    assert resp.status_code == 200
+    data = resp.json()
     assert "character_id" in data
 
 
 def test_add_character_invalid_name(client, player_id):
     # Too short
-    resp = client.post("/characters/add", json={"player_id": player_id, "name": ""})
+    resp = add_character(client, player_id, "")
     assert resp.status_code == 422
     # Too long
-    resp = client.post(
-        "/characters/add", json={"player_id": player_id, "name": "A" * 33}
-    )
+    resp = add_character(client, player_id, "A" * 33)
     assert resp.status_code == 422
     # Invalid characters
-    resp = client.post(
-        "/characters/add", json={"player_id": player_id, "name": "Invalid!@#"}
-    )
+    resp = add_character(client, player_id, "Invalid!@#")
     assert resp.status_code == 422
 
 
@@ -107,9 +103,7 @@ def test_add_character_missing_fields(client):
 
 
 def test_add_character_not_found_player(client):
-    resp = client.post(
-        "/characters/add", json={"player_id": "nonexistent", "name": "Hero"}
-    )
+    resp = add_character(client, "nonexistent", "Hero")
     assert resp.status_code == 404
     assert "does not exist" in resp.text
 
@@ -157,9 +151,7 @@ def test_list_characters(client, player_id):
 
 
 def test_update_character(client, player_id):
-    add_resp = client.post(
-        "/characters/add", json={"player_id": player_id, "name": "UpdatableChar"}
-    )
+    add_resp = add_character(client, player_id, "UpdatedChar")
     char_id = add_resp.json()["character_id"]
     response = client.post(
         "/characters/update", json={"character_id": char_id, "name": "UpdatedChar"}
@@ -171,15 +163,25 @@ def test_update_character(client, player_id):
 
 
 def test_remove_character(client, player_id):
-    add_resp = client.post(
-        "/characters/add", json={"player_id": player_id, "name": "RemovableChar"}
-    )
+    add_resp = add_character(client, player_id, "RemovableChar")
     char_id = add_resp.json()["character_id"]
     response = client.post("/characters/remove", json={"character_id": char_id})
     assert response.status_code == 200
     list_resp = client.post("/characters/list", json={"player_id": player_id})
     chars = list_resp.json()["characters"]
     assert not any(c["character_id"] == char_id for c in chars)
+    # TODO: Further update to assert not in any other command listing characters
+
+def test_remove_already_removed_character(client, player_id):
+    add_resp = add_character(client, player_id, "RemovableChar")
+    char_id = add_resp.json()["character_id"]
+    resp1 = client.post("/characters/remove", json={"character_id": char_id})
+    assert resp1.status_code == 200
+    list_resp = client.post("/characters/list", json={"player_id": player_id})
+    chars = list_resp.json()["characters"]
+    assert not any(c["character_id"] == char_id for c in chars)
+    resp2 = client.post("/characters/remove", json={"character_id": char_id})
+    assert resp2.status_code == 404
 
 
 def test_join_campaign_with_character(client, player_id, temp_db_file):
@@ -234,3 +236,16 @@ def test_join_campaign_with_character(client, player_id, temp_db_file):
     assert data["player_id"] == player_id
     assert data["character_id"] is not None
     assert data["status"] == "joined"
+
+# --- Helper Functions --- #
+
+def add_character(client, player_id, name):
+    response = client.post(
+        "/characters/add",
+        json={
+            "player_id": player_id,
+            "name": name,
+            "dnd_beyond_url": "http://example.com",
+        },
+    )
+    return response

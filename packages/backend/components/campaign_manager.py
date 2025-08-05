@@ -15,3 +15,23 @@ class CampaignManager:
 
     # All player join/end logic is now handled by PlayerManager.
     # Only campaign creation and retrieval remain here.
+
+    def continue_campaign(self, user_id: str, server_id: str):
+        """
+        Returns a dict with:
+            - campaign: campaign info
+            - state: state to restore (autosave if newer, else last clean save)
+            - source: 'autosave' or 'save'
+        """
+        return self.settings_manager.get_campaign_to_continue(user_id, server_id)
+
+    def delete_campaign(
+        self, server_id: str, campaign_name: str, requester_id: str, is_admin: bool
+    ):
+        """
+        Delete a campaign if the requester is the owner or an admin.
+        Raises ValueError or PermissionError if not permitted.
+        """
+        self.settings_manager.delete_campaign(
+            server_id, campaign_name, requester_id, is_admin
+        )
