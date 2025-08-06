@@ -62,10 +62,10 @@ def monkeypatch_sqlite_connect(monkeypatch):
 # Fixture to insert a predefined player for use in tests
 @pytest.fixture
 def insert_player(conn):
-    def _insert():
+    def _insert(user_id: str = "user-id-1", username: str = "Alice"):
         conn.execute(
             "INSERT INTO Players (user_id, username) VALUES (?, ?)",
-            ("user-id-1", "Alice"),
+            (user_id, username),
         )
         conn.commit()
 

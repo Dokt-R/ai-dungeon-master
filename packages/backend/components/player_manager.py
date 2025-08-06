@@ -1,6 +1,5 @@
-import os
 import sqlite3
-from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
+from packages.shared.db import get_connection, get_db_path
 from packages.backend.db.init_db import initialize_schema
 from packages.shared.error_handler import ValidationError, NotFoundError
 
@@ -80,7 +79,6 @@ class PlayerManager:
             player_row = cur.fetchone()
 
             if not player_row:
-                username = None
                 cur.execute(
                     "INSERT INTO Players (user_id, username) VALUES (?, ?)",
                     (player_id, username),
