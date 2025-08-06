@@ -8,99 +8,24 @@ from packages.shared.error_handler import ValidationError, NotFoundError
 SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
 
 
-@pytest.fixture(autouse=True)
-def monkeypatch_sqlite_connect(monkeypatch):
-    orig_connect = sqlite3.connect
-
-    def connect_with_uri(db_path, *args, **kwargs):
-        if db_path == SHARED_MEM_URI:
-            kwargs["uri"] = True
-        return orig_connect(db_path, *args, **kwargs)
-
-    monkeypatch.setattr(sqlite3, "connect", connect_with_uri)
-
-
-class PatchedServerSettingsManager(ServerSettingsManager):
-    def __init__(self, db_path: str = "server_settings.db"):
-        self.key = self.load_encryption_key()
-        self.db_path = db_path
-        if db_path == SHARED_MEM_URI:
-            self._conn = sqlite3.connect(db_path, uri=True)
-            self._init_db(self._conn)
-        elif db_path == ":memory:":
-            self._conn = sqlite3.connect(db_path)
-            self._init_db(self._conn)
-        else:
-            self._conn = None
-            self._init_db()
-
-
+# Fixture to initialize manager instances using shared in-memory DB
 @pytest.fixture
 def db_and_managers():
-    ssm = PatchedServerSettingsManager(db_path=SHARED_MEM_URI)
+    ssm = ServerSettingsManager(db_path=SHARED_MEM_URI)
     pm = PlayerManager(db_path=SHARED_MEM_URI)
     return ssm, pm
 
 
-@pytest.fixture(autouse=True)
-def setup_schema():
-    conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
-    cur = conn.cursor()
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Players (
-            user_id TEXT PRIMARY KEY,
-            username TEXT,
-            last_active_campaign TEXT,
-            FOREIGN KEY (last_active_campaign) REFERENCES Campaigns(campaign_name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Campaigns (
-            campaign_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            server_id TEXT NOT NULL,
-            campaign_name TEXT NOT NULL,
-            owner_id TEXT NOT NULL,
-            state TEXT,
-            last_save TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(server_id, campaign_name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS Characters (
-            character_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            player_id TEXT NOT NULL,
-            name TEXT NOT NULL,
-            dnd_beyond_url TEXT,
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
-            UNIQUE(player_id, name)
-        )
-    """
-    )
-    cur.execute(
-        """
-        CREATE TABLE IF NOT EXISTS CampaignPlayers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            campaign_id INTEGER NOT NULL,
-            player_id TEXT NOT NULL,
-            character_id INTEGER,
-            player_status TEXT CHECK(player_status IN ('joined', 'cmd')) NOT NULL DEFAULT 'joined',
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
-            FOREIGN KEY (character_id) REFERENCES Characters(character_id),
-            UNIQUE(campaign_id, player_id)
-        )
-    """
-    )
-    conn.commit()
-    conn.close()
+# Connection fixture with row access via keys (dict-style)
+@pytest.fixture
+def conn():
+    connection = sqlite3.connect(SHARED_MEM_URI, uri=True)
+    connection.row_factory = sqlite3.Row
+    yield connection
+    connection.close()
 
 
+# Automatically clear relevant tables before each test run
 @pytest.fixture(autouse=True)
 def clear_tables():
     conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
@@ -112,6 +37,19 @@ def clear_tables():
             pass
     conn.commit()
     conn.close()
+
+
+# Patch sqlite3.connect to ensure `uri=True` is applied when using shared memory
+@pytest.fixture(autouse=True)
+def monkeypatch_sqlite_connect(monkeypatch):
+    orig_connect = sqlite3.connect
+
+    def connect_with_uri(db_path, *args, **kwargs):
+        if db_path == SHARED_MEM_URI:
+            kwargs["uri"] = True
+        return orig_connect(db_path, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", connect_with_uri)
 
 
 class TestPlayerManager:

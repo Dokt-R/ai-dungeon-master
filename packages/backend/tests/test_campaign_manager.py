@@ -57,6 +57,7 @@ SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
 # conn.close()
 
 
+# Fixture to initialize manager instances using shared in-memory DB
 @pytest.fixture
 def managers():
     ssm = ServerSettingsManager(SHARED_MEM_URI)
