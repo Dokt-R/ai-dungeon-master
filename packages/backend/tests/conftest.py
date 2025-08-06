@@ -84,3 +84,16 @@ def select_character(conn):
         return cur.fetchone()
 
     return _select_char
+
+# Fixture to fetch a player row by user_id
+@pytest.fixture
+def select_player(conn):
+    def _select_player(user_id: str = "user-id-1"):
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM Players WHERE user_id = ?",
+            (user_id,),
+        )
+        return cur.fetchone()
+
+    return _select_player

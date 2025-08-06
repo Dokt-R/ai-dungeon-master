@@ -2,6 +2,7 @@ import sqlite3
 from packages.shared.db import get_connection, get_db_path
 from packages.backend.db.init_db import initialize_schema
 from packages.shared.error_handler import ValidationError, NotFoundError
+from packages.backend.components.campaign_manager import CampaignManager
 
 
 class PlayerManager:
@@ -102,7 +103,7 @@ class PlayerManager:
             else:
                 # Use last_active_campaign
                 if not last_active_campaign:
-                    raise ValidationError(
+                    raise NotFoundError(
                         "No campaign specified and no last active campaign found for player."
                     )
                 campaign_id = last_active_campaign
@@ -118,6 +119,7 @@ class PlayerManager:
                 campaign_name = row[0]
 
             # Enforce only one joined campaign per player
+            #! Could later be refactored to auto update last campaign to unjoined and new to join
             cur.execute(
                 """
                 SELECT cp.id FROM CampaignPlayers cp
@@ -147,6 +149,25 @@ class PlayerManager:
                         (player_id, character_name, dnd_beyond_url),
                     )
                     character_id = cur.lastrowid
+            else: # If a player has a character and its not provided auto use that character
+                cur.execute(
+                    "SELECT character_id FROM Characters WHERE player_id = ?",
+                    (player_id,),
+                )
+                char_row = cur.fetchall()
+                
+                # Enforce the player to select character if he has multiple
+                if len(char_row) > 1:
+                    raise ValidationError(
+                        "Player has multiple characters. Please specify which character should join the campaign"
+                    )
+                
+                if not char_row:
+                    raise NotFoundError(
+                        "Player does not have any characters created. Specify character name or create a character before joining"
+                    )
+                
+                character_id = char_row[0][0]
 
             # Add player to campaign
             cur.execute(
@@ -282,10 +303,6 @@ class PlayerManager:
             NotFoundError: If the specified campaign or last active campaign does not exist.
             ValidationError: If no campaign is specified and no last active campaign is found.
         """
-        from packages.backend.components.server_settings_manager import (
-            ServerSettingsManager,
-        )
-
         conn = sqlite3.connect(self.db_path)
         try:
             cur = conn.cursor()
@@ -326,8 +343,8 @@ class PlayerManager:
                 campaign_state = name_row[1]
 
             # AUTOSAVE: Store the current campaign state as an autosave
-            ssm = ServerSettingsManager(db_path=self.db_path)
-            ssm.set_campaign_autosave(
+            cm = CampaignManager(db_path=self.db_path)
+            cm.set_campaign_autosave(
                 int(campaign_id), campaign_state if campaign_state is not None else ""
             )
 
