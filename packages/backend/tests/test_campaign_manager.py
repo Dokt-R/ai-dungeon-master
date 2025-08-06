@@ -54,7 +54,7 @@ SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
 #     for table in ["CampaignAutosaves", "Campaigns", "Players"]:
 #         cur.execute(f"DELETE FROM {table}")
 #     conn.commit()
-    # conn.close()
+# conn.close()
 
 
 @pytest.fixture
@@ -75,6 +75,7 @@ def test_set_and_get_autosave(managers):
     autosave = ssm.get_latest_campaign_autosave(campaign_id)
     assert autosave is not None
     assert autosave["state"] == '{"progress": 1}'
+
 
 @pytest.mark.skip(reason="Test logic is wrong and must be fixed.")
 def test_continue_campaign_returns_autosave_if_newer(monkeypatch, managers):
@@ -102,13 +103,13 @@ def test_continue_campaign_returns_autosave_if_newer(monkeypatch, managers):
         c = campaign.copy()
         c["last_save"] = "2000-01-01 00:00:00"
         return c
-    
-    monkeypatch.setattr(ssm, "get_campaign", fake_get_campaign)
 
+    monkeypatch.setattr(ssm, "get_campaign", fake_get_campaign)
 
     result = cm.continue_campaign("user1", server_id)
     assert result["source"] == "autosave"
     assert result["state"] == '{"progress": 2}'
+
 
 @pytest.mark.skip(reason="Test logic is wrong and must be fixed.")
 def test_continue_campaign_returns_save_if_no_autosave(monkeypatch, managers):

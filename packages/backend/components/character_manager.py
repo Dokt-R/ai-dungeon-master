@@ -168,7 +168,7 @@ class CharacterManager:
                 (character_id,),
             )
             deleted = cur.rowcount > 0
-            
+
             # # Update CampaignPlayers
             cur.execute(
                 "UPDATE CampaignPlayers SET character_id = NULL where character_id = ? ",

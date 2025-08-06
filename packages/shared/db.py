@@ -6,6 +6,7 @@ from packages.backend.db.init_db import initialize_schema
 
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
 
+
 def get_db_path():
     return DEFAULT_DB_PATH
 
