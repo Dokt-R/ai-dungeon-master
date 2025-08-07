@@ -1,74 +1,18 @@
 import sqlite3
+import sqlite3
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
 from packages.backend.components.player_manager import PlayerManager
 from packages.shared.error_handler import fastapi_error_handler
+from packages.shared.models import (
+    CreatePlayerRequest,
+    JoinCampaignRequest,
+    ContinueCampaignRequest,
+    LeaveCampaignRequest,
+)
 
 
 router = APIRouter(prefix="/players", tags=["players"])
 player_manager = PlayerManager()
-
-
-class CreatePlayerRequest(BaseModel):
-    """
-    Request model for creating a new player.
-
-    Fields:
-        user_id (str): Unique identifier for the player. Must be 3-64 characters, alphanumeric, dashes or underscores.
-        username (str): Username for the player. Must be 3-32 characters, alphanumeric, dashes, underscores, or spaces.
-    """
-
-    user_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-    username: str = Field(..., min_length=3, max_length=32, pattern=r"^[\w\- ]+$")
-
-
-class JoinCampaignRequest(BaseModel):
-    """
-    Request model for joining a campaign.
-
-    Fields:
-        server_id (str): Unique identifier for the server.
-        campaign_name (str): Name of the campaign to join.
-        player_id (str): Unique identifier for the player.
-        character_name (str, optional): Name of the character to use or create.
-        dnd_beyond_url (str, optional): D&D Beyond URL for the character.
-    """
-
-    server_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-    campaign_name: str = Field(..., min_length=1, max_length=64)
-    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-    character_name: str = Field(
-        None, min_length=1, max_length=32, pattern=r"^[\w\- ]+$"
-    )
-    dnd_beyond_url: str = None
-
-
-class ContinueCampaignRequest(BaseModel):
-    """
-    Request model for ending or continuing a campaign.
-
-    Fields:
-        server_id (str): Unique identifier for the server.
-        campaign_name (str): Name of the campaign.
-        player_id (str): Unique identifier for the player.
-    """
-
-    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-
-
-class LeaveCampaignRequest(BaseModel):
-    """
-    Request model for leaving a campaign.
-
-    Fields:
-        server_id (str): Unique identifier for the server.
-        campaign_name (str): Name of the campaign to leave.
-        player_id (str): Unique identifier for the player.
-    """
-
-    server_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
-    campaign_name: str = Field(..., min_length=1, max_length=64)
-    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
 
 
 @router.post("/join_campaign", summary="Join an existing campaign")
@@ -81,7 +25,7 @@ def join_campaign(req: JoinCampaignRequest):
     on the same server. Optionally creates a new character if character_name is provided and does not exist.
 
     Args:
-        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
+        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and character_url.
 
     Returns:
         dict: Success message and result details.
@@ -96,7 +40,7 @@ def join_campaign(req: JoinCampaignRequest):
         player_id=req.player_id,
         server_id=req.server_id,
         character_name=req.character_name,
-        dnd_beyond_url=req.dnd_beyond_url,
+        character_url=req.character_url,
     )
     print("after API", result)
     return {"message": "Campaign joined successfully.", "result": result}
@@ -166,7 +110,7 @@ def continue_campaign(req: ContinueCampaignRequest):
     (Not implemented) Continue the last active campaign for a player.
 
     Args:
-        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and dnd_beyond_url.
+        req (JoinCampaignRequest): Request body containing server_id, campaign_name, player_id, character_name, and character_url.
 
     Returns:
         dict: Success message and result details.

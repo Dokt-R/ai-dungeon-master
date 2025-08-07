@@ -36,7 +36,7 @@ def set_db_env_and_schema(temp_db_file):
             character_id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id TEXT NOT NULL,
             name TEXT NOT NULL,
-            dnd_beyond_url TEXT,
+            character_url TEXT,
             FOREIGN KEY (player_id) REFERENCES Players(user_id),
             UNIQUE(player_id, name)
         )
@@ -201,7 +201,7 @@ def test_join_campaign_success(client, create_player, create_campaign):
         "campaign_name": campaign_name,
         "player_id": user_id,
         "character_name": "Hero",
-        "dnd_beyond_url": "http://dndbeyond.com/hero",
+        "character_url": "http://dndbeyond.com/hero",
     }
     resp = client.post("/players/join_campaign", json=payload)
     assert resp.status_code == 200
@@ -228,7 +228,7 @@ def test_join_campaign_success(client, create_player, create_campaign):
     assert row and row[0] == user_id and row[1] == campaign_name and row[2] == "joined"
     # Character created
     cur.execute(
-        "SELECT name, dnd_beyond_url FROM Characters WHERE player_id = ? AND name = ?",
+        "SELECT name, character_url FROM Characters WHERE player_id = ? AND name = ?",
         (user_id, "Hero"),
     )
     char_row = cur.fetchone()
@@ -326,7 +326,7 @@ def test_join_campaign_existing_character(
     conn = sqlite3.connect(temp_db_file)
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO Characters (player_id, name, dnd_beyond_url) VALUES (?, ?, ?)",
+        "INSERT INTO Characters (player_id, name, character_url) VALUES (?, ?, ?)",
         (user_id, "Hero", "http://dndbeyond.com/hero"),
     )
     conn.commit()
@@ -704,7 +704,7 @@ def test_get_player_status_success(client, create_player, create_campaign):
         "campaign_name": campaign_name,
         "player_id": user_id,
         "character_name": "Hero",
-        "dnd_beyond_url": "http://dndbeyond.com/hero",
+        "character_url": "http://dndbeyond.com/hero",
     }
     client.post("/players/join_campaign", json=join_payload)
     resp = client.get(f"/players/status/{user_id}")
@@ -745,11 +745,11 @@ def test_get_player_status_multiple_campaigns_and_characters(
     conn = sqlite3.connect(temp_db_file)
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO Characters (player_id, name, dnd_beyond_url) VALUES (?, ?, ?)",
+        "INSERT INTO Characters (player_id, name, character_url) VALUES (?, ?, ?)",
         (user_id, "Hero1", "url1"),
     )
     cur.execute(
-        "INSERT INTO Characters (player_id, name, dnd_beyond_url) VALUES (?, ?, ?)",
+        "INSERT INTO Characters (player_id, name, character_url) VALUES (?, ?, ?)",
         (user_id, "Hero2", "url2"),
     )
     conn.commit()

@@ -15,7 +15,7 @@ async def test_character_add_command():
         mock_client.return_value.__aenter__.return_value.post.return_value.json = (
             AsyncMock(return_value={"character_id": 123})
         )
-        await cog.add.callback(cog, interaction, name="Hero", dnd_beyond_url=None)
+        await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
         assert "added successfully" in args[0].lower()
@@ -35,7 +35,7 @@ async def test_character_update_command():
             AsyncMock(return_value={"success": True})
         )
         await cog.update.callback(
-            cog, interaction, character_id=1, name="NewName", dnd_beyond_url=None
+            cog, interaction, character_id=1, name="NewName", character_url=None
         )
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
@@ -75,7 +75,7 @@ async def test_character_list_command():
             AsyncMock(
                 return_value={
                     "characters": [
-                        {"character_id": 1, "name": "Hero", "dnd_beyond_url": "url"}
+                        {"character_id": 1, "name": "Hero", "character_url": "url"}
                     ]
                 }
             )
@@ -99,7 +99,7 @@ async def test_character_add_command_backend_error():
         mock_client.return_value.__aenter__.return_value.post.return_value.json = (
             AsyncMock(return_value={"detail": "Character already exists"})
         )
-        await cog.add.callback(cog, interaction, name="Hero", dnd_beyond_url=None)
+        await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
         assert "failed to add character" in args[0].lower()
@@ -114,7 +114,7 @@ async def test_character_update_command_no_fields():
     interaction.user.id = 42
     interaction.response.send_message = AsyncMock()
     await cog.update.callback(
-        cog, interaction, character_id=1, name=None, dnd_beyond_url=None
+        cog, interaction, character_id=1, name=None, character_url=None
     )
     interaction.response.send_message.assert_awaited_once()
     args, kwargs = interaction.response.send_message.call_args

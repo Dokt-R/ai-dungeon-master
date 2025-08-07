@@ -143,7 +143,7 @@ paths:
                 character_name:
                   type: string
                   nullable: true
-                dnd_beyond_url:
+                character_url:
                   type: string
                   nullable: true
       responses:
@@ -292,7 +292,7 @@ paths:
                               type: integer
                             name:
                               type: string
-                            dnd_beyond_url:
+                            character_url:
                               type: string
                               nullable: true
         '404':
@@ -312,7 +312,7 @@ paths:
                   type: string
                 name:
                   type: string
-                dnd_beyond_url:
+                character_url:
                   type: string
                   nullable: true
       responses:
@@ -345,7 +345,7 @@ paths:
                 name:
                   type: string
                   nullable: true
-                dnd_beyond_url:
+                character_url:
                   type: string
                   nullable: true
       responses:
@@ -417,7 +417,7 @@ paths:
                           type: integer
                         name:
                           type: string
-                        dnd_beyond_url:
+                        character_url:
                           type: string
                           nullable: true
         '404':

@@ -44,7 +44,7 @@ def set_db_env_and_schema(temp_db_file):
             character_id INTEGER PRIMARY KEY AUTOINCREMENT,
             player_id TEXT NOT NULL,
             name TEXT NOT NULL,
-            dnd_beyond_url TEXT,
+            character_url TEXT,
             FOREIGN KEY (player_id) REFERENCES Players(user_id),
             UNIQUE(player_id, name)
         )
@@ -161,7 +161,7 @@ def test_add_character(client, player_id):
         json={
             "player_id": player_id,
             "name": "TestPlayer",
-            "dnd_beyond_url": "http://example.com",
+            "character_url": "http://example.com",
         },
     )
     assert resp.status_code == 200
@@ -277,7 +277,7 @@ def test_join_campaign_with_character(client, player_id, campaign_id, temp_db_fi
         "campaign_name": "Test Campaign",
         "player_id": player_id,
         "character_name": "Hero",
-        "dnd_beyond_url": "http://dndbeyond.com/hero",
+        "character_url": "http://dndbeyond.com/hero",
     }
     resp = client.post("/players/join_campaign", json=join_payload)
     assert resp.status_code == 200
@@ -297,7 +297,7 @@ def add_character(client, player_id, name):
         json={
             "player_id": player_id,
             "name": name,
-            "dnd_beyond_url": "http://example.com",
+            "character_url": "http://example.com",
         },
     )
     return response

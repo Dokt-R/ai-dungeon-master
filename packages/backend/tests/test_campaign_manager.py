@@ -1,7 +1,5 @@
-import sqlite3
 import pytest
-
-SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
+from packages.shared.models import Player
 
 
 class BaseTestData:
@@ -11,94 +9,49 @@ class BaseTestData:
     owner_id = "king_arthur"
     player_id = "brave_sir_robin"
     username = "knight_of_ni"
-    character_name = "tim_the_enchanter"
-    character_name2 = "black_knight"
-    url = "http://dndbeyond.com/tim_the_enchanter"
-    url2 = "http://dndbeyond.com/black_knight"
 
 
-class TestAutosave(BaseTestData):
-    def test_set_and_get_autosave(self, managers, conn):
-        # Create campaign
+class TestCampaignManager(BaseTestData):
+    def test_create_and_get_campaign(self, managers, session):
+        campaign = managers.campaign.create_campaign(
+            self.server_id, self.campaign_name, self.owner_id
+        )
+        assert campaign.campaign_name == self.campaign_name
+
+        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        assert retrieved.campaign_id == campaign.campaign_id
+
+    def test_delete_campaign(self, managers, session):
         managers.campaign.create_campaign(
-            self.server_id, self.campaign_name, self.owner_id, self.state
+            self.server_id, self.campaign_name, self.owner_id
         )
-        campaign = managers.campaign.get_campaign(self.server_id, self.campaign_name)
-        print(campaign)
-        campaign_id = campaign["campaign_id"]
-        # Set autosave
-        managers.campaign.set_campaign_autosave(campaign_id, '{"progress": 1}')
-        autosave = managers.campaign.get_latest_campaign_autosave(campaign_id)
-        assert autosave is not None
-        assert autosave["state"] == '{"progress": 1}'
-
-    def test_continue_campaign_none_if_no_last_active(self, managers, conn):
-        managers.campaign.create_campaign(
-            self.server_id, self.campaign_name, self.owner_id, self.state
+        result = managers.campaign.delete_campaign(
+            self.server_id, self.campaign_name, self.owner_id, is_admin=False
         )
-        result = managers.campaign.continue_campaign(self.player_id, self.server_id)
-        assert result is None
+        assert result is True
+        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        assert retrieved is None
 
-    @pytest.mark.skip(reason="Test logic is wrong and must be fixed.")
-    def test_continue_campaign_returns_autosave_if_newer(
-        self, monkeypatch, managers, conn
-    ):
-        # Create player and campaign
-        managers.campaign.create_campaign(
-            self.server_id, self.campaign_name, "owner1", state='{"progress": 1}'
+    def test_get_campaign_players(self, managers, session, insert_player):
+        campaign = managers.campaign.create_campaign(
+            self.server_id, self.campaign_name, self.owner_id
         )
-        campaign = managers.campaign.get_campaign(self.server_id, self.campaign_name)
-        campaign_id = campaign["campaign_id"]
-        # Set player last_active_campaign
-        conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO Players (user_id, username, last_active_campaign) VALUES (?, ?, ?)",
-            ("user1", "Alice", self.campaign_name),
+        insert_player(self.player_id)
+        managers.player.join_campaign(
+            player_id=self.player_id,
+            server_id=self.server_id,
+            campaign_name=self.campaign_name,
+            character_name="test_char",
         )
-        conn.commit()
-        conn.close()
-        # Set autosave with a newer timestamp
-        managers.campaign.set_campaign_autosave(campaign_id, '{"progress": 2}')
+        players = managers.campaign.get_campaign_players(campaign.campaign_id)
+        assert len(players) == 1
+        assert players[0].user_id == self.player_id
 
-        # Monkeypatch last_save to be older
-        def fake_get_campaign(server_id, campaign_name):
-            c = campaign.copy()
-            c["last_save"] = "2000-01-01 00:00:00"
-            return c
-
-        monkeypatch.setattr(managers.campaign, "get_campaign", fake_get_campaign)
-
-        result = managers.campaign.continue_campaign("user1", self.server_id)
-        assert result["source"] == "autosave"
-        assert result["state"] == '{"progress": 2}'
-
-    @pytest.mark.skip(reason="Test logic is wrong and must be fixed.")
-    def test_continue_campaign_returns_save_if_no_autosave(
-        self, monkeypatch, managers, conn
-    ):
-        # Create player and campaign
-        managers.campaign.create_campaign(
-            "server1", "TestCampaign", "owner1", state='{"progress": 1}'
+    def test_update_campaign_state(self, managers, session):
+        campaign = managers.campaign.create_campaign(
+            self.server_id, self.campaign_name, self.owner_id
         )
-        campaign = managers.campaign.get_campaign("server1", "TestCampaign")
-        # Set player last_active_campaign
-        conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO Players (user_id, username, last_active_campaign) VALUES (?, ?, ?)",
-            ("user1", "Alice", "TestCampaign"),
+        updated = managers.campaign.update_campaign_state(
+            campaign.campaign_id, '{"progress": "halfway"}'
         )
-        conn.commit()
-        conn.close()
-
-        # No autosave set
-        def fake_get_campaign(server_id, campaign_name):
-            c = campaign.copy()
-            c["last_save"] = "2100-01-01 00:00:00"
-            return c
-
-        monkeypatch.setattr(managers.campaign, "get_campaign", fake_get_campaign)
-        result = managers.campaign.continue_campaign("user1", "server1")
-        assert result["source"] == "save"
-        assert result["state"] == '{"progress": 1}'
+        assert updated.state == '{"progress": "halfway"}'

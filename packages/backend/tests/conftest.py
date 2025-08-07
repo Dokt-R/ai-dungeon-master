@@ -1,101 +1,97 @@
 import pytest
-import sqlite3
 from collections import namedtuple
+from sqlmodel import Session, SQLModel
+
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.backend.components.character_manager import CharacterManager
 from packages.backend.components.player_manager import PlayerManager
 from packages.backend.components.server_settings_manager import ServerSettingsManager
+from packages.shared.db import get_engine
+from packages.backend.db.init_db import initialize_schema
+from packages.shared.models import Player, Character
 
-# Shared in-memory SQLite DB (accessible across connections)
+# Shared in-memory SQLite DB URI
 SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
 
-
-# Fixture to initialize manager instances using shared in-memory DB
 Managers = namedtuple("Managers", ["settings", "character", "player", "campaign"])
-Services = namedtuple("Services", ["key"])
+
+
+@pytest.fixture(scope="session")
+def engine():
+    """
+    Creates a single, session-scoped SQLAlchemy Engine and initializes the schema.
+    """
+    db_engine = get_engine(SHARED_MEM_URI)
+    initialize_schema(db_engine)
+    return db_engine
+
+
+@pytest.fixture(autouse=True)
+def clear_db_tables(engine):
+    """
+    Ensures a clean database state for each test by dropping and recreating all tables.
+    """
+    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.create_all(engine)
 
 
 @pytest.fixture
-def managers():
-    ssm = ServerSettingsManager(db_path=SHARED_MEM_URI)
-    cm = CharacterManager(db_path=SHARED_MEM_URI)
-    pm = PlayerManager(db_path=SHARED_MEM_URI)
-    cmpm = CampaignManager(db_path=SHARED_MEM_URI)
+def session(engine):
+    """
+    Provides a clean database session for each test.
+    Rolls back any changes after the test completes.
+    """
+    with Session(engine) as db_session:
+        yield db_session
+        db_session.rollback()  # Ensures test isolation
+
+
+@pytest.fixture
+def managers(engine):
+    """
+    Initializes all manager instances with the session-scoped engine.
+    """
+    ssm = ServerSettingsManager(engine=engine)
+    cm = CharacterManager(engine=engine)
+    pm = PlayerManager(engine=engine)
+    cmpm = CampaignManager(engine=engine)
     return Managers(ssm, cm, pm, cmpm)
 
 
-# Connection fixture with row access via keys (dict-style)
 @pytest.fixture
-def conn():
-    connection = sqlite3.connect(SHARED_MEM_URI, uri=True)
-    connection.row_factory = sqlite3.Row
-    yield connection
-    connection.close()
+def insert_player(session):
+    """
+    Fixture to insert a predefined player for use in tests.
+    """
 
-
-# Automatically clear relevant tables before each test run
-@pytest.fixture(autouse=True)
-def clear_tables():
-    conn = sqlite3.connect(SHARED_MEM_URI, uri=True)
-    cur = conn.cursor()
-    for table in ["CampaignPlayers", "Characters", "Players", "Campaigns"]:
-        try:
-            cur.execute(f"DELETE FROM {table}")
-        except sqlite3.OperationalError:
-            pass
-    conn.commit()
-    conn.close()
-
-
-# Patch sqlite3.connect to ensure `uri=True` is applied when using shared memory
-@pytest.fixture(autouse=True)
-def monkeypatch_sqlite_connect(monkeypatch):
-    orig_connect = sqlite3.connect
-
-    def connect_with_uri(db_path, *args, **kwargs):
-        if db_path == SHARED_MEM_URI:
-            kwargs["uri"] = True
-        return orig_connect(db_path, *args, **kwargs)
-
-    monkeypatch.setattr(sqlite3, "connect", connect_with_uri)
-
-
-# Fixture to insert a predefined player for use in tests
-@pytest.fixture
-def insert_player(conn):
     def _insert(user_id: str = "user-id-1", username: str = "Alice"):
-        conn.execute(
-            "INSERT INTO Players (user_id, username) VALUES (?, ?)",
-            (user_id, username),
-        )
-        conn.commit()
+        player = Player(user_id=user_id, username=username)
+        session.add(player)
+        session.commit()
+        return player
 
     return _insert
 
 
-# Fixture to fetch a character row by ID
 @pytest.fixture
-def select_character(conn):
-    def _select_char(char_id):
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM Characters WHERE character_id = ?",
-            (char_id,),
-        )
-        return cur.fetchone()
+def select_character(session):
+    """
+    Fixture to fetch a character row by ID.
+    """
+
+    def _select_char(char_id: int):
+        return session.get(Character, char_id)
 
     return _select_char
 
 
-# Fixture to fetch a player row by user_id
 @pytest.fixture
-def select_player(conn):
+def select_player(session):
+    """
+    Fixture to fetch a player row by user_id.
+    """
+
     def _select_player(user_id: str = "user-id-1"):
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM Players WHERE user_id = ?",
-            (user_id,),
-        )
-        return cur.fetchone()
+        return session.get(Player, user_id)
 
     return _select_player

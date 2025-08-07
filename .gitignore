@@ -15,6 +15,8 @@ __pycache__/
 ai_dm_project.egg-info/
 server_settings.db
 file
+todo.md
+notes.md
 
 # Ignore logs and temp files
 *.log

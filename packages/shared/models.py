@@ -1,6 +1,88 @@
-from pydantic import BaseModel, SecretStr, Field
-from typing import Literal, Optional
 from datetime import datetime
+from typing import List, Optional
+
+from pydantic import SecretStr
+from sqlalchemy import Column, String
+from sqlmodel import Field, Relationship, SQLModel
+
+
+# Server Configuration Model
+class ServerConfig(SQLModel, table=True):
+    __tablename__ = "keys"
+    server_id: str = Field(primary_key=True)
+    api_key: SecretStr = Field(sa_column=Column(String), default=None)
+    dm_roll_visibility: str = "public"
+    player_roll_mode: str = "digital"
+    character_sheet_mode: str = "digital_sheet"
+
+    campaigns: List["Campaign"] = Relationship(back_populates="server_config")
+
+
+# Player Model
+class Player(SQLModel, table=True):
+    __tablename__ = "players"
+    user_id: str = Field(primary_key=True)
+    username: Optional[str] = None
+    player_status: Optional[str] = "cmd"
+    last_active_campaign: Optional[str] = Field(
+        default=None, foreign_key="campaigns.campaign_name"
+    )
+
+    characters: List["Character"] = Relationship(back_populates="player")
+    campaigns: List["Campaign"] = Relationship(
+        back_populates="players",
+        sa_relationship_kwargs={"secondary": "campaign_players"},
+    )
+
+
+# Character Model
+class Character(SQLModel, table=True):
+    __tablename__ = "characters"
+    character_id: Optional[int] = Field(default=None, primary_key=True)
+    name: str
+    character_url: Optional[str] = None
+
+    player_id: str = Field(foreign_key="players.user_id")
+    player: Player = Relationship(back_populates="characters")
+
+    campaign_id: Optional[int] = Field(
+        default=None, foreign_key="campaigns.campaign_id"
+    )
+    campaign: Optional["Campaign"] = Relationship(back_populates="characters")
+
+
+# Campaign-Player Link Table
+class CampaignPlayerLink(SQLModel, table=True):
+    __tablename__ = "campaign_players"
+    campaign_id: int = Field(primary_key=True, foreign_key="campaigns.campaign_id")
+    player_id: str = Field(primary_key=True, foreign_key="players.user_id")
+
+
+# Campaign Model
+class Campaign(SQLModel, table=True):
+    __tablename__ = "campaigns"
+    campaign_id: Optional[int] = Field(default=None, primary_key=True)
+    campaign_name: str
+    owner_id: str
+    state: Optional[str] = None
+    last_save: datetime = Field(default_factory=datetime.utcnow)
+
+    server_id: str = Field(foreign_key="keys.server_id")
+    server_config: ServerConfig = Relationship(back_populates="campaigns")
+
+    players: List[Player] = Relationship(
+        back_populates="campaigns",
+        sa_relationship_kwargs={"secondary": "campaign_players"},
+    )
+    characters: List[Character] = Relationship(back_populates="campaign")
+
+
+# ======================================================================================
+# API Models (Pydantic BaseModels for request/response validation)
+# ======================================================================================
+
+from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class ServerConfigModel(BaseModel):
@@ -8,69 +90,71 @@ class ServerConfigModel(BaseModel):
         ...,
         description="LLM API key used to authenticate with the backend",
     )
-
     dm_roll_visibility: Literal[
-        "public",  # DM will announce his dice rolls to the players
-        "hidden",  # DM will roll for himself and proceed with narrative
+        "public",
+        "hidden",
     ] = Field(
         "public",
         description="Server wide settings handling DM dice roll visibility",
     )
-
-    # TODO: Refactor for player specific settings instead of system wide
     player_roll_mode: Literal[
-        "physical",  # Player is prompted to roll physical dice
-        "digital",  # Player is prompted to roll with /roll command
-        "auto",  # DM uses /roll command for the player and announces the result
-        "hidden",  # DM rolls behind the scenes and proceeds with the narrative
+        "physical",
+        "digital",
+        "auto",
+        "hidden",
     ] = Field(
         "digital",
         description="Per player preferences handling dice rolls",
     )
-
-    # TODO: Refactor for player specific settings instead of system wide
     character_sheet_mode: Literal[
-        "digital_sheet",  # Players will use Digital DnD Beyond sheets
-        "physical_sheet",  # Players will use Digital DnD Beyond sheets
+        "digital_sheet",
+        "physical_sheet",
     ] = Field(
         "digital_sheet",
         description="Server wide settings handing digital or physical character sheets preference",
     )
 
 
-class ServerConfig(ServerConfigModel):
-    server_id: str = Field(
-        ...,
-        description="Unique identifier for the discord server",
+class AddCharacterRequest(BaseModel):
+    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+    name: str = Field(..., min_length=1, max_length=32, pattern=r"^[\w\- ]+$")
+    character_url: str | None = None
+
+
+class UpdateCharacterRequest(BaseModel):
+    character_id: int
+    name: str | None = Field(None, min_length=1, max_length=32, pattern=r"^[\w\- ]+$")
+    character_url: str | None = None
+
+
+class RemoveCharacterRequest(BaseModel):
+    character_id: int
+
+
+class ListCharactersRequest(BaseModel):
+    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+
+
+class CreatePlayerRequest(BaseModel):
+    user_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+    username: str = Field(..., min_length=3, max_length=32, pattern=r"^[\w\- ]+$")
+
+
+class JoinCampaignRequest(BaseModel):
+    server_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+    campaign_name: str = Field(..., min_length=1, max_length=64)
+    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+    character_name: str = Field(
+        None, min_length=1, max_length=32, pattern=r"^[\w\- ]+$"
     )
+    character_url: str = None
 
 
-class Player(BaseModel):
-    """Represents a player, typically a Discord user."""
-
-    user_id: str = Field(
-        ..., description="Unique identifier for the player (e.g., Discord user ID)."
-    )
-    username: Optional[str] = Field(
-        None, description="The player's username (e.g., Discord username)."
-    )
+class ContinueCampaignRequest(BaseModel):
+    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
 
 
-class Character(BaseModel):
-    """Represents a character in a campaign."""
-
-    name: str = Field(..., description="The character's name.")
-    dnd_beyond_url: Optional[str] = Field(
-        None, description="Optional URL to a D&D Beyond character sheet."
-    )
-
-
-class PlayerCampaign(BaseModel):
-    """Association model linking a Player to a Campaign."""
-
-    id: int
-    campaign_id: int
-    player_id: str
-    character_name: Optional[str] = None
-    player_status: str
-    joined_at: datetime
+class LeaveCampaignRequest(BaseModel):
+    server_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")
+    campaign_name: str = Field(..., min_length=1, max_length=64)
+    player_id: str = Field(..., min_length=3, max_length=64, pattern=r"^[\w\-]+$")

@@ -19,7 +19,7 @@ class Player(BaseModel):
 class Character(BaseModel):
     """Represents a character in a campaign."""
     name: str = Field(..., description="The character's name.")
-    dnd_beyond_url: Optional[str] = Field(None, description="Optional URL to a D&D Beyond character sheet.")
+    character_url: Optional[str] = Field(None, description="Optional URL to a D&D Beyond character sheet.")
 
 class PlayerCampaign(BaseModel):
     """Association model linking a Player to a Campaign."""

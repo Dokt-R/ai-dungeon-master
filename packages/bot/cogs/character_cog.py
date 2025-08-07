@@ -23,17 +23,17 @@ class CharacterCog(commands.Cog):
     @character.command(name="add", description="Add a new character to your account.")
     @app_commands.describe(
         name="The name of your character",
-        dnd_beyond_url="Optional: D&D Beyond character sheet URL",
+        character_url="Optional: D&D Beyond character sheet URL",
     )
     @discord_error_handler()
     async def add(
-        self, interaction: discord.Interaction, name: str, dnd_beyond_url: str = None
+        self, interaction: discord.Interaction, name: str, character_url: str = None
     ):
         """Add a new character for the user."""
         payload = {
             "player_id": str(interaction.user.id),
             "name": name,
-            "dnd_beyond_url": dnd_beyond_url,
+            "character_url": character_url,
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -56,7 +56,7 @@ class CharacterCog(commands.Cog):
     @app_commands.describe(
         character_id="The ID of the character to update",
         name="New name for the character (optional)",
-        dnd_beyond_url="New D&D Beyond URL (optional)",
+        character_url="New D&D Beyond URL (optional)",
     )
     @discord_error_handler()
     async def update(
@@ -64,17 +64,17 @@ class CharacterCog(commands.Cog):
         interaction: discord.Interaction,
         character_id: int,
         name: str = None,
-        dnd_beyond_url: str = None,
+        character_url: str = None,
     ):
         """Update character data."""
-        if name is None and dnd_beyond_url is None:
+        if name is None and character_url is None:
             raise ValidationError(
-                "You must provide at least one field to update (name or dnd_beyond_url)."
+                "You must provide at least one field to update (name or character_url)."
             )
         payload = {
             "character_id": character_id,
             "name": name,
-            "dnd_beyond_url": dnd_beyond_url,
+            "character_url": character_url,
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -141,7 +141,7 @@ class CharacterCog(commands.Cog):
                     return
                 msg = "**Your Characters:**\n"
                 for char in characters:
-                    msg += f"- ID: {char['character_id']}, Name: {char['name']}, D&D Beyond: {char.get('dnd_beyond_url', 'N/A')}\n"
+                    msg += f"- ID: {char['character_id']}, Name: {char['name']}, D&D Beyond: {char.get('character_url', 'N/A')}\n"
                 await interaction.response.send_message(
                     msg,
                     ephemeral=True,

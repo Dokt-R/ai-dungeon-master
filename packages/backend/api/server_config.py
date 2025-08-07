@@ -5,16 +5,12 @@ from packages.shared.error_handler import (
     ValidationError,
     fastapi_error_handler,
 )
-
-# Initialize services (should be refactored for DI in production)
 from packages.backend.components.server_settings_manager import ServerSettingsManager
-
 
 router = APIRouter()
 
-settings_manager = ServerSettingsManager(
-    db_path=os.getenv("SERVER_SETTINGS_DB", "server_settings.db")
-)
+# This should be replaced with a proper dependency injection system
+settings_manager = ServerSettingsManager()
 
 
 @router.put(
@@ -25,25 +21,23 @@ def set_server_config(
     server_id: str = Path(..., description="The Discord server ID"),
     config: ServerConfigModel = ...,
 ):
-    # Example validation: API key must be present and non-empty
-    api_key_value = (
-        config.api_key.get_secret_value()
-        if hasattr(config.api_key, "get_secret_value")
-        else config.api_key
-    )
-    if (
-        not api_key_value
-        or not isinstance(api_key_value, str)
-        or len(api_key_value.strip()) == 0
-    ):
+    """
+    Sets the configuration for a given server.
+    The incoming data is a Pydantic `ServerConfigModel`.
+    This is then used to create a `ServerConfig` SQLModel for the database.
+    """
+    # The manager now handles the validation, but we can keep this for early exit
+    if not config.api_key.get_secret_value().strip():
         raise ValidationError("API key is required and must be a non-empty string.")
 
-    server_config = ServerConfig(
+    # Create the database model from the API model
+    server_config_db = ServerConfig(
         server_id=server_id,
         api_key=config.api_key,
         dm_roll_visibility=config.dm_roll_visibility,
         player_roll_mode=config.player_roll_mode,
         character_sheet_mode=config.character_sheet_mode,
     )
-    settings_manager.store_api_key(server_config)
+
+    settings_manager.store_server_config(server_config_db)
     return {"message": "Server configuration updated successfully."}
