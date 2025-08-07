@@ -5,14 +5,14 @@ client = TestClient(app)
 
 
 def test_set_server_config_success(monkeypatch):
-    # Patch the APIKeyService to avoid actual DB/crypto
+    # Patch the ServerSettingsManager to avoid actual DB/crypto
     def mock_store_api_key(server_config):
         assert server_config.server_id == "123"
         assert server_config.api_key.get_secret_value() == "testkey"
 
     app.dependency_overrides = {}
     monkeypatch.setattr(
-        "packages.backend.components.api_key_service.APIKeyService.store_api_key",
+        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
         lambda self, server_config: mock_store_api_key(server_config),
     )
     payload = {
@@ -31,7 +31,7 @@ def test_set_server_config_failure(monkeypatch):
         raise Exception("DB error")
 
     monkeypatch.setattr(
-        "packages.backend.components.api_key_service.APIKeyService.store_api_key",
+        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
         lambda self, server_config: mock_store_api_key(server_config),
     )
     payload = {
@@ -65,7 +65,7 @@ def test_set_server_config_not_found(monkeypatch):
         raise NotFoundError("Server not found")
 
     monkeypatch.setattr(
-        "packages.backend.components.api_key_service.APIKeyService.store_api_key",
+        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
         lambda self, server_config: mock_store_api_key(server_config),
     )
     payload = {

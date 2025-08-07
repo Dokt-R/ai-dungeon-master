@@ -12,6 +12,7 @@ SHARED_MEM_URI = "file:memdb1?mode=memory&cache=shared"
 
 # Fixture to initialize manager instances using shared in-memory DB
 Managers = namedtuple("Managers", ["settings", "character", "player", "campaign"])
+Services = namedtuple("Services", ["key"])
 
 
 @pytest.fixture
@@ -84,6 +85,7 @@ def select_character(conn):
         return cur.fetchone()
 
     return _select_char
+
 
 # Fixture to fetch a player row by user_id
 @pytest.fixture

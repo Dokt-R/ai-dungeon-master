@@ -1,11 +1,10 @@
+import os
 from fastapi import APIRouter, Path
 from packages.shared.models import ServerConfigModel, ServerConfig
-from packages.backend.components.api_key_service import APIKeyService
 from packages.shared.error_handler import (
     ValidationError,
     fastapi_error_handler,
 )
-import os
 
 # Initialize services (should be refactored for DI in production)
 from packages.backend.components.server_settings_manager import ServerSettingsManager
@@ -16,7 +15,6 @@ router = APIRouter()
 settings_manager = ServerSettingsManager(
     db_path=os.getenv("SERVER_SETTINGS_DB", "server_settings.db")
 )
-api_key_service = APIKeyService(manager=settings_manager)
 
 
 @router.put(
@@ -47,5 +45,5 @@ def set_server_config(
         player_roll_mode=config.player_roll_mode,
         character_sheet_mode=config.character_sheet_mode,
     )
-    api_key_service.store_api_key(server_config)
+    settings_manager.store_api_key(server_config)
     return {"message": "Server configuration updated successfully."}

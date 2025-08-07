@@ -3,8 +3,10 @@ import os
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 import sqlite3
-from packages.shared.db import get_connection, get_db_path
+from packages.shared.db import get_connection, get_db_path, setup_db_for_manager
 from packages.backend.db.init_db import initialize_schema
+from packages.shared.models import ServerConfig
+
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -51,8 +53,13 @@ class ServerSettingsManager:
         fernet = Fernet(self.key)
         return fernet.decrypt(encrypted_data.encode()).decode()
 
-    def store_api_key(self, server_id: str, api_key: str) -> None:
+    def store_api_key(self, server_config: ServerConfig) -> None:
         """Store the API key securely in SQLite."""
+        if not server_config.api_key.get_secret_value():
+            raise ValueError("API key must not be empty.")
+        server_id = server_config.server_id
+        api_key = server_config.api_key.get_secret_value()
+        print(api_key)
         encrypted_key = self.encrypt(api_key)
         if self.db_path == ":memory:":
             conn = self._conn

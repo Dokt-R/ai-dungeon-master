@@ -1,21 +1,8 @@
 import pytest
 from packages.backend.components.server_config import ServerConfig, SecretStr
-from packages.backend.components.api_key_service import APIKeyService
-from packages.backend.components.server_settings_manager import ServerSettingsManager
 
 
-@pytest.fixture
-def memory_service():
-    # Use an in-memory SQLite database for test isolation
-    return ServerSettingsManager(db_path=":memory:")
-
-
-@pytest.fixture
-def api_key_service(memory_service):
-    return APIKeyService(memory_service)
-
-
-def test_store_and_retrieve_api_key(api_key_service):
+def test_store_and_retrieve_api_key(managers):
     server_config = ServerConfig(
         server_id="test_server",
         api_key=SecretStr("test_api_key"),  # Use SecretStr for the test
@@ -23,13 +10,13 @@ def test_store_and_retrieve_api_key(api_key_service):
         player_roll_mode="auto",
         character_sheet_mode="digital_sheet",
     )
-    api_key_service.store_api_key(server_config)
+    managers.settings.store_api_key(server_config)
 
-    retrieved_key = api_key_service.retrieve_api_key("test_server")
+    retrieved_key = managers.settings.retrieve_api_key("test_server")
     assert retrieved_key == "test_api_key"
 
 
-def test_store_empty_api_key(api_key_service):
+def test_store_empty_api_key(managers):
     server_config = ServerConfig(
         server_id="test_server",
         api_key="",  # Test with an empty API key
@@ -39,15 +26,15 @@ def test_store_empty_api_key(api_key_service):
     )
 
     with pytest.raises(ValueError, match="API key must not be empty."):
-        api_key_service.store_api_key(server_config)
+        managers.settings.store_api_key(server_config)
 
 
-def test_retrieve_nonexistent_api_key(api_key_service):
-    retrieved_key = api_key_service.retrieve_api_key("nonexistent_server")
+def test_retrieve_nonexistent_api_key(managers):
+    retrieved_key = managers.settings.retrieve_api_key("nonexistent_server")
     assert retrieved_key is None
 
 
-def test_store_and_retrieve_encrypted_api_key(api_key_service):
+def test_store_and_retrieve_encrypted_api_key(managers):
     server_config = ServerConfig(
         server_id="test_server_encrypted",
         api_key=SecretStr("test_encrypted_api_key"),
@@ -56,8 +43,7 @@ def test_store_and_retrieve_encrypted_api_key(api_key_service):
         player_roll_mode="auto",
         character_sheet_mode="digital_sheet",
     )
-    api_key_service.store_api_key(server_config)
+    managers.settings.store_api_key(server_config)
 
-    retrieved_key = api_key_service.retrieve_api_key("test_server_encrypted")
-    assert retrieved_key == "test_encrypted_api_key"  # Check if the decrypted
-    # key matches
+    retrieved_key = managers.settings.retrieve_api_key("test_server_encrypted")
+    assert retrieved_key == "test_encrypted_api_key"

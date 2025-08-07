@@ -149,24 +149,24 @@ class PlayerManager:
                         (player_id, character_name, dnd_beyond_url),
                     )
                     character_id = cur.lastrowid
-            else: # If a player has a character and its not provided auto use that character
+            else:  # If a player has a character and its not provided auto use that character
                 cur.execute(
                     "SELECT character_id FROM Characters WHERE player_id = ?",
                     (player_id,),
                 )
                 char_row = cur.fetchall()
-                
+
                 # Enforce the player to select character if he has multiple
                 if len(char_row) > 1:
                     raise ValidationError(
                         "Player has multiple characters. Please specify which character should join the campaign"
                     )
-                
+
                 if not char_row:
                     raise NotFoundError(
                         "Player does not have any characters created. Specify character name or create a character before joining"
                     )
-                
+
                 character_id = char_row[0][0]
 
             # Add player to campaign

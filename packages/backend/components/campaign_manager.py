@@ -55,12 +55,14 @@ class CampaignManager:
             if self.db_path != ":memory:":
                 conn.close()
 
-    def create_campaign(self, server_id: str, campaign_name: str, owner_id: str, state: str = None):
+    def create_campaign(
+        self, server_id: str, campaign_name: str, owner_id: str, state: str = None
+    ):
         """Create a new campaign in the Campaigns table."""
-        
+
         if self.get_campaign(server_id, campaign_name):
             raise ValueError(f"A campaign named '{campaign_name}' already exists.")
-        
+
         if self.db_path == ":memory:":
             conn = self._conn
         else:
@@ -178,12 +180,13 @@ class CampaignManager:
             )
             rows = cur.fetchall()
             return [
-                {"id": row[0],
-                "campaign_id": row[1],
-                "player_id": row[2],
-                "character_id": row[3],
-                "player_status": row[4],
-                "joined_at": row[5]
+                {
+                    "id": row[0],
+                    "campaign_id": row[1],
+                    "player_id": row[2],
+                    "character_id": row[3],
+                    "player_status": row[4],
+                    "joined_at": row[5],
                 }
                 for row in rows
             ]

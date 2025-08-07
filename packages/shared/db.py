@@ -15,6 +15,7 @@ def get_connection(db_path=None):
     path = db_path if db_path else get_db_path()
     conn = sqlite3.connect(path, uri=True)
     conn.execute("PRAGMA foreign_keys = ON")
+    print("Opened connection")
     return conn
 
 
