@@ -11,6 +11,7 @@
 * **Backend Service:** The structure will follow the patterns of the **FastAPI** framework for a clean, service-oriented design.
 * **Discord Bot:** The code will be organized using the **Cogs** pattern, which is the best practice for the `discord.py` library.
 * **Command flow** will use the flow: /command -> Bot Gateway -> API Call -> Backend Service (containing the ServerSettingsManager) -> SQLite Table
+* **Database Initialization:** The database schema is automatically created or updated on application startup. This ensures the database is always in sync with the models without requiring manual migrations for development.
 * **Deployment** The project must support easy self-hosting using **Docker Compose** and will be updated as the project grows.
 * **Agentic AI:** Using frameworks like LangGraph to manage complex AI tasks and state.
 * **Agentic AI (State Machine):** By using **LangGraph**, we will build the core application as a state machine or graph. This gives us explicit, deterministic control over the game loop, which is essential for a rule-heavy, stateful application.

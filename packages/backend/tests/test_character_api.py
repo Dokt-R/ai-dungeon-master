@@ -99,7 +99,6 @@ def set_db_env_and_schema(temp_db_file):
     )
     cur.execute("SELECT * FROM Campaigns")
     camp = cur.fetchone()
-    print(camp)
     conn.commit()
     conn.close()
 

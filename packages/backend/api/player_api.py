@@ -34,7 +34,6 @@ def join_campaign(req: JoinCampaignRequest):
         ValidationError: If the player is already joined to a campaign or required fields are missing.
         NotFoundError: If the campaign or player does not exist.
     """
-    print("inside API")
     result = player_manager.join_campaign(
         campaign_name=req.campaign_name,
         player_id=req.player_id,
@@ -42,7 +41,6 @@ def join_campaign(req: JoinCampaignRequest):
         character_name=req.character_name,
         character_url=req.character_url,
     )
-    print("after API", result)
     return {"message": "Campaign joined successfully.", "result": result}
 
 

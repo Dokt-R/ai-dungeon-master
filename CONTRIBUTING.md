@@ -18,7 +18,7 @@ The backend manages players, characters, and campaign participation using:
    ```
 
 2. **Database Initialization**  
-   The SQLite database (`server_settings.db`) is auto-initialized by `server_settings_manager.py`. No manual migration is needed for development.
+   The SQLite database (`server_settings.db`) is automatically created and initialized when the backend service starts. No manual setup or migration is needed for development.
 
 3. **Running the Backend**
    ```sh

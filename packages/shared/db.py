@@ -1,5 +1,7 @@
 import os
-from sqlmodel import create_engine
+from sqlmodel import SQLModel, create_engine
+from packages.shared.models import *  # Import all models
+
 
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
 
@@ -20,3 +22,10 @@ def get_engine(db_path=None):
             f"sqlite:///{path}", connect_args={"check_same_thread": False}
         )
     return create_engine(f"sqlite:///{path}")
+
+
+def initialize_schema(engine):
+    """
+    Initializes the database schema using SQLModel and a SQLAlchemy Engine.
+    """
+    SQLModel.metadata.create_all(engine)
