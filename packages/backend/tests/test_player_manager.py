@@ -35,7 +35,7 @@ class TestJoinCampaign(BaseTestData):
 
         assert campaign.campaign_name == self.campaign_name
 
-        assert player.user_id == self.player_id
+        assert player.player_id == self.player_id
         assert player.player_status == "joined"
 
         assert player.characters[0].character_id is not None
@@ -62,7 +62,7 @@ class TestJoinCampaign(BaseTestData):
         player = session.get(Player, result.player_id)
 
         assert player.characters[0].character_id == character.character_id
-        assert player.user_id == self.player_id
+        assert player.player_id == self.player_id
         assert player.player_status == "joined"
 
     def test_join_campaign_one_character_null_input(
@@ -81,7 +81,7 @@ class TestJoinCampaign(BaseTestData):
         player = session.get(Player, result.player_id)
 
         assert player.characters[0].character_id is not None
-        assert player.user_id == self.player_id
+        assert player.player_id == self.player_id
         assert player.player_status == "joined"
 
     def test_join_campaign_two_characters(self, managers, session, insert_player):
@@ -393,7 +393,7 @@ class TestRemoveCampaign(BaseTestData):
 
         campaign = session.get(Campaign, data.campaign_id)
         assert campaign is not None
-        assert all(p.user_id != player.user_id for p in campaign.players)
+        assert all(p.player_id != player.player_id for p in campaign.players)
 
     def test_remove_campaign_no_campaign_specified_uses_last_active(
         self, managers, session
@@ -452,7 +452,7 @@ class TestGetPlayerStatus(BaseTestData):
             character_name=self.character_name,
             character_url=self.url,
         )
-        result = managers.player.get_player_status(self.player_id)
+        result = managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert result["username"] == self.username
         assert result["last_active_campaign"] == self.campaign_name
@@ -467,7 +467,7 @@ class TestGetPlayerStatus(BaseTestData):
         self, managers, session, insert_player
     ):
         insert_player(self.player_id, self.username)
-        result = managers.player.get_player_status(self.player_id)
+        result = managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert result["username"] == self.username
         assert result["last_active_campaign"] is None
@@ -476,7 +476,7 @@ class TestGetPlayerStatus(BaseTestData):
 
     def test_get_player_status_not_found(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.get_player_status("nonexistent")
+            managers.player.get_player("nonexistent")
 
     def test_get_player_status_multiple_campaigns_and_characters(
         self, managers, session
@@ -504,7 +504,7 @@ class TestGetPlayerStatus(BaseTestData):
             username=self.username,
             character_name="Sir Test 2",
         )
-        result = managers.player.get_player_status(self.player_id)
+        result = managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert len(result["campaigns"]) == 2
         campaign_names = {c.campaign_name for c in result["campaigns"]}

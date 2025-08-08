@@ -1,5 +1,5 @@
 import os
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import SQLModel, Session, create_engine
 from packages.shared.models import *  # Import all models
 
 
@@ -29,3 +29,8 @@ def initialize_schema(engine):
     Initializes the database schema using SQLModel and a SQLAlchemy Engine.
     """
     SQLModel.metadata.create_all(engine)
+
+
+def get_session():
+    with Session(get_engine()) as session:
+        yield session

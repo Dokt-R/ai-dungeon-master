@@ -31,7 +31,7 @@ def set_db_env_and_schema(temp_db_file):
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS Players (
-            user_id TEXT PRIMARY KEY,
+            player_id TEXT PRIMARY KEY,
             username TEXT,
             last_active_campaign TEXT,
             FOREIGN KEY (last_active_campaign) REFERENCES Campaigns(campaign_name)
@@ -45,7 +45,7 @@ def set_db_env_and_schema(temp_db_file):
             player_id TEXT NOT NULL,
             name TEXT NOT NULL,
             character_url TEXT,
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
+            FOREIGN KEY (player_id) REFERENCES Players(player_id),
             UNIQUE(player_id, name)
         )
         """
@@ -84,7 +84,7 @@ def set_db_env_and_schema(temp_db_file):
             player_status TEXT CHECK(player_status IN ('joined', 'cmd')) NOT NULL DEFAULT 'joined',
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (campaign_id) REFERENCES Campaigns(campaign_id),
-            FOREIGN KEY (player_id) REFERENCES Players(user_id),
+            FOREIGN KEY (player_id) REFERENCES Players(player_id),
             FOREIGN KEY (character_id) REFERENCES Characters(character_id) ON DELETE SET NULL,
             UNIQUE(campaign_id, player_id)
         )
@@ -132,7 +132,7 @@ def player_id(client, temp_db_file):
     test_player_id = str(uuid.uuid4())
     username = "TestPlayer"
     resp = client.post(
-        "/players/create", json={"user_id": test_player_id, "username": username}
+        "/players/create", json={"player_id": test_player_id, "username": username}
     )
     assert resp.status_code == 200
     return test_player_id
@@ -152,6 +152,9 @@ def campaign_id(client, temp_db_file):
         },
     )
     return campaign_name
+
+
+# --- Test sections for each endpoint will go below ---
 
 
 def test_add_character(client, player_id):

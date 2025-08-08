@@ -6,14 +6,14 @@ client = TestClient(app)
 
 def test_set_server_config_success(monkeypatch):
     # Patch the ServerSettingsManager to avoid actual DB/crypto
-    def mock_store_api_key(server_config):
-        assert server_config.server_id == "123"
-        assert server_config.api_key.get_secret_value() == "testkey"
+    def mock_store_server_config(server_api):
+        assert server_api.server_id == "123"
+        assert server_api.api_key.get_secret_value() == "testkey"
 
     app.dependency_overrides = {}
     monkeypatch.setattr(
-        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
-        lambda self, server_config: mock_store_api_key(server_config),
+        "packages.backend.components.server_manager.ServerSettingsManager.store_server_config",
+        lambda self, server_api: mock_store_server_config(server_api),
     )
     payload = {
         "api_key": "testkey",
@@ -27,12 +27,12 @@ def test_set_server_config_success(monkeypatch):
 
 
 def test_set_server_config_failure(monkeypatch):
-    def mock_store_api_key(server_config):
+    def mock_store_server_config(server_api):
         raise Exception("DB error")
 
     monkeypatch.setattr(
-        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
-        lambda self, server_config: mock_store_api_key(server_config),
+        "packages.backend.components.server_manager.ServerSettingsManager.store_server_config",
+        lambda self, server_api: mock_store_server_config(server_api),
     )
     payload = {
         "api_key": "testkey",
@@ -59,14 +59,14 @@ def test_set_server_config_validation_error():
 
 
 def test_set_server_config_not_found(monkeypatch):
-    def mock_store_api_key(server_config):
+    def mock_store_server_config(server_api):
         from packages.shared.error_handler import NotFoundError
 
         raise NotFoundError("Server not found")
 
     monkeypatch.setattr(
-        "packages.backend.components.server_settings_manager.ServerSettingsManager.store_api_key",
-        lambda self, server_config: mock_store_api_key(server_config),
+        "packages.backend.components.server_manager.ServerSettingsManager.store_server_config",
+        lambda self, server_api: mock_store_server_config(server_api),
     )
     payload = {
         "api_key": "testkey",

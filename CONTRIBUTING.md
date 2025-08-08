@@ -7,7 +7,7 @@ Thank you for your interest in contributing! This guide covers development, test
 The backend manages players, characters, and campaign participation using:
 - `PlayerManager` and `CharacterManager` for business logic
 - FastAPI endpoints in `player_api.py` and `character_api.py`
-- SQLite database initialized via `server_settings_manager.py`
+- SQLite database initialized via `server_manager.py`
 - Comprehensive validation and error handling via `error_handler.py`
 
 ## Development Setup

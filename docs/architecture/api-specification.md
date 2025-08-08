@@ -21,7 +21,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ServerConfig'
+              $ref: '#/components/schemas/Server'
       responses:
         '200':
           description: Configuration Updated
@@ -425,7 +425,7 @@ paths:
 
 components:
   schemas:
-    ServerConfig:
+    Server:
       type: object
       properties:
         api_key:

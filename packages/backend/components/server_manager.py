@@ -5,54 +5,52 @@ from cryptography.fernet import Fernet
 from pydantic import SecretStr
 from dotenv import load_dotenv
 from sqlmodel import Session, select
+from fastapi import Depends
 
-from packages.shared.db import get_engine
-from packages.shared.models import ServerConfig
+from packages.shared.db import get_session
+from packages.shared.models import Server
 
 load_dotenv()
 
 
 class ServerSettingsManager:
-    def __init__(self, engine=None):
-        self.engine = engine or get_engine()
+    def __init__(self, session: Session = Depends(get_session)):
+        self.session = session
         self.key = self._load_encryption_key()
 
-    def store_server_config(self, config: ServerConfig) -> None:
+    def store_server_config(self, config: Server) -> None:
         """Store or update the server configuration, including the encrypted API key."""
         if not config.api_key.get_secret_value():
             raise ValueError("API key must not be empty.")
 
         encrypted_key = self._encrypt(config.api_key.get_secret_value())
 
-        with Session(self.engine) as session:
-            db_config = session.get(ServerConfig, config.server_id)
-            if not db_config:
-                db_config = ServerConfig(server_id=config.server_id)
+        db_config = self.session.get(Server, config.server_id)
+        if not db_config:
+            db_config = Server(server_id=config.server_id)
 
-            db_config.dm_roll_visibility = config.dm_roll_visibility
-            db_config.player_roll_mode = config.player_roll_mode
-            db_config.character_sheet_mode = config.character_sheet_mode
-            db_config.api_key = encrypted_key
+        db_config.dm_roll_visibility = config.dm_roll_visibility
+        db_config.player_roll_mode = config.player_roll_mode
+        db_config.character_sheet_mode = config.character_sheet_mode
+        db_config.api_key = encrypted_key
 
-            session.add(db_config)
-            session.commit()
+        self.session.add(db_config)
+        self.session.commit()
 
     def retrieve_api_key(self, server_id: str) -> Optional[str]:
         """Retrieve and decrypt the API key for the given server ID."""
-        with Session(self.engine) as session:
-            config = session.get(ServerConfig, server_id)
-            if config and config.api_key:
-                return self._decrypt(config.api_key)
-            return None
+        config = self.session.get(Server, server_id)
+        if config and config.api_key:
+            return self._decrypt(config.api_key)
+        return None
 
-    def get_server_config(self, server_id: str) -> Optional[ServerConfig]:
+    def get_server_config(self, server_id: str) -> Optional[Server]:
         """Retrieve the full server configuration for the given server ID."""
-        with Session(self.engine) as session:
-            config = session.get(ServerConfig, server_id)
-            if config and config.api_key:
-                decrypted_key = self._decrypt(config.api_key)
-                config.api_key = SecretStr(decrypted_key)
-            return config
+        config = self.session.get(Server, server_id)
+        if config and config.api_key:
+            decrypted_key = self._decrypt(config.api_key)
+            config.api_key = SecretStr(decrypted_key)
+        return config
 
     # --- Internal logic ---
 

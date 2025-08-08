@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from packages.backend.api.server_config import router as server_config_router
+from packages.backend.api.server_api import router as server_config_router
 from packages.backend.api.campaign_api import router as campaign_router
 from packages.backend.api.player_api import router as player_router
 from packages.backend.api.character_api import router as character_router

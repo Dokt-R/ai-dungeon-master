@@ -16,7 +16,7 @@ CREATE TABLE Spells (
     description TEXT NOT NULL
 );
 
--- ServerConfig and PlayerCharacters tables will also be in the SQLite DB
+-- Server and PlayerCharacters tables will also be in the SQLite DB
 -- for structured, relational data.
 ```
-
+

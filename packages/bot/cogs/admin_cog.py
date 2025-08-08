@@ -20,6 +20,28 @@ class AdminCog(commands.Cog):
             "FAST_API", "http://localhost:8000"
         )  # Adjust if backend runs elsewhere
 
+    @commands.Cog.listener()
+    async def on_member_join(self, member: discord.Member):
+        """
+        Event listener for when a new member joins the server.
+        Creates a new player in the database.
+        """
+        if member.bot:
+            return
+
+        player_id = str(member.id)
+        username = member.name
+
+        url = f"{self.api_base_url}/players/create"
+        payload = {"player_id": player_id, "username": username}
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.post(url, json=payload, timeout=10)
+                response.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                print(f"Error creating player for {username} ({player_id}): {e}")
+
     @discord.app_commands.command(
         name="server-setup",
         description="Explain the shared API key model and submission process",

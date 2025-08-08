@@ -8,7 +8,7 @@
 **As a** developer, **I want** to initialize the LangGraph framework and establish a connection to the AI provider, **so that** the backend service is ready to orchestrate AI-driven tasks.
 #### Tasks / Subtasks
 - [ ] **Task 1 (Enabler):** Integrate the LLM Observability library (e.g., LangSmith) into the backend service to enable tracing for all future AI calls.
-- [ ] **Task 2:** Initialize the AI client with the correct credentials retrieved from the `ServerConfig`.
+- [ ] **Task 2:** Initialize the AI client with the correct credentials retrieved from the `Server`.
 - [ ] **Task 3:** Define the main system prompt that gives the AI its core DM personality.
 - [ ] **Task 4:** Create a basic health-check function that confirms a successful connection to the AI provider's API.
 #### Acceptance Criteria

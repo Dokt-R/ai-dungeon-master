@@ -88,7 +88,7 @@ The following Pydantic models define the core data structures for the applicatio
 from pydantic import BaseModel, SecretStr
 from typing import List, Optional, Literal
 
-class ServerConfig(BaseModel):
+class Server(BaseModel):
     server\_id: str
     api\_key: SecretStr
     dm\_roll\_visibility: Literal\['public', 'hidden']
@@ -192,7 +192,7 @@ CREATE TABLE Spells (
     description TEXT NOT NULL
 );
 
--- ServerConfig and PlayerCharacters tables will also be in the SQLite DB
+-- Server and PlayerCharacters tables will also be in the SQLite DB
 -- for structured, relational data.
 ```
 

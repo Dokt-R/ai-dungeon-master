@@ -1,35 +1,15 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.shared.error_handler import fastapi_error_handler
+from packages.shared.models import (
+    CampaignCreateRequest,
+    ContinueCampaignRequest,
+    CampaignEndRequest,
+    CampaignDeleteRequest,
+)
 
 router = APIRouter()
 campaign_manager = CampaignManager()
-
-
-class CampaignCreateRequest(BaseModel):
-    server_id: str
-    campaign_name: str
-    owner_id: str
-
-
-class ContinueCampaignRequest(BaseModel):
-    server_id: str
-    campaign_name: str
-    player_id: str
-
-
-class CampaignEndRequest(BaseModel):
-    server_id: str
-    campaign_name: str
-    player_id: str
-
-
-class CampaignDeleteRequest(BaseModel):
-    server_id: str
-    campaign_name: str
-    requester_id: str
-    is_admin: bool
 
 
 @router.post("/campaigns/new", summary="Create a new campaign")

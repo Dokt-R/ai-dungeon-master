@@ -97,7 +97,7 @@ class TestRemoveCharacter:
 
         link = CampaignPlayerLink(
             campaign_id=campaign.campaign_id,
-            player_id=player.user_id,
+            player_id=player.player_id,
             character_id=character.character_id,
         )
         session.add(link)
@@ -106,7 +106,7 @@ class TestRemoveCharacter:
         managers.character.remove_character(character.character_id)
 
         db_link = session.get(
-            CampaignPlayerLink, (campaign.campaign_id, player.user_id)
+            CampaignPlayerLink, (campaign.campaign_id, player.player_id)
         )
         assert db_link is not None
 

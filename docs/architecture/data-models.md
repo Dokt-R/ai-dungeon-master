@@ -13,7 +13,7 @@ from datetime import datetime
 
 class Player(BaseModel):
     """Represents a player, typically a Discord user."""
-    user_id: str = Field(..., description="Unique identifier for the player (e.g., Discord user ID).")
+    player_id: str = Field(..., description="Unique identifier for the player (e.g., Discord user ID).")
     username: Optional[str] = Field(None, description="The player's username (e.g., Discord username).")
 
 class Character(BaseModel):

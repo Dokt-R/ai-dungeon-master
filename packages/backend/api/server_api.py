@@ -1,11 +1,11 @@
 import os
 from fastapi import APIRouter, Path
-from packages.shared.models import ServerConfigModel, ServerConfig
+from packages.shared.models import ServerConfigModel, Server
 from packages.shared.error_handler import (
     ValidationError,
     fastapi_error_handler,
 )
-from packages.backend.components.server_settings_manager import ServerSettingsManager
+from packages.backend.components.server_manager import ServerSettingsManager
 
 router = APIRouter()
 
@@ -24,14 +24,14 @@ def set_server_config(
     """
     Sets the configuration for a given server.
     The incoming data is a Pydantic `ServerConfigModel`.
-    This is then used to create a `ServerConfig` SQLModel for the database.
+    This is then used to create a `Server` SQLModel for the database.
     """
     # The manager now handles the validation, but we can keep this for early exit
     if not config.api_key.get_secret_value().strip():
         raise ValidationError("API key is required and must be a non-empty string.")
 
     # Create the database model from the API model
-    server_config_db = ServerConfig(
+    server_config_db = Server(
         server_id=server_id,
         api_key=config.api_key,
         dm_roll_visibility=config.dm_roll_visibility,

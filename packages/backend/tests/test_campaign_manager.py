@@ -45,7 +45,7 @@ class TestCampaignManager(BaseTestData):
         )
         players = managers.campaign.get_campaign_players(campaign.campaign_id)
         assert len(players) == 1
-        assert players[0].user_id == self.player_id
+        assert players[0].player_id == self.player_id
 
     def test_update_campaign_state(self, managers, session):
         campaign = managers.campaign.create_campaign(

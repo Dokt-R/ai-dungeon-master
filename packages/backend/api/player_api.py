@@ -1,9 +1,8 @@
-import sqlite3
-import sqlite3
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from packages.backend.components.player_manager import PlayerManager
 from packages.shared.error_handler import fastapi_error_handler
 from packages.shared.models import (
+    CampaignEndRequest,
     CreatePlayerRequest,
     JoinCampaignRequest,
     ContinueCampaignRequest,
@@ -12,12 +11,13 @@ from packages.shared.models import (
 
 
 router = APIRouter(prefix="/players", tags=["players"])
-player_manager = PlayerManager()
 
 
 @router.post("/join_campaign", summary="Join an existing campaign")
 @fastapi_error_handler
-def join_campaign(req: JoinCampaignRequest):
+def join_campaign(
+    req: JoinCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     Join an existing campaign as a player.
 
@@ -48,7 +48,9 @@ def join_campaign(req: JoinCampaignRequest):
     "/end_campaign", summary="Temporarily exit a campaign into the command state"
 )
 @fastapi_error_handler
-def end_campaign(req: ContinueCampaignRequest):
+def end_campaign(
+    req: CampaignEndRequest, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     Temporarily exit a campaign, setting the player's status to 'cmd' (command state).
 
@@ -73,37 +75,34 @@ def end_campaign(req: ContinueCampaignRequest):
     }
 
 
-@router.post("/create", summary="Used for internal testing only")
+@router.post("/create", summary="Creates a player for the server")
 @fastapi_error_handler
-def create_player(req: CreatePlayerRequest):
+def create_player(
+    req: CreatePlayerRequest, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     Create a new player in the database.
 
     Args:
-        req (CreatePlayerRequest): Request body containing user_id and username.
+        req (CreatePlayerRequest): Request body containing player_id and username.
 
     Returns:
-        dict: The created player's user_id and username.
+        dict: The created player's player_id and username.
 
     Note:
         This endpoint is intended for internal testing only.
     """
-    conn = sqlite3.connect(player_manager.db_path)
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT OR IGNORE INTO Players (user_id, username) VALUES (?, ?)",
-            (req.user_id, req.username),
-        )
-        conn.commit()
-        return {"user_id": req.user_id, "username": req.username}
-    finally:
-        conn.close()
+    player_data = player_manager.create_player(
+        player_id=req.player_id, username=req.username
+    )
+    return player_data
 
 
 @router.post("/continue_campaign", summary="Continue last active campaign")
 @fastapi_error_handler
-def continue_campaign(req: ContinueCampaignRequest):
+def continue_campaign(
+    req: ContinueCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     (Not implemented) Continue the last active campaign for a player.
 
@@ -126,7 +125,9 @@ def continue_campaign(req: ContinueCampaignRequest):
     "/remove_campaign", summary="Leave a campaign (removes player from campaign)"
 )
 @fastapi_error_handler
-def remove_campaign(req: LeaveCampaignRequest):
+def remove_campaign(
+    req: LeaveCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     Remove a player from a campaign.
 
@@ -152,7 +153,7 @@ def remove_campaign(req: LeaveCampaignRequest):
     "/status/{player_id}", summary="Get player status, campaigns, and characters"
 )
 @fastapi_error_handler
-def get_player_status(player_id: str):
+def get_player(player_id: str, player_manager: PlayerManager = Depends(PlayerManager)):
     """
     Retrieve a summary of the player's campaigns, characters, and current status.
 
@@ -165,5 +166,5 @@ def get_player_status(player_id: str):
     Raises:
         NotFoundError: If the player does not exist.
     """
-    result = player_manager.get_player_status(player_id)
-    return {"player_status": result}
+    result = player_manager.get_player(player_id)
+    return result
