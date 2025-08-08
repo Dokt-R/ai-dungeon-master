@@ -89,24 +89,30 @@ class TestRemoveCharacter:
     ):
         player = insert_player()
         character = managers.character.add_character("user-id-1", "Hero")
-        campaign = Campaign(server_id="server1", campaign_name="Epic Quest", owner_id="owner1")
+        campaign = Campaign(
+            server_id="server1", campaign_name="Epic Quest", owner_id="owner1"
+        )
         session.add(campaign)
         session.commit()
-        
-        link = CampaignPlayerLink(campaign_id=campaign.campaign_id, player_id=player.user_id, character_id=character.character_id)
+
+        link = CampaignPlayerLink(
+            campaign_id=campaign.campaign_id,
+            player_id=player.user_id,
+            character_id=character.character_id,
+        )
         session.add(link)
         session.commit()
 
         managers.character.remove_character(character.character_id)
 
-        db_link = session.get(CampaignPlayerLink, (campaign.campaign_id, player.user_id))
+        db_link = session.get(
+            CampaignPlayerLink, (campaign.campaign_id, player.user_id)
+        )
         assert db_link is not None
 
 
 class TestGetCharactersForPlayer:
-    def test_get_characters_for_player_normal(
-        self, managers, session, insert_player
-    ):
+    def test_get_characters_for_player_normal(self, managers, session, insert_player):
         insert_player()
         managers.character.add_character("user-id-1", "Hero", "url1")
         managers.character.add_character("user-id-1", "Hero2", "url2")

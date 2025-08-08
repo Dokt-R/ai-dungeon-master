@@ -104,11 +104,12 @@ class PlayerManager:
             session.refresh(merge_link)
             return merge_link
 
-    def leave_campaign(
+    def remove_campaign(
         self, player_id: str, server_id: str, campaign_name: Optional[str] = None
     ) -> bool:
         """
-        Remove a player from a campaign.
+        Remove the campaign association for a given player.
+        If the removed campaign is the player's last active campaign, clear it.
         """
         with Session(self.engine) as session:
             player = session.get(Player, player_id)
@@ -122,12 +123,33 @@ class PlayerManager:
                     )
                 campaign_name = player.last_active_campaign
 
+            # Get the campaign
             statement = select(Campaign).where(
                 Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
             )
             campaign = session.exec(statement).first()
             if not campaign:
                 raise NotFoundError(f"Campaign '{campaign_name}' not found.")
+
+            # Get the link between player and campaign
+            link_stmt = select(CampaignPlayerLink).where(
+                CampaignPlayerLink.player_id == player_id,
+                CampaignPlayerLink.campaign_id == campaign.campaign_id,
+            )
+            link = session.exec(link_stmt).first()
+            if not link:
+                raise NotFoundError("Player is not part of the specified campaign.")
+
+            # Delete the link
+            session.delete(link)
+
+            # Clear last active campaign if it's the one being removed
+            if player.last_active_campaign == campaign_name:
+                player.last_active_campaign = None
+                session.add(player)
+
+            session.commit()
+            return True
 
     def end_campaign(
         self, player_id: str, server_id: str, campaign_name: Optional[str] = None
@@ -151,8 +173,12 @@ class PlayerManager:
                 Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
             )
             campaign = session.exec(statement).first()
+
             if not campaign:
                 raise NotFoundError(f"Campaign '{campaign_name}' not found.")
+
+            if player.player_status == "cmd":
+                raise ValidationError("Player is already in command mode")
 
             statement = (
                 select(CampaignPlayerLink)
@@ -197,13 +223,8 @@ class PlayerManager:
             return {
                 "player_id": player.user_id,
                 "username": player.username,
+                "player_status": player.player_status,
                 "last_active_campaign": player.last_active_campaign,
-                "campaigns": [
-                    {
-                        "campaign_name": link.campaign.campaign_name,
-                        "player_status": link.player_status,
-                    }
-                    for link in player.campaign_links
-                ],
+                "campaigns": player.campaigns,
                 "characters": player.characters,
             }

@@ -207,7 +207,7 @@ paths:
         '404':
           description: NotFoundError
 
-  /players/leave_campaign:
+  /players/remove_campaign:
     post:
       summary: Remove a player from a campaign.
       requestBody:

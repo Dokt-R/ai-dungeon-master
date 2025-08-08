@@ -125,10 +125,10 @@ def continue_campaign(req: ContinueCampaignRequest):
 
 
 @router.post(
-    "/leave_campaign", summary="Leave a campaign (removes player from campaign)"
+    "/remove_campaign", summary="Leave a campaign (removes player from campaign)"
 )
 @fastapi_error_handler
-def leave_campaign(req: LeaveCampaignRequest):
+def remove_campaign(req: LeaveCampaignRequest):
     """
     Remove a player from a campaign.
 
@@ -142,7 +142,7 @@ def leave_campaign(req: LeaveCampaignRequest):
         ValidationError: If the campaign or player is not found or required fields are missing.
         NotFoundError: If the campaign does not exist.
     """
-    result = player_manager.leave_campaign(
+    result = player_manager.remove_campaign(
         player_id=req.player_id,
         server_id=req.server_id,
         campaign_name=req.campaign_name,

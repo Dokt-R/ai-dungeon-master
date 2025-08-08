@@ -559,10 +559,10 @@ def test_continue_campaign_validation_errors(client, payload, field):
     assert field in resp.text
 
 
-# 5. /players/leave_campaign
+# 5. /players/remove_campaign
 
 
-def test_leave_campaign_success(client, create_player, create_campaign):
+def test_remove_campaign_success(client, create_player, create_campaign):
     user_id = create_player()
     server_id = "server1"
     campaign_name = "EpicQuest"
@@ -581,7 +581,7 @@ def test_leave_campaign_success(client, create_player, create_campaign):
         "campaign_name": campaign_name,
         "player_id": user_id,
     }
-    resp = client.post("/players/leave_campaign", json=leave_payload)
+    resp = client.post("/players/remove_campaign", json=leave_payload)
     assert resp.status_code == 200
     data = resp.json()["result"]
     assert data["campaign_name"] == campaign_name
@@ -607,24 +607,24 @@ def test_leave_campaign_success(client, create_player, create_campaign):
     conn.close()
 
 
-def test_leave_campaign_nonexistent_campaign(client, create_player):
+def test_remove_campaign_nonexistent_campaign(client, create_player):
     user_id = create_player()
     payload = {
         "server_id": "serverX",
         "campaign_name": "DoesNotExist",
         "player_id": user_id,
     }
-    resp = client.post("/players/leave_campaign", json=payload)
+    resp = client.post("/players/remove_campaign", json=payload)
     assert resp.status_code == 404
     assert "does not exist" in resp.text
 
 
-def test_leave_campaign_no_last_active(client, create_player):
+def test_remove_campaign_no_last_active(client, create_player):
     user_id = create_player()
     payload = {"server_id": "server1", "campaign_name": "", "player_id": user_id}
     # Remove campaign_name to trigger last_active_campaign logic
     payload.pop("campaign_name")
-    resp = client.post("/players/leave_campaign", json=payload)
+    resp = client.post("/players/remove_campaign", json=payload)
     assert (
         resp.status_code == 422
         or resp.status_code == 404
@@ -632,7 +632,7 @@ def test_leave_campaign_no_last_active(client, create_player):
     )
 
 
-def test_leave_campaign_player_never_joined(client, create_player, create_campaign):
+def test_remove_campaign_player_never_joined(client, create_player, create_campaign):
     user_id = create_player()
     server_id = "server1"
     campaign_name = "EpicQuest"
@@ -643,7 +643,7 @@ def test_leave_campaign_player_never_joined(client, create_player, create_campai
         "campaign_name": campaign_name,
         "player_id": user_id,
     }
-    resp = client.post("/players/leave_campaign", json=payload)
+    resp = client.post("/players/remove_campaign", json=payload)
     assert resp.status_code == 200
     data = resp.json()["result"]
     assert data["campaign_name"] == campaign_name
@@ -684,8 +684,8 @@ def test_leave_campaign_player_never_joined(client, create_player, create_campai
         ),
     ],
 )
-def test_leave_campaign_validation_errors(client, payload, field):
-    resp = client.post("/players/leave_campaign", json=payload)
+def test_remove_campaign_validation_errors(client, payload, field):
+    resp = client.post("/players/remove_campaign", json=payload)
     assert resp.status_code == 422
     assert field in resp.text
 

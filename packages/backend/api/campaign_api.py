@@ -89,7 +89,7 @@ def create_campaign(req: CampaignCreateRequest):
 
 # @router.post("/campaigns/leave", summary="Leave a campaign.")
 # @fastapi_error_handler
-# def leave_campaign(req: ContinueCampaignRequest):
+# def remove_campaign(req: ContinueCampaignRequest):
 #     result = campaign_manager.resume_campaign(
 #         player_discord_id=req.player_id,
 #         campaign_name=req.campaign_name,
