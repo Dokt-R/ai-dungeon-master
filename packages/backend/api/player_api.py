@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from packages.backend.components.player_manager import PlayerManager
-from packages.shared.error_handler import fastapi_error_handler
 from packages.shared.models import (
     CampaignEndRequest,
     CreatePlayerRequest,
@@ -14,7 +13,6 @@ router = APIRouter(prefix="/players", tags=["players"])
 
 
 @router.post("/join_campaign", summary="Join an existing campaign")
-@fastapi_error_handler
 def join_campaign(
     req: JoinCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
@@ -47,7 +45,6 @@ def join_campaign(
 @router.post(
     "/end_campaign", summary="Temporarily exit a campaign into the command state"
 )
-@fastapi_error_handler
 def end_campaign(
     req: CampaignEndRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
@@ -76,7 +73,6 @@ def end_campaign(
 
 
 @router.post("/create", summary="Creates a player for the server")
-@fastapi_error_handler
 def create_player(
     req: CreatePlayerRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
@@ -99,7 +95,6 @@ def create_player(
 
 
 @router.post("/continue_campaign", summary="Continue last active campaign")
-@fastapi_error_handler
 def continue_campaign(
     req: ContinueCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
@@ -124,7 +119,6 @@ def continue_campaign(
 @router.post(
     "/remove_campaign", summary="Leave a campaign (removes player from campaign)"
 )
-@fastapi_error_handler
 def remove_campaign(
     req: LeaveCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
@@ -152,7 +146,6 @@ def remove_campaign(
 @router.get(
     "/status/{player_id}", summary="Get player status, campaigns, and characters"
 )
-@fastapi_error_handler
 def get_player(player_id: str, player_manager: PlayerManager = Depends(PlayerManager)):
     """
     Retrieve a summary of the player's campaigns, characters, and current status.

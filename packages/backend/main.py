@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from packages.shared.error_handler import ValidationError, NotFoundError
+from pydantic import ValidationError as PydanticValidationError
 from contextlib import asynccontextmanager
 
 from packages.backend.api.server_api import router as server_config_router
@@ -37,3 +40,48 @@ app.include_router(server_config_router)
 app.include_router(campaign_router)
 app.include_router(player_router)
 app.include_router(character_router)
+
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    return JSONResponse(
+        status_code=400,
+        content={"error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
+    )
+
+
+@app.exception_handler(NotFoundError)
+async def not_found_exception_handler(request: Request, exc: NotFoundError):
+    return JSONResponse(
+        status_code=404, content={"error": {"code": "NOT_FOUND", "message": str(exc)}}
+    )
+
+
+@app.exception_handler(PydanticValidationError)
+async def pydantic_validation_exception_handler(
+    request: Request, exc: PydanticValidationError
+):
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "code": "PYDANTIC_VALIDATION_ERROR",
+                "message": "Validation failed",
+                "details": exc.errors(),
+            }
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    logging.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": {
+                "code": "INTERNAL_SERVER_ERROR",
+                "message": "An unexpected error occurred. Our team has been notified.",
+            }
+        },
+    )

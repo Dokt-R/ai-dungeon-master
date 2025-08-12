@@ -3,7 +3,6 @@ from fastapi import APIRouter, Path, Depends
 from packages.shared.models import ServerConfigModel, Server
 from packages.shared.error_handler import (
     ValidationError,
-    fastapi_error_handler,
 )
 from packages.backend.components.server_manager import ServerSettingsManager
 
@@ -13,7 +12,6 @@ router = APIRouter()
 @router.put(
     "/servers/{server_id}/config", summary="Create or Update Server Configuration"
 )
-@fastapi_error_handler
 def set_server_config(
     server_id: str = Path(..., description="The Discord server ID"),
     config: ServerConfigModel = ...,

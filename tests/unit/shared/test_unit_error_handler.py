@@ -5,7 +5,6 @@ from packages.shared.error_handler import (
     handle_error,
     NotFoundError,
     ValidationError,
-    fastapi_error_handler,
     discord_error_handler,
 )
 
@@ -37,24 +36,6 @@ def test_handle_error_discord_context(caplog):
 
     handle_error(Exception("Generic error"), context="discord")
     assert "Generic error" in caplog.text
-
-
-def test_fastapi_error_handler_decorator():
-    @fastapi_error_handler
-    def function_that_raises(error):
-        raise error
-
-    with pytest.raises(HTTPException) as exc_info:
-        function_that_raises(ValidationError("Test"))
-    assert exc_info.value.status_code == 400
-
-    with pytest.raises(HTTPException) as exc_info:
-        function_that_raises(NotFoundError("Test"))
-    assert exc_info.value.status_code == 404
-
-    with pytest.raises(HTTPException) as exc_info:
-        function_that_raises(Exception("Test"))
-    assert exc_info.value.status_code == 500
 
 
 @pytest.mark.asyncio

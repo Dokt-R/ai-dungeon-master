@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from packages.backend.components.character_manager import CharacterManager
-from packages.shared.error_handler import fastapi_error_handler, NotFoundError
+from packages.shared.error_handler import NotFoundError
 from packages.shared.models import (
     AddCharacterRequest,
     UpdateCharacterRequest,
@@ -12,7 +12,6 @@ router = APIRouter(prefix="/characters", tags=["characters"])
 
 
 @router.post("/add")
-@fastapi_error_handler
 def add_character(
     req: AddCharacterRequest, character_manager: CharacterManager = Depends()
 ):
@@ -25,7 +24,6 @@ def add_character(
 
 
 @router.post("/update")
-@fastapi_error_handler
 def update_character(
     req: UpdateCharacterRequest, character_manager: CharacterManager = Depends()
 ):
@@ -38,7 +36,6 @@ def update_character(
 
 
 @router.post("/remove")
-@fastapi_error_handler
 def remove_character(
     req: RemoveCharacterRequest, character_manager: CharacterManager = Depends()
 ):
@@ -49,7 +46,6 @@ def remove_character(
 
 
 @router.post("/list")
-@fastapi_error_handler
 def list_characters(
     req: ListCharactersRequest, character_manager: CharacterManager = Depends()
 ):

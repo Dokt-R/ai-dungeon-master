@@ -114,25 +114,3 @@ async def _safe_send_message(interaction, message, ephemeral=True):
             pass
     # If both fail, raise for test visibility
     raise RuntimeError("Failed to send error message to Discord interaction.")
-
-
-def fastapi_error_handler(func):
-    """
-    Decorator for FastAPI endpoint functions to centralize error handling.
-    Usage:
-        @fastapi_error_handler
-        def endpoint(...):
-            ...
-    """
-    import functools
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except (ValidationError, NotFoundError) as e:
-            handle_error(e, context="fastapi")
-        except Exception as e:
-            handle_error(e, context="fastapi")
-
-    return wrapper

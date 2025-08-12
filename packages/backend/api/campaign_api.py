@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from packages.backend.components.campaign_manager import CampaignManager
-from packages.shared.error_handler import fastapi_error_handler
 from packages.shared.models import (
     Campaign,
     CampaignCreateRequest,
@@ -12,7 +11,6 @@ router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
 @router.post("/new", summary="Create a new campaign")
-@fastapi_error_handler
 def create_campaign(
     req: CampaignCreateRequest, campaign_manager: CampaignManager = Depends()
 ):
@@ -28,7 +26,6 @@ def create_campaign(
 
 
 @router.delete("/delete", summary="Delete a campaign")
-@fastapi_error_handler
 def delete_campaign(
     req: CampaignDeleteRequest, campaign_manager: CampaignManager = Depends()
 ):
@@ -42,7 +39,6 @@ def delete_campaign(
 
 
 @router.get("/{campaign_id}/players", summary="List players in a campaign")
-@fastapi_error_handler
 def get_campaign_players(
     campaign_id: int, campaign_manager: CampaignManager = Depends()
 ):
@@ -54,7 +50,6 @@ def get_campaign_players(
 
 
 @router.get("/{server_id}/{campaign_name}", summary="Get campaign details")
-@fastapi_error_handler
 def get_campaign(
     server_id: str, campaign_name: str, campaign_manager: CampaignManager = Depends()
 ):
@@ -70,7 +65,6 @@ def get_campaign(
 
 
 @router.put("/{campaign_id}/state", summary="Update campaign state")
-@fastapi_error_handler
 def update_campaign_state(
     campaign_id: int,
     req: CampaignStateRequest,
