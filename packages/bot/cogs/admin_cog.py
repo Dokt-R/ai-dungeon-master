@@ -1,14 +1,14 @@
 import discord
 from discord.ext import commands
-import httpx
 from dotenv import load_dotenv
+import httpx
+import os
 from packages.shared.error_handler import (
     handle_error,
     ValidationError,
     NotFoundError,
     discord_error_handler,
 )  # noqa: F401
-import os
 
 
 class AdminCog(commands.Cog):
@@ -16,9 +16,7 @@ class AdminCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.api_base_url = os.getenv(
-            "FAST_API", "http://localhost:8000"
-        )  # Adjust if backend runs elsewhere
+        self.api_base_url = os.getenv("FAST_API", "http://localhost:8000")
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -40,7 +38,10 @@ class AdminCog(commands.Cog):
                 response = await client.post(url, json=payload, timeout=10)
                 response.raise_for_status()
             except httpx.HTTPStatusError as e:
-                print(f"Error creating player for {username} ({player_id}): {e}")
+                data = await e.response.json()
+                print(
+                    f"Error creating player for {username} ({player_id}): {data.get('detail', e.response.text)}"
+                )
 
     @discord.app_commands.command(
         name="server-setup",

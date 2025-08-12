@@ -37,42 +37,98 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                server_id:
-                  type: string
-                campaign_name:
-                  type: string
-                owner_id:
-                  type: string
+              $ref: '#/components/schemas/CampaignCreateRequest'
       responses:
-        '201':
+        '200':
           description: Campaign Created
 
-  /campaigns/{campaign_id}/join:
-    post:
-      summary: Join an existing campaign
-      description: Allows a player to join a campaign with their character.
-      parameters:
-        - in: path
-          name: campaign_id
-          required: true
-          schema:
-            type: string
+  /campaigns/delete:
+    delete:
+      summary: Delete a campaign
+      description: Deletes a campaign if the requester is the owner or an admin.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                player_discord_id:
-                  type: string
-                character_sheet_url:
-                  type: string
+              $ref: '#/components/schemas/CampaignDeleteRequest'
       responses:
         '200':
-          description: Player Joined
+          description: Campaign Deleted
+        '403':
+          description: Permission Denied
+        '404':
+          description: Not Found
+
+  /campaigns/{server_id}/{campaign_name}:
+    get:
+      summary: Get campaign details
+      parameters:
+        - in: path
+          name: server_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: campaign_name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Campaign Details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '404':
+          description: Not Found
+
+  /campaigns/{campaign_id}/players:
+    get:
+      summary: List players in a campaign
+      parameters:
+        - in: path
+          name: campaign_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of Players
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Player'
+        '404':
+          description: Not Found
+
+  /campaigns/{campaign_id}/state:
+    put:
+      summary: Update campaign state
+      parameters:
+        - in: path
+          name: campaign_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignStateRequest'
+      responses:
+        '200':
+          description: Campaign State Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Campaign'
+        '404':
+          description: Not Found
 
   /campaigns/{campaign_id}/action:
     post:
@@ -399,6 +455,62 @@ paths:
               type: object
               properties:
                 player_id:
+                  type: string
+            Campaign:
+              type: object
+              properties:
+                campaign_id:
+                  type: integer
+                campaign_name:
+                  type: string
+                owner_id:
+                  type: string
+                state:
+                  type: string
+                  nullable: true
+                last_save:
+                  type: string
+                  format: date-time
+                server_id:
+                  type: string
+            Player:
+              type: object
+              properties:
+                player_id:
+                  type: string
+                username:
+                  type: string
+                  nullable: true
+                player_status:
+                  type: string
+                  nullable: true
+                last_active_campaign:
+                  type: string
+                  nullable: true
+            CampaignCreateRequest:
+              type: object
+              properties:
+                server_id:
+                  type: string
+                campaign_name:
+                  type: string
+                owner_id:
+                  type: string
+            CampaignDeleteRequest:
+              type: object
+              properties:
+                server_id:
+                  type: string
+                campaign_name:
+                  type: string
+                requester_id:
+                  type: string
+                is_admin:
+                  type: boolean
+            CampaignStateRequest:
+              type: object
+              properties:
+                state:
                   type: string
       responses:
         '200':

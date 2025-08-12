@@ -82,6 +82,7 @@ The recommended way to run the project is with Docker Compose. This will start b
 - `/server-setup`: Explains the shared API key model and how to submit a key. Only users with "Administrator" or "Manage Server" permissions can run this command.
 - `/server-setkey [API_KEY]`: Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely sent to the backend and never shown to other users.
 - `/ping`: Check if the bot is alive.
+- `/campaign`: Manage campaigns with subcommands like `new`, `join`, `delete`, and `info`.
 
 > All commands return ephemeral messages by default to avoid channel clutter.
 > For advanced help, see [Command Reference](docs/commands.md).

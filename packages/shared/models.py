@@ -203,3 +203,7 @@ class CampaignDeleteRequest(BaseModel):
         ..., min_length=1, max_length=64, pattern=r"^[\w\-]+$"
     )
     is_admin: bool
+
+
+class CampaignStateRequest(BaseModel):
+    state: str

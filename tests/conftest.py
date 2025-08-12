@@ -1,10 +1,15 @@
 import pytest
+import pytest_asyncio
 import uuid
+import asyncio
 from collections import namedtuple
 from sqlmodel import Session, SQLModel
+from unittest.mock import MagicMock, AsyncMock
 from fastapi.testclient import TestClient
-from packages.backend.main import app
+import discord
+from discord.ext import commands
 
+from packages.backend.main import app
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.backend.components.character_manager import CharacterManager
 from packages.backend.components.player_manager import PlayerManager
@@ -124,3 +129,82 @@ def select_player(session):
         return session.get(Player, player_id)
 
     return _select_player
+
+
+# region ----------------- [ Discord Specific Fixtures ] -----------------
+@pytest.fixture
+def mock_bot():
+    """Fixture that provides a mocked bot instance."""
+    return MagicMock()
+
+
+@pytest.fixture
+def mock_interaction():
+    """Fixture that provides a mocked Discord interaction."""
+    interaction = MagicMock()
+    interaction.response.send_message = AsyncMock()
+    interaction.response.defer = AsyncMock()
+    interaction.followup.send = AsyncMock()
+    interaction.edit_original_response = AsyncMock()
+    interaction.guild_id = 123
+    return interaction
+
+
+@pytest.fixture
+def mock_member():
+    """Fixture that provides a MockMember class for testing."""
+
+    class MockMember:
+        def __init__(
+            self, member_id: int = 12345, name: str = "TestUser", bot: bool = True
+        ):
+            self.id = member_id
+            self.name = name
+            self.bot = bot
+
+    return MockMember
+
+
+@pytest.fixture
+def mock_response():
+    """Fixture that provides a MockResponse class for testing."""
+
+    class MockResponse:
+        def __init__(self, status_code=200, text="OK", json_data=None):
+            self.status_code = status_code
+            self.text = text
+            self._json_data = json_data or {}
+
+        async def raise_for_status(self):
+            pass
+
+        def json(self):
+            return self._json_data
+
+    return MockResponse
+
+
+@pytest_asyncio.fixture(scope="module")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.close()
+
+
+@pytest_asyncio.fixture(scope="module")
+async def bot_client():
+    """Create a Discord bot client for testing."""
+    intents = discord.Intents.default()
+    intents.messages = True
+    intents.guilds = True
+    intents.message_content = True
+    bot = commands.Bot(command_prefix="/", intents=intents, application_id=123)
+    await bot.load_extension("packages.bot.cogs.admin_cog")
+    await bot.load_extension("packages.bot.cogs.character_cog")
+    await bot.load_extension("packages.bot.cogs.campaign_cog")
+    await bot.load_extension("packages.bot.cogs.utility_cog")
+    return bot
+
+
+# endregion

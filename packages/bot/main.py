@@ -27,6 +27,8 @@ async def on_ready():
 async def load_cogs():
     await bot.load_extension("cogs.utility_cog")
     await bot.load_extension("cogs.admin_cog")
+    await bot.load_extension("cogs.campaign_cog")
+    await bot.load_extension("cogs.character_cog")
 
 
 if __name__ == "__main__":

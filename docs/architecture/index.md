@@ -13,7 +13,7 @@
   - [External APIs](#external-apis)
   - [Core Workflows](#core-workflows)
   - [Database Schema](#database-schema)
-  - [Source Tree](#source-tree)
+  - [Unified Project Structure](#unified-project-structure)
   - [Infrastructure and Deployment](#infrastructure-and-deployment)
   - [Key Strategies](#key-strategies)
   - [Observability](#observability)

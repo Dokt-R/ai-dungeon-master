@@ -31,11 +31,9 @@ This document outlines the official folder and file structure for the AI DM mono
 │   │   ├── tools/          # For our deterministic rule functions (e.g., dice rolls)
 │   │       ├── __init__.py
 │   │       └── dice_tools.py
-│   │   └── db/             # Database initialization and schema directory
-│   │
 │   └── shared/              # Shared code used by both bot and backend
 │       ├── __init__.py
-│       └── models.py        # Our Pydantic data models
+│       └── models.py        # Shared SQLModels and Pydantic API models
 │
 ├── data/                    # For persistent, non-code data
 │   ├── campaigns/
@@ -56,3 +54,4 @@ This document outlines the official folder and file structure for the AI DM mono
     ├── prd.md
     ├── ui-ux-specification.md
     └── fullstack-architecture.md
+```

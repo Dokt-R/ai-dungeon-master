@@ -271,8 +271,8 @@ sections:
           
           **Error Handling:** {{error_handling_strategy}}
 
-  - id: source-tree-integration
-    title: Source Tree Integration
+  - id: unified-project-structure-integration
+    title: Unified Project Structure Integration
     instruction: |
       Define how new code will integrate with existing project structure:
       

@@ -21,7 +21,7 @@ class TestCampaignManager(BaseTestData):
         retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
         assert retrieved.campaign_id == campaign.campaign_id
 
-    def test_delete_campaign(self, managers, session):
+    def test_delete_campaign_by_owner(self, managers, session):
         managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
@@ -31,6 +31,29 @@ class TestCampaignManager(BaseTestData):
         assert result is True
         retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
         assert retrieved is None
+
+    def test_delete_campaign_by_admin(self, managers, session):
+        managers.campaign.create_campaign(
+            self.server_id, self.campaign_name, self.owner_id
+        )
+        result = managers.campaign.delete_campaign(
+            self.server_id, self.campaign_name, "not_the_owner", is_admin=True
+        )
+        assert result is True
+        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        assert retrieved is None
+
+    def test_delete_campaign_permission_denied(self, managers, session):
+        managers.campaign.create_campaign(
+            self.server_id, self.campaign_name, self.owner_id
+        )
+        with pytest.raises(PermissionError):
+            managers.campaign.delete_campaign(
+                self.server_id,
+                self.campaign_name,
+                "not_the_owner",
+                is_admin=False,
+            )
 
     def test_get_campaign_players(self, managers, session, insert_player):
         campaign = managers.campaign.create_campaign(

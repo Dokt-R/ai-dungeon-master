@@ -25,7 +25,13 @@ This document lists all available bot commands, their descriptions, and advanced
 ## Advanced Usage
 
 - All commands return ephemeral messages by default to avoid channel clutter.
-- For campaign management, use `/campaign new`, `/campaign continue`, and `/campaign end` (if available).
+- For campaign management, use the `/campaign` command with its subcommands:
+  - `new`: Create a new campaign.
+  - `join`: Join an existing campaign.
+  - `continue`: Continue your last active campaign.
+  - `end`: End your current campaign session.
+  - `delete`: Delete a campaign (owner or admin only).
+  - `info`: Get information about a campaign.
 - For character management, use `/sheet` to view your character sheet.
 
 For the latest updates and detailed guides, see the [README](../README.MD) or project documentation.

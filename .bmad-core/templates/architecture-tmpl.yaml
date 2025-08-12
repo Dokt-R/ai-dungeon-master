@@ -316,8 +316,8 @@ sections:
       Present schema in format appropriate to database type (SQL DDL, JSON schema, etc.)
     elicit: true
 
-  - id: source-tree
-    title: Source Tree
+  - id: unified-project-structure
+    title: Unified Project Structure
     type: code
     language: plaintext
     instruction: |

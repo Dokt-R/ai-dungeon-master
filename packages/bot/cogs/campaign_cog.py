@@ -1,8 +1,9 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import os
 import httpx
+import os
+
 from packages.shared.error_handler import (
     handle_error,
     ValidationError,
@@ -51,21 +52,22 @@ class CampaignCog(commands.Cog):
                         "owner_id": str(interaction.user.id),
                     },
                 )
-                if response.status_code == 200:
-                    await interaction.response.send_message(
-                        "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                        f"Campaign '{campaign_name}' created successfully!\n"
-                        # TODO: This is probably redundant or invalid. A player could already have a character sheet
-                        # An if statement should be implemented when we have character sheets
-                        "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
-                        ephemeral=False,
-                    )
-                else:
-                    data = await response.json()
-                    await interaction.response.send_message(
-                        f"Failed to create campaign: {data.get('detail', response.text)}",
-                        ephemeral=True,
-                    )
+                response.raise_for_status()
+                data = await response.json()
+                await interaction.response.send_message(
+                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+                    f"Campaign '{campaign_name}' created successfully!\n"
+                    # TODO: This is probably redundant or invalid. A player could already have a character sheet
+                    # An if statement should be implemented when we have character sheets
+                    "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
+                    ephemeral=False,
+                )
+            except httpx.HTTPStatusError as e:
+                data = await e.response.json()
+                await interaction.response.send_message(
+                    f"Failed to create campaign: {data.get('detail', e.response.text)}",
+                    ephemeral=True,
+                )
             except Exception as e:
                 await interaction.response.send_message(
                     f"Failed to create campaign: {e}", ephemeral=True
@@ -173,126 +175,150 @@ class CampaignCog(commands.Cog):
     async def _handle_campaign_delete(
         self, interaction: discord.Interaction, name: str
     ):
-        # Permission check: Only allow campaign owner or server admin
-        # Fetch campaign info from backend to get owner_id
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/campaigns/list",  # Not implemented, so fallback to join for now
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": name,
-                        "player_id": str(interaction.user.id),
-                    },
-                )
-                # If backend had a campaign info endpoint, use it. For now, assume owner is the creator.
-                # We'll check permissions after confirmation.
-            except Exception as e:
-                await interaction.response.send_message(
-                    f"Failed to fetch campaign info: {e}", ephemeral=True
-                )
-                return
-
-        # Ask for confirmation
-        await interaction.response.send_message(
-            f"Are you sure you want to delete campaign '{name}'? This action cannot be undone. "
-            "Reply with 'yes' to confirm or 'no' to cancel.",
-            ephemeral=True,
-        )
-
-        def check(m):
-            return (
-                m.author.id == interaction.user.id
-                and m.channel.id == interaction.channel.id
-                and m.content.lower() in ["yes", "no"]
-            )
-
-        try:
-            msg = await self.bot.wait_for("message", check=check, timeout=30)
-        except Exception:
-            await interaction.followup.send(
-                "Timed out waiting for confirmation.", ephemeral=True
-            )
-            return
-
-        if msg.content.lower() != "yes":
-            await interaction.followup.send(
-                "Campaign deletion cancelled.", ephemeral=True
-            )
-            return
-
-        # Check permissions: owner or admin
         is_admin = (
             interaction.user.guild_permissions.administrator
             or interaction.user.guild_permissions.manage_guild
         )
-        # Fetch campaign owner from backend
-        owner_id = None
-        async with httpx.AsyncClient() as client:
-            try:
-                # Use join to get error if campaign doesn't exist, else get owner_id
-                response = await client.post(
-                    f"{self.api_base_url}/campaigns/new",  # Not ideal, but no info endpoint
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": name,
-                        "owner_id": str(interaction.user.id),
-                    },
-                )
-                # If status 400, campaign exists, get owner_id
-                # This is a hack; ideally, there should be a campaign info endpoint.
-                if response.status_code == 400:
-                    data = await response.json()
-                    detail = data.get("detail", "")
-                    # Parse owner_id from error if possible (not implemented)
-                    # For now, assume only admins can delete if not owner
-                    if not is_admin:
-                        await interaction.followup.send(
-                            "You do not have permission to delete this campaign. (Only the owner or a server admin can delete.)",
-                            ephemeral=True,
-                        )
-                        return
-                # If status 200, campaign does not exist (should not happen)
-                elif response.status_code == 200:
-                    await interaction.followup.send(
-                        f"No campaign named '{name}' exists on this server.",
-                        ephemeral=True,
-                    )
-                    return
-            except Exception as e:
-                await interaction.followup.send(
-                    f"Failed to check campaign permissions: {e}", ephemeral=True
-                )
-                return
+        button_callback = self._create_delete_confirmation_callback(
+            name, is_admin
+        )
 
-        # Call backend to delete
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/campaigns/delete",
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": name,
-                        "requester_id": str(interaction.user.id),
-                        "is_admin": is_admin,
-                    },
-                )
-                if response.status_code == 200:
-                    await interaction.followup.send(
-                        f"Campaign '{name}' deleted successfully.",
-                        ephemeral=False,
-                    )
-                else:
-                    data = await response.json()
-                    await interaction.followup.send(
-                        f"Failed to delete campaign: {data.get('detail', response.text)}",
-                        ephemeral=True,
-                    )
-            except Exception as e:
+        view = discord.ui.View()
+        confirm_button = discord.ui.Button(
+            label="Confirm", style=discord.ButtonStyle.danger, custom_id="confirm"
+        )
+        cancel_button = discord.ui.Button(
+            label="Cancel", style=discord.ButtonStyle.grey, custom_id="cancel"
+        )
+        confirm_button.callback = button_callback
+        cancel_button.callback = button_callback
+        view.add_item(confirm_button)
+        view.add_item(cancel_button)
+
+        await interaction.response.send_message(
+            f"Are you sure you want to delete campaign '{name}'? This action cannot be undone.",
+            view=view,
+            ephemeral=True,
+        )
+
+    def _create_delete_confirmation_callback(self, name: str, is_admin: bool):
+        async def button_callback(interaction: discord.Interaction):
+            await interaction.response.defer(ephemeral=True)
+            view = interaction.message.view
+            for item in view.children:
+                item.disabled = True
+
+            if interaction.data["custom_id"] == "confirm":
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.request(
+                            "DELETE",
+                            f"{self.api_base_url}/campaigns/delete",
+                            json={
+                                "server_id": str(interaction.guild.id),
+                                "campaign_name": name,
+                                "requester_id": str(interaction.user.id),
+                                "is_admin": is_admin,
+                            },
+                        )
+                        response.raise_for_status()
+                        await interaction.followup.send(
+                            f"Campaign '{name}' deleted successfully.", ephemeral=True
+                        )
+                except Exception as e:
+                    await self._handle_delete_error(interaction, e)
+            else:
                 await interaction.followup.send(
-                    f"Failed to delete campaign: {e}", ephemeral=True
+                    "Campaign deletion cancelled.", ephemeral=True
                 )
-        return
+
+            await interaction.edit_original_response(view=view)
+
+        return button_callback
+
+    async def _handle_delete_error(
+        self, interaction: discord.Interaction, e: Exception
+    ):
+        if isinstance(e, httpx.HTTPStatusError):
+            try:
+                data = await e.response.json()
+                detail = data.get("detail", e.response.text)
+            except Exception:
+                detail = e.response.text
+            await interaction.followup.send(
+                f"Failed to delete campaign: {detail}",
+                ephemeral=True,
+            )
+        else:
+            await interaction.followup.send(
+                f"An unexpected error occurred: {e}", ephemeral=True
+            )
+
+    @campaign.command(name="info", description="Display information about a campaign.")
+    @app_commands.describe(name="The name of the campaign to get info for.")
+    @discord_error_handler()
+    async def info(self, interaction: discord.Interaction, name: str):
+        await self._handle_campaign_info(interaction, name)
+
+    async def _handle_campaign_info(self, interaction: discord.Interaction, name: str):
+        try:
+            async with httpx.AsyncClient() as client:
+                # Fetch campaign details from the backend.
+                response = await client.get(
+                    f"{self.api_base_url}/campaigns/{interaction.guild.id}/{name}"
+                )
+                response.raise_for_status()
+                campaign_data = await response.json()
+
+                # Fetch the list of players in the campaign.
+                players_response = await client.get(
+                    f"{self.api_base_url}/campaigns/{campaign_data['campaign_id']}/players"
+                )
+                players_response.raise_for_status()
+                players_data = await players_response.json()
+                player_names = (
+                    [player["username"] for player in players_data]
+                    if players_data
+                    else ["No players yet."]
+                )
+
+                # Create an embed to display the campaign information.
+                embed = discord.Embed(
+                    title=f"Campaign Info: {campaign_data['campaign_name']}",
+                    color=discord.Color.blue(),
+                )
+                embed.add_field(
+                    name="Owner ID", value=campaign_data["owner_id"], inline=False
+                )
+                embed.add_field(
+                    name="State", value=campaign_data.get("state", "N/A"), inline=False
+                )
+                embed.add_field(
+                    name="Players", value=", ".join(player_names), inline=False
+                )
+                embed.add_field(
+                    name="Last Save",
+                    value=campaign_data.get("last_save", "N/A"),
+                    inline=False,
+                )
+
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                await interaction.response.send_message(
+                    f"Campaign '{name}' not found.", ephemeral=True
+                )
+            else:
+                data = await e.response.json()
+                await interaction.response.send_message(
+                    f"Failed to get campaign info: {data.get('detail', e.response.text)}",
+                    ephemeral=True,
+                )
+        except Exception as e:
+            await interaction.response.send_message(
+                f"An unexpected error occurred: {e}", ephemeral=True
+            )
 
     async def _handle_campaign_continue(self, interaction: discord.Interaction):
         # Call backend API to continue campaign
@@ -307,7 +333,7 @@ class CampaignCog(commands.Cog):
                     json=payload,
                 )
                 if response.status_code == 200:
-                    data = response.json()
+                    data = await response.json()
                     campaign_name = data.get("campaign_name", "Unknown")
                     source = data.get("source", "save")
                     msg = (
@@ -329,10 +355,6 @@ class CampaignCog(commands.Cog):
                 await interaction.response.send_message(
                     f"Failed to continue campaign: {e}", ephemeral=True
                 )
-
-    async def cog_load(self):
-        self.bot.tree.add_command(self.campaign)
-
 
 async def setup(bot):
     await bot.add_cog(CampaignCog(bot))

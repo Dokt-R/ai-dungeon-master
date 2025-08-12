@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from packages.backend.components.character_manager import CharacterManager
 from packages.shared.error_handler import fastapi_error_handler, NotFoundError
 from packages.shared.models import (
@@ -9,12 +9,11 @@ from packages.shared.models import (
 )
 
 router = APIRouter(prefix="/characters", tags=["characters"])
-character_manager = CharacterManager()
 
 
 @router.post("/add")
 @fastapi_error_handler
-def add_character(req: AddCharacterRequest):
+def add_character(req: AddCharacterRequest, character_manager: CharacterManager = Depends()):
     character = character_manager.add_character(
         player_id=req.player_id,
         name=req.name,
@@ -25,7 +24,7 @@ def add_character(req: AddCharacterRequest):
 
 @router.post("/update")
 @fastapi_error_handler
-def update_character(req: UpdateCharacterRequest):
+def update_character(req: UpdateCharacterRequest, character_manager: CharacterManager = Depends()):
     result = character_manager.update_character(
         character_id=req.character_id,
         name=req.name,
@@ -36,7 +35,7 @@ def update_character(req: UpdateCharacterRequest):
 
 @router.post("/remove")
 @fastapi_error_handler
-def remove_character(req: RemoveCharacterRequest):
+def remove_character(req: RemoveCharacterRequest, character_manager: CharacterManager = Depends()):
     result = character_manager.remove_character(character_id=req.character_id)
     if not result:
         raise NotFoundError("Character not found")
@@ -45,6 +44,6 @@ def remove_character(req: RemoveCharacterRequest):
 
 @router.post("/list")
 @fastapi_error_handler
-def list_characters(req: ListCharactersRequest):
+def list_characters(req: ListCharactersRequest, character_manager: CharacterManager = Depends()):
     characters = character_manager.get_characters_for_player(player_id=req.player_id)
     return {"characters": characters}

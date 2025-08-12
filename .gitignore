@@ -4,10 +4,11 @@
 env/
 venv*/
 
-# Ignore Python cache
+# Ignore Python cache and test coverage
 .pytest_cache/
 __pycache__/
 */__pycache__/*
+*coverage*
 
 # Other
 .ruff_cache/
@@ -17,6 +18,7 @@ server_settings.db
 file
 todo.md
 notes.md
+htmlcov/
 
 # Ignore logs and temp files
 *.log

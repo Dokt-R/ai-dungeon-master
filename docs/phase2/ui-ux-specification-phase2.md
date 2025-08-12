@@ -1091,3 +1091,191 @@ We will continue to define our own minimal set of custom styles and components, 
 ***
 
 Please review this expanded design system. Does it cover the key new UI components we'll need to build our advanced features?
+
+
+--------
+
+Of course. Here is the complete `UI/UX Specification` for Phase 2, which includes all the detailed user flows, wireframes, and design principles we have created together.
+
+You can copy the content from the code block below and save it as `ui-ux-specification-phase2.md` in your `docs/phase2/` folder.
+
+````markdown
+# AI D&D DM UI/UX Specification - Phase 2
+
+## Introduction
+
+This document defines the user experience goals, information architecture, user flows, and interaction design specifications for the "Grand Vision" phase of the AI D&D DM project. It builds upon the successful MVP, expanding the platform's capabilities to include a full TTRPG Creative Suite and advanced, immersive gameplay features.
+
+### Overall UX Goals & Principles
+
+#### Target User Personas
+The design for this phase will cater to three distinct user segments:
+* **The Hobbyist & Contributor:** Our core community who desires ultimate creative control and flexibility.
+* **The Human Dungeon Master:** A new primary user who needs powerful, intuitive tools to streamline their creative process and manage their games.
+* **The Convenience Player:** An expansion audience who values a polished, hassle-free, and immersive entertainment experience.
+
+#### Usability Goals
+* **Empower Creativity:** The "Creative Suite" should feel like an intuitive and powerful partner, enabling DMs to create, manage, and share their homebrew content with ease.
+* **Seamless Immersion:** The new multimedia features (voice, images, music) should blend seamlessly into the narrative, enhancing the story without feeling intrusive.
+* **Frictionless Collaboration:** The new party and campaign management tools should make it effortless for groups to organize and play their games.
+
+#### Design Principles
+1.  **DM-Centric Design:** For the Creative Suite, every design decision must be made with the goal of reducing the human DM's workload and enhancing their creative power.
+2.  **Clarity Above All:** The interface for both gameplay and creation must be clear, concise, and unambiguous.
+3.  **Immersive, Not Intrusive:** The "UI" is the story. All new features, especially multimedia, must serve to enhance the narrative, not interrupt it.
+4.  **Consistency Across Platforms:** The "classic fantasy sourcebook" brand identity must be consistently applied across the Discord bot and the new Campaign Wiki.
+
+### Change Log
+
+| Date       | Version | Description                               | Author           |
+| :---       | :---    | :---                                      | :---             |
+| 2025-08-08 | 1.0     | Initial draft based on Phase 2 Brief      | Sally, UX Expert |
+
+## Information Architecture (IA)
+
+This architecture is designed around two distinct user states: a **Command State** for out-of-character management and a **Role-playing State** for in-character immersion.
+
+### Command & State Inventory
+
+```mermaid
+graph TD
+    subgraph "User Interaction States"
+        A[Command State <br/> (Out-of-Character)]
+        B[Role-playing State <br/> (In-Character)]
+    end
+
+    subgraph "Management Commands"
+        C1[/settings campaign]
+        C2[/party create]
+        C3[/party join]
+        C4[/campaign new]
+        C5[/campaign continue]
+        C6[/campaign end]
+        C7[/campaign delete]
+    end
+
+    subgraph "Creative Suite Commands"
+        C8[/homebrew create]
+        C9[/ingest from-url]
+        C10[/ingest upload]
+        C11[/ingest random]
+        C12[/ingest review]
+        C13[/search]
+    end
+
+    subgraph "Utility Commands"
+        C14[/help]
+        C15[/cost]
+        C16[/wiki start]
+        C17[/wiki share]
+    end
+    
+    subgraph "In-Game Actions & Commands"
+        D1[Player Action <br/> (Text/Voice)]
+        D2[/turn-order]
+        D3[/sheet refresh]
+        D4[/journal]
+        D6[/map]
+        D7[/imagine]
+        D5[AI Response & Autosave]
+    end
+
+    A --> Management
+    A --> Creative Suite
+    A --> Utility
+    
+    B --> In-Game Actions & Commands
+    
+    D1 --> D5
+    D2 --> D5
+    D3 --> D5
+    D4 --> D5
+    D6 --> D5
+    D7 --> D5
+    D5 --> B
+````
+
+## User Flows
+
+*(This section details the step-by-step interactions for all major new features.)*
+
+### Flow: Managing a Campaign Party
+
+**User Goal:** As a campaign host, to have complete control over forming a party, whether it's a private, invite-only group or a public group looking for new members.
+*(This flow includes diagrams for private invites and public recruiting, and details the edge cases for invite logic and state conflicts.)*
+
+### Flow: Creating Homebrew Content
+
+**User Goal:** As a Dungeon Master, to be guided through a best-practice process for creating new, balanced homebrew content, with options for both a fully manual, template-driven process and an AI-assisted creative mode.
+*(This flow includes diagrams for both the manual and AI-assisted creation paths.)*
+
+### Flow: Unified Asset Management
+
+**User Goal:** As a Dungeon Master, to have a single, powerful set of commands to easily list, find, and filter all the custom content in my campaign.
+*(This flow details the `assets list`, `find`, and `filter` commands, as well as the more advanced `/search` interactive mode.)*
+
+### Flow: Viewing and Interacting with a Campaign Map
+
+**User Goal:** As a player, to be able to see a map of our current location, understand where my party is, and see the world revealed as we explore it via Dynamic Fog of War.
+*(This flow details the `/map` command and the automatic updates based on narrative progression.)*
+
+### Flow: Managing an AI Party Companion
+
+**User Goal:** As a player, to be guided through creating a well-defined AI-controlled companion for our party, so that the companion is a useful and believable member of the team.
+*(This flow details the interactive setup process and the "completeness score" for the AI companion.)*
+
+### Flow: Managing AI Auto-Play for a Missing Player
+
+**User Goal:** As a player, to have the option for the AI to play my character when I have to miss a session, so that the game doesn't get canceled.
+*(This flow details the player consent model and the use of the "Character-Specific Chronicle" to guide the AI's actions.)*
+
+## Wireframes & Mockups (Message Design)
+
+### Dynamic Display Principle: Hide Empty Fields
+
+To maintain a clean and uncluttered interface, fields that are empty, set to zero, or not applicable **should be hidden from view**.
+
+### Key Message Layouts
+
+*(This section contains the detailed, multi-page wireframes and conceptual layouts for the following key interfaces.)*
+
+  * **The Interactive DM Screen (`/dm-screen`)**
+  * **The Guided Homebrew Creator (`/homebrew create`)**
+  * **The Interactive Asset Search (`/search`)**
+  * **The Web-Based Campaign Wiki**
+  * **The Party Management View (`/party view`)**
+  * **The Comprehensive, 6-Page Character Sheet (`/sheet`)**
+
+## Component Library / Design System
+
+### Design System Approach
+
+We will continue to define our own minimal set of custom styles and components, extending the "classic fantasy sourcebook" theme to our new interfaces.
+
+### New Components for Phase 2
+
+  * **Interactive Buttons (Primary & Secondary)**
+  * **Dropdowns (Select Menus)**
+  * **Modals (Pop-up Forms)**
+  * **Web UI Components (for the Campaign Wiki)**
+
+## Branding & Style Guide
+
+### Visual Identity
+
+The bot's visual identity will continue to be guided by the "classic fantasy sourcebook" theme, embodied by its **hooded owl** mascot.
+
+### Art Direction for Generated Images
+
+The "Prompt Enhancer" module will be configured to inject keywords that ensure all generated images adhere to a consistent artistic style: **"classic fantasy, detailed ink drawing, muted colors, reminiscent of classic D\&D artists."**
+
+## Accessibility, Responsiveness, Animation, and Performance
+
+*(This section contains the detailed strategies for ensuring the application is accessible, works well on all devices, feels alive and responsive, and meets its performance targets for all new features, including the web-based wiki and multimedia generation.)*
+
+## Next Steps
+
+This document, along with the `prd-phase2.md`, will now be handed over to the Architect to begin the technical design phase for all the new epics and features.
+
+```
+```
