@@ -88,7 +88,9 @@ class TestPlayersJoinCampaign(BaseTestData):
         self, client: TestClient, mock_player_manager: MagicMock
     ):
         # Arrange
-        mock_player_manager.join_campaign.side_effect = NotFoundError("Campaign not found")
+        mock_player_manager.join_campaign.side_effect = NotFoundError(
+            "Campaign not found"
+        )
         payload = {
             "server_id": self.server_id,
             "campaign_name": "DoesNotExist",

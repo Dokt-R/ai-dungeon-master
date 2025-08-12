@@ -30,7 +30,9 @@ class BaseTestData:
 
 
 class TestCampaignAPI(BaseTestData):
-    def test_create_campaign(self, client: TestClient, mock_campaign_manager: MagicMock):
+    def test_create_campaign(
+        self, client: TestClient, mock_campaign_manager: MagicMock
+    ):
         # Arrange
         mock_campaign = Campaign(
             campaign_id=self.campaign_id,
@@ -83,7 +85,9 @@ class TestCampaignAPI(BaseTestData):
             self.server_id, self.campaign_name
         )
 
-    def test_delete_campaign(self, client: TestClient, mock_campaign_manager: MagicMock):
+    def test_delete_campaign(
+        self, client: TestClient, mock_campaign_manager: MagicMock
+    ):
         # Arrange
         mock_campaign_manager.delete_campaign.return_value = None
 

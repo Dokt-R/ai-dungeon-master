@@ -2,11 +2,7 @@ import functools
 import logging
 from fastapi import HTTPException
 
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logger = logging.getLogger(__name__)
 
 
 class CustomException(Exception):
@@ -31,7 +27,7 @@ def handle_error(error, context="fastapi"):
     """Centralized error handling function.
     context: "fastapi" (default) or "discord"
     """
-    logging.error(f"An error occurred: {error}")
+    logger.error(f"An error occurred: {error}")
     if context == "fastapi":
         if isinstance(error, ValidationError):
             raise HTTPException(status_code=400, detail=str(error))

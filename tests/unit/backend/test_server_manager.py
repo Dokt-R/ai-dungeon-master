@@ -17,7 +17,9 @@ def mock_session():
 def server_manager(mock_session: MagicMock):
     # Patch the _load_encryption_key to avoid dealing with environment variables
     with patch.object(
-        ServerSettingsManager, "_load_encryption_key", return_value=Fernet.generate_key()
+        ServerSettingsManager,
+        "_load_encryption_key",
+        return_value=Fernet.generate_key(),
     ) as mock_load_key:
         manager = ServerSettingsManager(session=mock_session)
         # Keep the key accessible for tests

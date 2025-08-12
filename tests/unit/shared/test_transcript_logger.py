@@ -3,6 +3,7 @@ import asyncio
 from unittest.mock import patch, MagicMock, call
 from packages.shared.transcript_logger import TranscriptLogger
 
+
 @pytest.mark.asyncio
 @patch("packages.shared.transcript_logger.os.makedirs")
 @patch("packages.shared.transcript_logger.asyncio.to_thread")
@@ -47,7 +48,7 @@ def test_rotate_if_needed(mock_os):
     # Arrange
     log_path = "/fake/dir/transcript.log"
     logger = TranscriptLogger()
-    
+
     # Scenario 1: File doesn't exist, should do nothing
     mock_os.path.exists.return_value = False
     logger._rotate_if_needed(log_path)
@@ -64,9 +65,9 @@ def test_rotate_if_needed(mock_os):
     # Simulate no old logs existing
     mock_os.path.exists.side_effect = [
         True,  # log_path
-        False, # log_path.3
-        False, # log_path.1
-        False, # log_path.2
+        False,  # log_path.3
+        False,  # log_path.1
+        False,  # log_path.2
     ]
     logger._rotate_if_needed(log_path)
     mock_os.rename.assert_called_once_with(log_path, f"{log_path}.1")

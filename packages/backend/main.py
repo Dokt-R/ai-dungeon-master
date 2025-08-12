@@ -7,6 +7,12 @@ from packages.backend.api.player_api import router as player_router
 from packages.backend.api.character_api import router as character_router
 from packages.shared.db import get_engine, initialize_schema
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

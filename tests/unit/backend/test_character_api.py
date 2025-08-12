@@ -7,6 +7,7 @@ from packages.backend.components.character_manager import CharacterManager
 from packages.shared.models import Character
 from packages.shared.error_handler import NotFoundError, ValidationError
 
+
 # Mock the CharacterManager dependency
 @pytest.fixture
 def mock_character_manager():
@@ -81,7 +82,9 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 404
         assert "Player does not exist" in response.text
 
-    def test_update_character(self, client: TestClient, mock_character_manager: MagicMock):
+    def test_update_character(
+        self, client: TestClient, mock_character_manager: MagicMock
+    ):
         # Arrange
         mock_character_manager.update_character.return_value = True
 
@@ -133,7 +136,9 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 400
         assert "Name already exists" in response.text
 
-    def test_remove_character(self, client: TestClient, mock_character_manager: MagicMock):
+    def test_remove_character(
+        self, client: TestClient, mock_character_manager: MagicMock
+    ):
         # Arrange
         mock_character_manager.remove_character.return_value = True
 
@@ -162,7 +167,9 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 404
         assert "Character not found" in response.text
 
-    def test_list_characters(self, client: TestClient, mock_character_manager: MagicMock):
+    def test_list_characters(
+        self, client: TestClient, mock_character_manager: MagicMock
+    ):
         # Arrange
         mock_characters = [
             Character(

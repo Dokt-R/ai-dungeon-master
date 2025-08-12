@@ -179,9 +179,7 @@ class CampaignCog(commands.Cog):
             interaction.user.guild_permissions.administrator
             or interaction.user.guild_permissions.manage_guild
         )
-        button_callback = self._create_delete_confirmation_callback(
-            name, is_admin
-        )
+        button_callback = self._create_delete_confirmation_callback(name, is_admin)
 
         view = discord.ui.View()
         confirm_button = discord.ui.Button(
@@ -355,6 +353,7 @@ class CampaignCog(commands.Cog):
                 await interaction.response.send_message(
                     f"Failed to continue campaign: {e}", ephemeral=True
                 )
+
 
 async def setup(bot):
     await bot.add_cog(CampaignCog(bot))

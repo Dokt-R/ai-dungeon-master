@@ -30,7 +30,7 @@ class TestCampaignManager(BaseTestData):
     ):
         # Arrange
         mock_session.exec.return_value.first.return_value = None
-        
+
         # Act
         campaign = campaign_manager.create_campaign(
             self.server_id, self.campaign_name, self.owner_id

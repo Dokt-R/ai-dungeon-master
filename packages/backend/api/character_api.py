@@ -13,7 +13,9 @@ router = APIRouter(prefix="/characters", tags=["characters"])
 
 @router.post("/add")
 @fastapi_error_handler
-def add_character(req: AddCharacterRequest, character_manager: CharacterManager = Depends()):
+def add_character(
+    req: AddCharacterRequest, character_manager: CharacterManager = Depends()
+):
     character = character_manager.add_character(
         player_id=req.player_id,
         name=req.name,
@@ -24,7 +26,9 @@ def add_character(req: AddCharacterRequest, character_manager: CharacterManager 
 
 @router.post("/update")
 @fastapi_error_handler
-def update_character(req: UpdateCharacterRequest, character_manager: CharacterManager = Depends()):
+def update_character(
+    req: UpdateCharacterRequest, character_manager: CharacterManager = Depends()
+):
     result = character_manager.update_character(
         character_id=req.character_id,
         name=req.name,
@@ -35,7 +39,9 @@ def update_character(req: UpdateCharacterRequest, character_manager: CharacterMa
 
 @router.post("/remove")
 @fastapi_error_handler
-def remove_character(req: RemoveCharacterRequest, character_manager: CharacterManager = Depends()):
+def remove_character(
+    req: RemoveCharacterRequest, character_manager: CharacterManager = Depends()
+):
     result = character_manager.remove_character(character_id=req.character_id)
     if not result:
         raise NotFoundError("Character not found")
@@ -44,6 +50,8 @@ def remove_character(req: RemoveCharacterRequest, character_manager: CharacterMa
 
 @router.post("/list")
 @fastapi_error_handler
-def list_characters(req: ListCharactersRequest, character_manager: CharacterManager = Depends()):
+def list_characters(
+    req: ListCharactersRequest, character_manager: CharacterManager = Depends()
+):
     characters = character_manager.get_characters_for_player(player_id=req.player_id)
     return {"characters": characters}

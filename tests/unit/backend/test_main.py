@@ -78,9 +78,13 @@ def test_set_server_config_validation_error(client: TestClient):
     assert response.status_code == 400  # validation error
 
 
-def test_set_server_config_not_found(client: TestClient, mock_server_manager: MagicMock):
+def test_set_server_config_not_found(
+    client: TestClient, mock_server_manager: MagicMock
+):
     # Arrange
-    mock_server_manager.store_server_config.side_effect = NotFoundError("Server not found")
+    mock_server_manager.store_server_config.side_effect = NotFoundError(
+        "Server not found"
+    )
     payload = {
         "api_key": "testkey",
         "dm_roll_visibility": "public",

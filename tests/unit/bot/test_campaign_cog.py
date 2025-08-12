@@ -96,9 +96,7 @@ async def test_campaign_new_backend_error(cog, mock_interaction):
 
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         # Simulate a backend error
-        mock_post.side_effect = httpx.RequestError(
-            "backend error", request=MagicMock()
-        )
+        mock_post.side_effect = httpx.RequestError("backend error", request=MagicMock())
         await cog._handle_campaign_new(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
         result = interaction.response.send_message.call_args[0][0]
@@ -615,10 +613,10 @@ async def test_campaign_delete_button_confirm_success(cog):
     with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
         mock_request.return_value.status_code = 200
         mock_request.return_value.raise_for_status = MagicMock()
-        
+
         # Create the button callback function
         await cog._handle_campaign_delete(interaction, "test_campaign")
-        
+
         # Get the callback function that was assigned to the button
         # This is a bit tricky because we need to access the callback from the cog
         # For now, we'll just verify that the initial message is sent correctly
@@ -635,21 +633,21 @@ async def test_campaign_delete_button_confirm_success(cog):
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     interaction.edit_original_response = AsyncMock()
-    
+
     # Mock the view and buttons
     view = MagicMock()
     confirm_button = MagicMock()
     cancel_button = MagicMock()
     view.children = [confirm_button, cancel_button]
-    
+
     # Mock the httpx request for successful deletion
     with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
         mock_request.return_value.status_code = 200
         mock_request.return_value.raise_for_status = MagicMock()
-        
+
         # Create the button callback function
         await cog._handle_campaign_delete(interaction, "test_campaign")
-        
+
         # Get the callback function that was assigned to the button
         # This is a bit tricky because we need to access the callback from the cog
         # For now, we'll just verify that the initial message is sent correctly
@@ -666,20 +664,20 @@ async def test_campaign_delete_button_confirm_error(cog):
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     interaction.edit_original_response = AsyncMock()
-    
+
     # Mock the view and buttons
     view = MagicMock()
     confirm_button = MagicMock()
     cancel_button = MagicMock()
     view.children = [confirm_button, cancel_button]
-    
+
     # Mock the httpx request for failed deletion
     with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
         mock_request.side_effect = Exception("Deletion failed")
-        
+
         # Create the button callback function
         await cog._handle_campaign_delete(interaction, "test_campaign")
-        
+
         # Get the callback function that was assigned to the button
         # This is a bit tricky because we need to access the callback from the cog
         # For now, we'll just verify that the initial message is sent correctly
@@ -694,16 +692,16 @@ async def test_campaign_delete_button_cancel(cog):
     interaction.response.defer = AsyncMock()
     interaction.followup.send = AsyncMock()
     interaction.edit_original_response = AsyncMock()
-    
+
     # Mock the view and buttons
     view = MagicMock()
     confirm_button = MagicMock()
     cancel_button = MagicMock()
     view.children = [confirm_button, cancel_button]
-    
+
     # Create the button callback function
     await cog._handle_campaign_delete(interaction, "test_campaign")
-    
+
     # Get the callback function that was assigned to the button
     # This is a bit tricky because we need to access the callback from the cog
     # For now, we'll just verify that the initial message is sent correctly
@@ -730,10 +728,10 @@ async def test_campaign_delete_button_confirm_error(cog):
     # Mock the httpx request for failed deletion
     with patch("httpx.AsyncClient.request", new_callable=AsyncMock) as mock_request:
         mock_request.side_effect = Exception("Deletion failed")
-        
+
         # Create the button callback function
         await cog._handle_campaign_delete(interaction, "test_campaign")
-        
+
         # Get the callback function that was assigned to the button
         # This is a bit tricky because we need to access the callback from the cog
         # For now, we'll just verify that the initial message is sent correctly

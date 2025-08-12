@@ -21,7 +21,10 @@ def create_campaign(
         campaign_name=req.campaign_name,
         owner_id=req.owner_id,
     )
-    return {"message": "Campaign created successfully.", "campaign_id": campaign.campaign_id}
+    return {
+        "message": "Campaign created successfully.",
+        "campaign_id": campaign.campaign_id,
+    }
 
 
 @router.delete("/delete", summary="Delete a campaign")
@@ -40,9 +43,14 @@ def delete_campaign(
 
 @router.get("/{campaign_id}/players", summary="List players in a campaign")
 @fastapi_error_handler
-def get_campaign_players(campaign_id: int, campaign_manager: CampaignManager = Depends()):
+def get_campaign_players(
+    campaign_id: int, campaign_manager: CampaignManager = Depends()
+):
     players = campaign_manager.get_campaign_players(campaign_id)
-    return [{"player_id": player.player_id, "username": player.username} for player in players]
+    return [
+        {"player_id": player.player_id, "username": player.username}
+        for player in players
+    ]
 
 
 @router.get("/{server_id}/{campaign_name}", summary="Get campaign details")
@@ -57,7 +65,7 @@ def get_campaign(
         "server_id": campaign.server_id,
         "campaign_name": campaign.campaign_name,
         "owner_id": campaign.owner_id,
-        "state": campaign.state
+        "state": campaign.state,
     }
 
 
@@ -75,7 +83,7 @@ def update_campaign_state(
         "server_id": campaign.server_id,
         "campaign_name": campaign.campaign_name,
         "owner_id": campaign.owner_id,
-        "state": campaign.state
+        "state": campaign.state,
     }
 
 

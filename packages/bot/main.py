@@ -3,6 +3,13 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+
+
 # Load environment variables from .env file
 load_dotenv()
 

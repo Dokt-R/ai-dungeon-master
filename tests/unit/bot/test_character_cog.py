@@ -6,7 +6,7 @@ from packages.bot.cogs.character_cog import CharacterCog
 @pytest.mark.asyncio
 async def test_character_add_command(mock_bot, mock_interaction):
     from tests.utils.factories import make_discord_interaction
-    
+
     cog = CharacterCog(mock_bot)
     interaction = mock_interaction
     interaction.user.id = 42

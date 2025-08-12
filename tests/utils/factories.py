@@ -81,7 +81,9 @@ def make_character(
         **overrides,
     )
 
+
 # ---------- Discord Test Specific Factories ----------
+
 
 class MockInteraction:
     """Mock Discord interaction for testing."""
@@ -92,7 +94,9 @@ class MockInteraction:
             "User",
             (),
             {
-                "guild_permissions": type("Perms", (), {"administrator": is_admin, "manage_guild": is_admin})()
+                "guild_permissions": type(
+                    "Perms", (), {"administrator": is_admin, "manage_guild": is_admin}
+                )()
             },
         )()
         self.guild_id = guild_id

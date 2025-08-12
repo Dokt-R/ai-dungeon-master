@@ -118,7 +118,9 @@ class TestJoinCampaign(BaseTestData):
         mock_session.exec.side_effect = [
             MagicMock(first=MagicMock(return_value=mock_campaign)),  # find campaign
             MagicMock(first=MagicMock(return_value=None)),  # check if joined
-            MagicMock(all=MagicMock(return_value=[MagicMock(), MagicMock()])),  # find characters
+            MagicMock(
+                all=MagicMock(return_value=[MagicMock(), MagicMock()])
+            ),  # find characters
         ]
 
         # Act & Assert
