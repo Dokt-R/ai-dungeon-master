@@ -1,6 +1,5 @@
 import functools
 import logging
-from fastapi import HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -8,50 +7,38 @@ logger = logging.getLogger(__name__)
 class CustomException(Exception):
     """Base class for custom exceptions."""
 
-    pass
-
-
-class NotFoundError(CustomException):
-    """Exception raised for not found errors."""
-
-    pass
+    def __init__(self, message: str, error_code: str = None, details: dict = None):
+        super().__init__(message)
+        self.message = message
+        self.error_code = error_code
+        self.details = details
 
 
 class ValidationError(CustomException):
     """Exception raised for validation errors."""
 
-    pass
+    def __init__(
+        self, message: str, error_code: str = "VALIDATION_ERROR", details: dict = None
+    ):
+        super().__init__(message, error_code, details)
 
 
-def handle_error(error, context="fastapi"):
-    """Centralized error handling function.
-    context: "fastapi" (default) or "discord"
-    """
-    logger.error(f"An error occurred: {error}")
-    if context == "fastapi":
-        if isinstance(error, ValidationError):
-            raise HTTPException(status_code=400, detail=str(error))
-        if isinstance(error, NotFoundError):
-            raise HTTPException(status_code=404, detail=str(error))
-        # For all other errors, return 500
-        raise HTTPException(status_code=500, detail=str(error))
-    # For discord context, just log and do not raise
+class NotFoundError(CustomException):
+    """Exception raised for not found errors."""
+
+    def __init__(
+        self, message: str, error_code: str = "NOT_FOUND", details: dict = None
+    ):
+        super().__init__(message, error_code, details)
 
 
-"""
-Centralized Error Handler
+class AIAPIError(CustomException):
+    """Raised when an external AI API call fails."""
 
-Usage:
-- In FastAPI endpoints, call handle_error(error, context="fastapi") in except blocks.
-  - ValidationError -> HTTP 400
-  - NotFoundError   -> HTTP 404
-  - Other Exception -> HTTP 500
-- In Discord command handlers, call handle_error(error, context="discord").
-  - Only logs the error; does not raise.
-  - Always send a user-facing message after calling handle_error.
-
-Do NOT use handle_error in low-level service or database code; propagate exceptions up to the API or command handler layer.
-"""
+    def __init__(
+        self, message: str, error_code: str = "AI_API_ERROR", details: dict = None
+    ):
+        super().__init__(message, error_code, details)
 
 
 def discord_error_handler(
@@ -70,23 +57,19 @@ def discord_error_handler(
         async def wrapper(self, interaction, *args, **kwargs):
             try:
                 await func(self, interaction, *args, **kwargs)
-            except ValidationError as ve:
-                try:
-                    handle_error(ve, context="discord")
-                except Exception:
-                    pass
-                await _safe_send_message(interaction, str(ve), ephemeral=True)
-            except NotFoundError as ne:
-                try:
-                    handle_error(ne, context="discord")
-                except Exception:
-                    pass
-                await _safe_send_message(interaction, str(ne), ephemeral=True)
+            except (ValidationError, NotFoundError, AIAPIError) as exc:
+                # Log custom exceptions with their structured data
+                log_message = (
+                    f"{type(exc).__name__} occurred: {exc.message} "
+                    f"(Code: {exc.error_code}, Details: {exc.details})"
+                )
+                logger.error(log_message)
+                await _safe_send_message(interaction, exc.message, ephemeral=True)
             except Exception as e:
-                try:
-                    handle_error(e, context="discord")
-                except Exception:
-                    pass
+                # Log generic exceptions
+                logger.exception(
+                    f"An unexpected error occurred in command {func.__name__}: {e}"
+                )
                 await _safe_send_message(interaction, fallback_message, ephemeral=True)
 
         return wrapper
@@ -97,20 +80,19 @@ def discord_error_handler(
 async def _safe_send_message(interaction, message, ephemeral=True):
     """
     Safely send a message to the interaction, handling already-responded errors.
-    Always attempts response.send_message first for test compatibility.
+    Tries to send a new message, or a followup if a response already exists.
     """
     try:
+        # The preferred way to respond, especially for the first response
         await interaction.response.send_message(message, ephemeral=ephemeral)
-        return
     except Exception:
-        # If response.send_message fails, try followup.send if available
         try:
-            if hasattr(interaction, "followup") and hasattr(
-                interaction.followup, "send"
-            ):
-                await interaction.followup.send(message, ephemeral=ephemeral)
-                return
-        except Exception:
-            pass
-    # If both fail, raise for test visibility
-    raise RuntimeError("Failed to send error message to Discord interaction.")
+            # If the initial response fails, it might be because we already responded.
+            # In this case, we use a followup message.
+            await interaction.followup.send(message, ephemeral=ephemeral)
+        except Exception as e:
+            # If both attempts fail, log the error for debugging.
+            logger.error(
+                f"Failed to send error message to Discord interaction for command. "
+                f"Interaction responded: {interaction.response.is_done()}. Error: {e}"
+            )

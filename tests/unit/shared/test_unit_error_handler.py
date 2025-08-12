@@ -1,66 +1,137 @@
 import pytest
 from unittest.mock import MagicMock, AsyncMock
-from fastapi import HTTPException
 from packages.shared.error_handler import (
-    handle_error,
+    CustomException,
     NotFoundError,
     ValidationError,
+    AIAPIError,
     discord_error_handler,
 )
 
 
-def test_handle_error_fastapi_context():
-    with pytest.raises(HTTPException) as exc_info:
-        handle_error(ValidationError("Validation error"), context="fastapi")
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "Validation error"
+def test_custom_exception_creation():
+    """Test that CustomException can be created with all parameters."""
+    # Test with all parameters
+    exc = CustomException("Test message", "TEST_CODE", {"key": "value"})
+    assert str(exc) == "Test message"
+    assert exc.message == "Test message"
+    assert exc.error_code == "TEST_CODE"
+    assert exc.details == {"key": "value"}
 
-    with pytest.raises(HTTPException) as exc_info:
-        handle_error(NotFoundError("Not found"), context="fastapi")
-    assert exc_info.value.status_code == 404
-    assert exc_info.value.detail == "Not found"
-
-    with pytest.raises(HTTPException) as exc_info:
-        handle_error(Exception("Generic error"), context="fastapi")
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.detail == "Generic error"
+    # Test with only message
+    exc = CustomException("Test message")
+    assert str(exc) == "Test message"
+    assert exc.message == "Test message"
+    assert exc.error_code is None  # Default value for CustomException
+    assert exc.details is None
 
 
-def test_handle_error_discord_context(caplog):
-    # In discord context, it should only log and not raise
-    handle_error(ValidationError("Validation error"), context="discord")
-    assert "Validation error" in caplog.text
+def test_validation_error_creation():
+    """Test that ValidationError can be created with all parameters."""
+    # Test with all parameters
+    exc = ValidationError(
+        "Validation failed", "VALIDATION_ERROR", {"field": "required"}
+    )
+    assert str(exc) == "Validation failed"
+    assert exc.message == "Validation failed"
+    assert exc.error_code == "VALIDATION_ERROR"
+    assert exc.details == {"field": "required"}
 
-    handle_error(NotFoundError("Not found"), context="discord")
-    assert "Not found" in caplog.text
+    # Test with only message
+    exc = ValidationError("Validation failed")
+    assert str(exc) == "Validation failed"
+    assert exc.message == "Validation failed"
+    assert exc.error_code == "VALIDATION_ERROR"  # Default value
+    assert exc.details is None
 
-    handle_error(Exception("Generic error"), context="discord")
-    assert "Generic error" in caplog.text
+
+def test_not_found_error_creation():
+    """Test that NotFoundError can be created with all parameters."""
+    # Test with all parameters
+    exc = NotFoundError("Resource not found", "NOT_FOUND", {"resource": "campaign"})
+    assert str(exc) == "Resource not found"
+    assert exc.message == "Resource not found"
+    assert exc.error_code == "NOT_FOUND"
+    assert exc.details == {"resource": "campaign"}
+
+    # Test with only message
+    exc = NotFoundError("Resource not found")
+    assert str(exc) == "Resource not found"
+    assert exc.message == "Resource not found"
+    assert exc.error_code == "NOT_FOUND"  # Default value
+    assert exc.details is None
+
+
+def test_ai_api_error_creation():
+    """Test that AIAPIError can be created with all parameters."""
+    # Test with all parameters
+    exc = AIAPIError("AI API call failed", "AI_API_ERROR", {"status": 500})
+    assert str(exc) == "AI API call failed"
+    assert exc.message == "AI API call failed"
+    assert exc.error_code == "AI_API_ERROR"
+    assert exc.details == {"status": 500}
+
+    # Test with only message
+    exc = AIAPIError("AI API call failed")
+    assert str(exc) == "AI API call failed"
+    assert exc.message == "AI API call failed"
+    assert exc.error_code == "AI_API_ERROR"  # Default value
+    assert exc.details is None
 
 
 @pytest.mark.asyncio
 async def test_discord_error_handler_decorator():
+    """Test the discord_error_handler decorator with new exception classes."""
     mock_interaction = MagicMock()
     mock_interaction.response.send_message = AsyncMock()
 
     @discord_error_handler()
-    async def command_that_raises(interaction, error):
-        raise error
+    async def command_that_raises_validation_error(self, interaction):
+        raise ValidationError(
+            "Validation failed", "VALIDATION_ERROR", {"field": "required"}
+        )
+
+    @discord_error_handler()
+    async def command_that_raises_not_found_error(self, interaction):
+        raise NotFoundError("Not found", "NOT_FOUND", {"resource": "campaign"})
+
+    @discord_error_handler()
+    async def command_that_raises_ai_api_error(self, interaction):
+        raise AIAPIError("AI API call failed", "AI_API_ERROR", {"status": 500})
+
+    @discord_error_handler()
+    async def command_that_raises_generic_error(self, interaction):
+        raise Exception("Generic error")
 
     # Test ValidationError
-    await command_that_raises(mock_interaction, ValidationError("Validation failed"))
+    await command_that_raises_validation_error(None, mock_interaction)
     mock_interaction.response.send_message.assert_awaited_with(
         "Validation failed", ephemeral=True
     )
 
+    # Reset mock for next test
+    mock_interaction.response.send_message.reset_mock()
+
     # Test NotFoundError
-    await command_that_raises(mock_interaction, NotFoundError("Not found"))
+    await command_that_raises_not_found_error(None, mock_interaction)
     mock_interaction.response.send_message.assert_awaited_with(
         "Not found", ephemeral=True
     )
 
+    # Reset mock for next test
+    mock_interaction.response.send_message.reset_mock()
+
+    # Test AIAPIError
+    await command_that_raises_ai_api_error(None, mock_interaction)
+    mock_interaction.response.send_message.assert_awaited_with(
+        "AI API call failed", ephemeral=True
+    )
+
+    # Reset mock for next test
+    mock_interaction.response.send_message.reset_mock()
+
     # Test generic Exception
-    await command_that_raises(mock_interaction, Exception("Generic error"))
+    await command_that_raises_generic_error(None, mock_interaction)
     mock_interaction.response.send_message.assert_awaited_with(
         "An unexpected error occurred. Please contact an administrator.",
         ephemeral=True,

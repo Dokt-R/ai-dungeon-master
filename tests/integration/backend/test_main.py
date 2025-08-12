@@ -22,7 +22,10 @@ def test_set_server_config_success(client, monkeypatch):
     assert response.status_code == 200
     assert response.json()["message"] == "Server configuration updated successfully."
 
-@pytest.mark.skip(reason="Manual test required as the Exception 500 code causes TestClient error")
+
+@pytest.mark.skip(
+    reason="Manual test required as the Exception 500 code causes TestClient error"
+)
 def test_set_server_config_failure(client, monkeypatch):
     def mock_store_server_config(self, server_api):
         raise Exception("DB error")

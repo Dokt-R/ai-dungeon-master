@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from packages.shared.error_handler import ValidationError, NotFoundError
+from packages.shared.error_handler import ValidationError, NotFoundError, AIAPIError
 from pydantic import ValidationError as PydanticValidationError
 from contextlib import asynccontextmanager
 
@@ -46,14 +46,27 @@ app.include_router(character_router)
 async def validation_exception_handler(request: Request, exc: ValidationError):
     return JSONResponse(
         status_code=400,
-        content={"error": {"code": "VALIDATION_ERROR", "message": str(exc)}},
+        content={
+            "error": {
+                "code": exc.error_code or "VALIDATION_ERROR",
+                "message": exc.message,
+                "details": exc.details,
+            }
+        },
     )
 
 
 @app.exception_handler(NotFoundError)
 async def not_found_exception_handler(request: Request, exc: NotFoundError):
     return JSONResponse(
-        status_code=404, content={"error": {"code": "NOT_FOUND", "message": str(exc)}}
+        status_code=404,
+        content={
+            "error": {
+                "code": exc.error_code or "NOT_FOUND",
+                "message": exc.message,
+                "details": exc.details,
+            }
+        },
     )
 
 
@@ -68,6 +81,20 @@ async def pydantic_validation_exception_handler(
                 "code": "PYDANTIC_VALIDATION_ERROR",
                 "message": "Validation failed",
                 "details": exc.errors(),
+            }
+        },
+    )
+
+
+@app.exception_handler(AIAPIError)
+async def ai_api_exception_handler(request: Request, exc: AIAPIError):
+    return JSONResponse(
+        status_code=502,  # Bad Gateway - indicates problem with upstream service
+        content={
+            "error": {
+                "code": exc.error_code or "AI_API_ERROR",
+                "message": exc.message,
+                "details": exc.details,
             }
         },
     )

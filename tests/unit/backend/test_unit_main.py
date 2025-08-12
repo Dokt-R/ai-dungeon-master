@@ -44,7 +44,10 @@ def test_set_server_config_success(client: TestClient, mock_server_manager: Magi
     assert call_args.server_id == "123"
     assert call_args.api_key.get_secret_value() == "testkey"
 
-@pytest.mark.skip(reason="Manual test required as the Exception 500 code causes TestClient error")
+
+@pytest.mark.skip(
+    reason="Manual test required as the Exception 500 code causes TestClient error"
+)
 def test_set_server_config_failure(client: TestClient, mock_server_manager: MagicMock):
     # Arrange
     mock_server_manager.store_server_config.side_effect = Exception("DB error")

@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import httpx
 import os
 from packages.shared.error_handler import (
-    handle_error,
     ValidationError,
     NotFoundError,
     discord_error_handler,
