@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands
 from packages.shared.error_handler import (
+    discord_error_handler,
     ValidationError,
     NotFoundError,
-    discord_error_handler,
+    AIAPIError,
 )
 
 
@@ -130,3 +131,47 @@ class UtilityCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(UtilityCog(bot))
+
+
+# Test commands for error handling validation
+class ErrorTestCog(commands.Cog):
+    """Test commands for error handling validation"""
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @discord.app_commands.command(
+        name="test-validation-error", description="Trigger a ValidationError"
+    )
+    @discord_error_handler()
+    async def test_validation_error(self, interaction: discord.Interaction):
+        """Trigger a ValidationError"""
+        raise ValidationError("Test validation error")
+
+    @discord.app_commands.command(
+        name="test-not-found-error", description="Trigger a NotFoundError"
+    )
+    @discord_error_handler()
+    async def test_not_found_error(self, interaction: discord.Interaction):
+        """Trigger a NotFoundError"""
+        raise NotFoundError("Test not found error")
+
+    @discord.app_commands.command(
+        name="test-ai-api-error", description="Trigger an AIAPIError"
+    )
+    @discord_error_handler()
+    async def test_ai_api_error(self, interaction: discord.Interaction):
+        """Trigger an AIAPIError"""
+        raise AIAPIError("Test AI API error")
+
+    @discord.app_commands.command(
+        name="test-generic-error", description="Trigger a generic Exception"
+    )
+    @discord_error_handler()
+    async def test_generic_error(self, interaction: discord.Interaction):
+        """Trigger a generic Exception"""
+        raise Exception("Test generic error")
+
+
+async def setup_error_test(bot):
+    await bot.add_cog(ErrorTestCog(bot))

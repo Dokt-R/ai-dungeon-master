@@ -1,5 +1,4 @@
 import pytest
-from packages.shared.models import Player
 
 
 class BaseTestData:

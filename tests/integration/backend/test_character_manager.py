@@ -1,6 +1,6 @@
 import pytest
 from packages.shared.error_handler import ValidationError, NotFoundError
-from packages.shared.models import Campaign, CampaignPlayerLink, Character
+from packages.shared.models import Campaign, CampaignPlayerLink
 
 
 class TestAddCharacter:

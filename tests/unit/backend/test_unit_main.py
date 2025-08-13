@@ -1,7 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
-from pydantic import SecretStr
 
 from packages.backend.main import app
 from packages.backend.components.server_manager import ServerSettingsManager

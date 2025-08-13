@@ -1,6 +1,5 @@
 import os
 import json
-import asyncio
 import shutil
 import tempfile
 import pytest
@@ -107,8 +106,6 @@ async def test_log_message_handles_invalid_campaign_id():
 
 @pytest.mark.asyncio
 async def test_log_rotation_and_size_limit():
-    import random
-
     temp_dir = tempfile.mkdtemp()
     logger = TranscriptLogger()
     campaign_id = "rotation_test"

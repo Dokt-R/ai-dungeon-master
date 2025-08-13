@@ -1,4 +1,3 @@
-import asyncio
 from packages.shared.transcript_logger import TranscriptLogger
 
 

@@ -1,5 +1,4 @@
 import pytest
-from packages.backend.main import app
 
 
 def test_set_server_config_success(client, monkeypatch):

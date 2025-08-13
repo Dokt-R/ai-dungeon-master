@@ -1,6 +1,3 @@
-import pytest
-
-
 class BaseTestData:
     server_id = "test_server"
     campaign_name = "test_campaign"

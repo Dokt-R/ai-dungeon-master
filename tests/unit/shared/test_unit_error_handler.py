@@ -1,4 +1,5 @@
 import pytest
+import logging
 from unittest.mock import MagicMock, AsyncMock
 from packages.shared.error_handler import (
     CustomException,
@@ -80,7 +81,7 @@ def test_ai_api_error_creation():
 
 
 @pytest.mark.asyncio
-async def test_discord_error_handler_decorator():
+async def test_discord_error_handler_decorator(caplog):
     """Test the discord_error_handler decorator with new exception classes."""
     mock_interaction = MagicMock()
     mock_interaction.response.send_message = AsyncMock()
@@ -104,35 +105,54 @@ async def test_discord_error_handler_decorator():
         raise Exception("Generic error")
 
     # Test ValidationError
-    await command_that_raises_validation_error(None, mock_interaction)
-    mock_interaction.response.send_message.assert_awaited_with(
-        "Validation failed", ephemeral=True
-    )
+    with caplog.at_level(logging.WARNING):
+        await command_that_raises_validation_error(None, mock_interaction)
+        mock_interaction.response.send_message.assert_awaited_with(
+            "Validation failed", ephemeral=True
+        )
+        # Verify warning log with stack trace
+        assert "Validation failed" in caplog.text
+        assert "Traceback" in caplog.text
+        assert "ValidationError" in caplog.text
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test NotFoundError
-    await command_that_raises_not_found_error(None, mock_interaction)
-    mock_interaction.response.send_message.assert_awaited_with(
-        "Not found", ephemeral=True
-    )
+    with caplog.at_level(logging.WARNING):
+        await command_that_raises_not_found_error(None, mock_interaction)
+        mock_interaction.response.send_message.assert_awaited_with(
+            "Not found", ephemeral=True
+        )
+        # Verify warning log with stack trace
+        assert "Not found" in caplog.text
+        assert "Traceback" in caplog.text
+        assert "NotFoundError" in caplog.text
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test AIAPIError
-    await command_that_raises_ai_api_error(None, mock_interaction)
-    mock_interaction.response.send_message.assert_awaited_with(
-        "AI API call failed", ephemeral=True
-    )
+    with caplog.at_level(logging.WARNING):
+        await command_that_raises_ai_api_error(None, mock_interaction)
+        mock_interaction.response.send_message.assert_awaited_with(
+            "AI API call failed", ephemeral=True
+        )
+        # Verify warning log with stack trace
+        assert "AI API call failed" in caplog.text
+        assert "Traceback" in caplog.text
+        assert "AIAPIError" in caplog.text
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test generic Exception
-    await command_that_raises_generic_error(None, mock_interaction)
-    mock_interaction.response.send_message.assert_awaited_with(
-        "An unexpected error occurred. Please contact an administrator.",
-        ephemeral=True,
-    )
+    with caplog.at_level(logging.ERROR):
+        await command_that_raises_generic_error(None, mock_interaction)
+        mock_interaction.response.send_message.assert_awaited_with(
+            "An unexpected error occurred. Please contact an administrator.",
+            ephemeral=True,
+        )
+        # Verify error log with stack trace
+        assert "Generic error" in caplog.text
+        assert "Traceback" in caplog.text

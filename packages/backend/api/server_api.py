@@ -1,4 +1,3 @@
-import os
 from fastapi import APIRouter, Path, Depends
 from packages.shared.models import ServerConfigModel, Server
 from packages.shared.error_handler import (

@@ -83,7 +83,7 @@ class CharacterCog(commands.Cog):
             )
             if response.status_code == 200:
                 await interaction.response.send_message(
-                    f"Character updated successfully.",
+                    "Character updated successfully.",
                     ephemeral=True,
                 )
             else:
@@ -109,7 +109,7 @@ class CharacterCog(commands.Cog):
             )
             if response.status_code == 200:
                 await interaction.response.send_message(
-                    f"Character removed successfully.",
+                    "Character removed successfully.",
                     ephemeral=True,
                 )
             else:

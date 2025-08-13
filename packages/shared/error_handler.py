@@ -58,17 +58,18 @@ def discord_error_handler(
             try:
                 await func(self, interaction, *args, **kwargs)
             except (ValidationError, NotFoundError, AIAPIError) as exc:
-                # Log custom exceptions with their structured data
-                log_message = (
+                # Log custom exceptions with their structured data and stack trace
+                logger.warning(
                     f"{type(exc).__name__} occurred: {exc.message} "
-                    f"(Code: {exc.error_code}, Details: {exc.details})"
+                    f"(Code: {exc.error_code}, Details: {exc.details})",
+                    exc_info=True,
                 )
-                logger.error(log_message)
                 await _safe_send_message(interaction, exc.message, ephemeral=True)
             except Exception as e:
-                # Log generic exceptions
-                logger.exception(
-                    f"An unexpected error occurred in command {func.__name__}: {e}"
+                # Log generic exceptions with full stack trace
+                logger.error(
+                    f"An unexpected error occurred in command {func.__name__}: {e}",
+                    exc_info=True,
                 )
                 await _safe_send_message(interaction, fallback_message, ephemeral=True)
 

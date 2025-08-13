@@ -1,4 +1,3 @@
-import pytest
 from sqlalchemy.engine import Engine
 from packages.shared.db import get_engine
 

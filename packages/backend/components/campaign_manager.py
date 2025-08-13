@@ -5,7 +5,7 @@ from fastapi import Depends
 
 from packages.shared.db import get_session
 from packages.shared.error_handler import NotFoundError, ValidationError
-from packages.shared.models import Campaign, CampaignPlayerLink, Player
+from packages.shared.models import Campaign, Player
 
 
 class CampaignManager:

@@ -36,6 +36,10 @@ async def load_cogs():
     await bot.load_extension("cogs.admin_cog")
     await bot.load_extension("cogs.campaign_cog")
     await bot.load_extension("cogs.character_cog")
+    # Load test cog for error handler validation
+    from cogs.utility_cog import setup_error_test
+
+    await setup_error_test(bot)
 
 
 if __name__ == "__main__":

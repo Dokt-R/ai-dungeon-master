@@ -4,7 +4,6 @@ from fastapi.testclient import TestClient
 
 from packages.backend.main import app
 from packages.backend.components.player_manager import PlayerManager
-from packages.shared.models import Player
 from packages.shared.error_handler import NotFoundError
 
 
@@ -191,7 +190,7 @@ class TestGetPlayer(BaseTestData):
         mock_player_manager.get_player.side_effect = NotFoundError("Player not found")
 
         # Act
-        resp = client.get(f"/players/status/nonexistent")
+        resp = client.get("/players/status/nonexistent")
 
         # Assert
         assert resp.status_code == 404

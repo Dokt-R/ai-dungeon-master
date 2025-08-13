@@ -5,8 +5,6 @@ import httpx
 import os
 
 from packages.shared.error_handler import (
-    ValidationError,
-    NotFoundError,
     discord_error_handler,
 )
 

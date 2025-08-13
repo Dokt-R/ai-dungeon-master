@@ -1,6 +1,5 @@
 import pytest
-import asyncio
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, call
 from packages.shared.transcript_logger import TranscriptLogger
 
 

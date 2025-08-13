@@ -1,9 +1,4 @@
-import pytest
-from fastapi import HTTPException
 from packages.backend.main import app
-from packages.shared.error_handler import NotFoundError, ValidationError
-from packages.shared.models import ServerConfigModel
-from pydantic import ValidationError as PydanticValidationError
 
 
 def test_validation_error_400(client):

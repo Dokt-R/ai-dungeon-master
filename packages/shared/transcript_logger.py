@@ -3,7 +3,6 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from typing import Any
 
 LOG_BASE_DIR = os.path.join("data", "saves")
 MAX_LOG_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB

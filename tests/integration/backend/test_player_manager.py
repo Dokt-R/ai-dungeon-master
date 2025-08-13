@@ -1,7 +1,7 @@
 import pytest
 from sqlmodel import select
 from packages.shared.error_handler import ValidationError, NotFoundError
-from packages.shared.models import Campaign, Player, Character, CampaignPlayerLink
+from packages.shared.models import Campaign, Player, CampaignPlayerLink
 
 
 class BaseTestData:

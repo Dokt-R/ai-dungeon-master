@@ -1,7 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from packages.bot.cogs.character_cog import CharacterCog
-from packages.shared.error_handler import ValidationError, NotFoundError
 
 
 @pytest.fixture

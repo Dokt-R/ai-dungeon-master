@@ -1,6 +1,5 @@
 import os
 import tempfile
-import asyncio
 import pytest
 from packages.backend.components.message_processor import MessageProcessor
 

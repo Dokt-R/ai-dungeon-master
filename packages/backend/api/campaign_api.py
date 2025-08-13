@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.shared.models import (
-    Campaign,
     CampaignCreateRequest,
     CampaignDeleteRequest,
     CampaignStateRequest,

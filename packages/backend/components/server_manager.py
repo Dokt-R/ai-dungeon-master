@@ -4,7 +4,7 @@ from typing import Optional
 from cryptography.fernet import Fernet
 from pydantic import SecretStr
 from dotenv import load_dotenv
-from sqlmodel import Session, select
+from sqlmodel import Session
 from fastapi import Depends
 
 from packages.shared.db import get_session
