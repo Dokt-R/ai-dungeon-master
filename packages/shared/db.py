@@ -1,7 +1,10 @@
 import os
-from sqlmodel import SQLModel, Session, create_engine
-from packages.shared.models import *  # Import all models
 
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
+
+from packages.shared.models import *  # noqa: F403
 
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
 
@@ -10,27 +13,29 @@ def get_db_path():
     return DEFAULT_DB_PATH
 
 
-def get_engine(db_path=None):
+def get_async_engine(db_path=None):
     """
-    Creates and returns a SQLAlchemy Engine.
+    Creates and returns a SQLAlchemy AsyncEngine.
     For in-memory SQLite, uses a specific URI to ensure it's shared across threads.
     """
     path = db_path or get_db_path()
     if "mode=memory" in path:
-        # Use a specific connect_args setup for shared in-memory DB
-        return create_engine(
-            f"sqlite:///{path}", connect_args={"check_same_thread": False}
+        # For async, we use a specific connect_args setup for shared in-memory DB
+        return create_async_engine(
+            f"sqlite+aiosqlite:///{path}",
+            connect_args={"check_same_thread": False, "uri": True},
         )
-    return create_engine(f"sqlite:///{path}")
+    return create_async_engine(f"sqlite+aiosqlite:///{path}")
 
 
-def initialize_schema(engine):
+async def initialize_schema(engine):
     """
-    Initializes the database schema using SQLModel and a SQLAlchemy Engine.
+    Initializes the database schema using SQLModel and a SQLAlchemy AsyncEngine.
     """
-    SQLModel.metadata.create_all(engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
-    with Session(get_engine()) as session:
+async def get_async_session():
+    async with AsyncSession(get_async_engine()) as session:
         yield session

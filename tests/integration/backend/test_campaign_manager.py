@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 
 class BaseTestData:
     state = "active"
@@ -11,69 +13,76 @@ class BaseTestData:
 
 
 class TestCampaignManager(BaseTestData):
-    def test_create_and_get_campaign(self, managers, session):
-        campaign = managers.campaign.create_campaign(
+    async def test_create_and_get_campaign(self, managers, session):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
         assert campaign.campaign_name == self.campaign_name
 
-        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        retrieved = await managers.campaign.get_campaign(
+            self.server_id, self.campaign_name
+        )
         assert retrieved.campaign_id == campaign.campaign_id
 
-    def test_delete_campaign_by_owner(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_delete_campaign_by_owner(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.campaign.delete_campaign(
+        result = await managers.campaign.delete_campaign(
             self.server_id, self.campaign_name, self.owner_id, is_admin=False
         )
         assert result is True
-        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        retrieved = await managers.campaign.get_campaign(
+            self.server_id, self.campaign_name
+        )
         assert retrieved is None
 
-    def test_delete_campaign_by_admin(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_delete_campaign_by_admin(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.campaign.delete_campaign(
+        result = await managers.campaign.delete_campaign(
             self.server_id, self.campaign_name, "not_the_owner", is_admin=True
         )
         assert result is True
-        retrieved = managers.campaign.get_campaign(self.server_id, self.campaign_name)
+        retrieved = await managers.campaign.get_campaign(
+            self.server_id, self.campaign_name
+        )
         assert retrieved is None
 
-    def test_delete_campaign_permission_denied(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_delete_campaign_permission_denied(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
         with pytest.raises(PermissionError):
-            managers.campaign.delete_campaign(
+            await managers.campaign.delete_campaign(
                 self.server_id,
                 self.campaign_name,
                 "not_the_owner",
                 is_admin=False,
             )
 
-    def test_get_campaign_players(self, managers, session, insert_player):
-        campaign = managers.campaign.create_campaign(
+    async def test_get_campaign_players(self, managers, session, insert_player):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
-        managers.player.join_campaign(
+        campaign_id = campaign.campaign_id
+        await insert_player(self.player_id)
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             character_name="test_char",
         )
-        players = managers.campaign.get_campaign_players(campaign.campaign_id)
+        players = await managers.campaign.get_campaign_players(campaign_id)
         assert len(players) == 1
         assert players[0].player_id == self.player_id
 
-    def test_update_campaign_state(self, managers, session):
-        campaign = managers.campaign.create_campaign(
+    async def test_update_campaign_state(self, managers, session):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        updated = managers.campaign.update_campaign_state(
+        updated = await managers.campaign.update_campaign_state(
             campaign.campaign_id, '{"progress": "halfway"}'
         )
         assert updated.state == '{"progress": "halfway"}'

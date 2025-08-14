@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from packages.backend.components.message_processor import MessageProcessor
 from packages.shared.transcript_logger import TranscriptLogger
 

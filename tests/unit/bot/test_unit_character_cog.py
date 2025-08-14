@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from packages.bot.cogs.character_cog import CharacterCog
 
 

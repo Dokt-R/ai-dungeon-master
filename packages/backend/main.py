@@ -1,16 +1,16 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from packages.shared.error_handler import ValidationError, NotFoundError, AIAPIError
-from pydantic import ValidationError as PydanticValidationError
+import logging
 from contextlib import asynccontextmanager
 
-from packages.backend.api.server_api import router as server_config_router
-from packages.backend.api.campaign_api import router as campaign_router
-from packages.backend.api.player_api import router as player_router
-from packages.backend.api.character_api import router as character_router
-from packages.shared.db import get_engine, initialize_schema
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError as PydanticValidationError
 
-import logging
+from packages.backend.api.campaign_api import router as campaign_router
+from packages.backend.api.character_api import router as character_router
+from packages.backend.api.player_api import router as player_router
+from packages.backend.api.server_api import router as server_config_router
+from packages.shared.db import get_async_engine, initialize_schema
+from packages.shared.error_handler import AIAPIError, NotFoundError, ValidationError
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -21,11 +21,12 @@ logging.basicConfig(
 async def lifespan(app: FastAPI):
     # On startup
     print("Initializing database...")
-    engine = get_engine()
-    initialize_schema(engine)
+    engine = get_async_engine()
+    await initialize_schema(engine)
     print("Database initialized.")
     yield
     # On shutdown
+    await engine.dispose()
     print("Application shutdown.")
 
 

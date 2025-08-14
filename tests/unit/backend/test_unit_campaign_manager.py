@@ -1,14 +1,26 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, create_autospec
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from packages.backend.components.campaign_manager import CampaignManager
+from packages.shared.error_handler import NotFoundError, ValidationError
 from packages.shared.models import Campaign, Player
-from packages.shared.error_handler import ValidationError, NotFoundError
 
 
 @pytest.fixture
 def mock_session():
-    return create_autospec(Session)
+    session = AsyncMock(spec=AsyncSession)
+
+    # Create a fake result object
+    fake_result = MagicMock()
+    fake_result.scalars.return_value.first.return_value = (
+        None  # or a fake Campaign instance
+    )
+
+    # Make execute() coroutine return the fake result
+    session.execute.return_value = fake_result
+    return session
 
 
 @pytest.fixture
@@ -24,15 +36,16 @@ class BaseTestData:
     campaign_id = 1
 
 
+@pytest.mark.asyncio
 class TestCampaignManager(BaseTestData):
-    def test_create_campaign(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_create_campaign(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
-        mock_session.exec.return_value.first.return_value = None
+        mock_session.execute.return_value.scalars.return_value.first.return_value = None
 
         # Act
-        campaign = campaign_manager.create_campaign(
+        campaign = await campaign_manager.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
 
@@ -44,25 +57,27 @@ class TestCampaignManager(BaseTestData):
         mock_session.commit.assert_called_once()
         mock_session.refresh.assert_called_once()
 
-    def test_create_campaign_already_exists(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_create_campaign_already_exists(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
-        mock_session.exec.return_value.first.return_value = Campaign(
-            campaign_id=self.campaign_id,
-            server_id=self.server_id,
-            campaign_name=self.campaign_name,
-            owner_id=self.owner_id,
+        mock_session.execute.return_value.scalars.return_value.first.return_value = (
+            Campaign(
+                campaign_id=self.campaign_id,
+                server_id=self.server_id,
+                campaign_name=self.campaign_name,
+                owner_id=self.owner_id,
+            )
         )
 
         # Act & Assert
         with pytest.raises(ValidationError):
-            campaign_manager.create_campaign(
+            await campaign_manager.create_campaign(
                 self.server_id, self.campaign_name, self.owner_id
             )
 
-    def test_get_campaign(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_get_campaign(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         expected_campaign = Campaign(
@@ -71,16 +86,20 @@ class TestCampaignManager(BaseTestData):
             campaign_name=self.campaign_name,
             owner_id=self.owner_id,
         )
-        mock_session.exec.return_value.first.return_value = expected_campaign
+        mock_session.execute.return_value.scalars.return_value.first.return_value = (
+            expected_campaign
+        )
 
         # Act
-        retrieved = campaign_manager.get_campaign(self.server_id, self.campaign_name)
+        retrieved = await campaign_manager.get_campaign(
+            self.server_id, self.campaign_name
+        )
 
         # Assert
         assert retrieved == expected_campaign
 
-    def test_delete_campaign_by_owner(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_delete_campaign_by_owner(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         campaign_to_delete = Campaign(
@@ -89,10 +108,12 @@ class TestCampaignManager(BaseTestData):
             campaign_name=self.campaign_name,
             owner_id=self.owner_id,
         )
-        mock_session.exec.return_value.first.return_value = campaign_to_delete
+        mock_session.execute.return_value.scalars.return_value.first.return_value = (
+            campaign_to_delete
+        )
 
         # Act
-        result = campaign_manager.delete_campaign(
+        result = await campaign_manager.delete_campaign(
             self.server_id, self.campaign_name, self.owner_id, is_admin=False
         )
 
@@ -101,8 +122,8 @@ class TestCampaignManager(BaseTestData):
         mock_session.delete.assert_called_once_with(campaign_to_delete)
         mock_session.commit.assert_called_once()
 
-    def test_delete_campaign_by_admin(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_delete_campaign_by_admin(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         campaign_to_delete = Campaign(
@@ -111,10 +132,12 @@ class TestCampaignManager(BaseTestData):
             campaign_name=self.campaign_name,
             owner_id=self.owner_id,
         )
-        mock_session.exec.return_value.first.return_value = campaign_to_delete
+        mock_session.execute.return_value.scalars.return_value.first.return_value = (
+            campaign_to_delete
+        )
 
         # Act
-        result = campaign_manager.delete_campaign(
+        result = await campaign_manager.delete_campaign(
             self.server_id, self.campaign_name, "not_the_owner", is_admin=True
         )
 
@@ -123,8 +146,8 @@ class TestCampaignManager(BaseTestData):
         mock_session.delete.assert_called_once_with(campaign_to_delete)
         mock_session.commit.assert_called_once()
 
-    def test_delete_campaign_permission_denied(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_delete_campaign_permission_denied(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         campaign_to_delete = Campaign(
@@ -133,28 +156,30 @@ class TestCampaignManager(BaseTestData):
             campaign_name=self.campaign_name,
             owner_id=self.owner_id,
         )
-        mock_session.exec.return_value.first.return_value = campaign_to_delete
+        mock_session.execute.return_value.scalars.return_value.first.return_value = (
+            campaign_to_delete
+        )
 
         # Act & Assert
         with pytest.raises(PermissionError):
-            campaign_manager.delete_campaign(
+            await campaign_manager.delete_campaign(
                 self.server_id, self.campaign_name, "not_the_owner", is_admin=False
             )
 
-    def test_delete_campaign_not_found(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_delete_campaign_not_found(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
-        mock_session.exec.return_value.first.return_value = None
+        mock_session.execute.return_value.scalars.return_value.first.return_value = None
 
         # Act & Assert
         with pytest.raises(NotFoundError):
-            campaign_manager.delete_campaign(
+            await campaign_manager.delete_campaign(
                 self.server_id, "nonexistent", self.owner_id, is_admin=False
             )
 
-    def test_get_campaign_players(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_get_campaign_players(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id, username="test_user")
@@ -168,25 +193,25 @@ class TestCampaignManager(BaseTestData):
         mock_session.get.return_value = mock_campaign
 
         # Act
-        players = campaign_manager.get_campaign_players(self.campaign_id)
+        players = await campaign_manager.get_campaign_players(self.campaign_id)
 
         # Assert
         assert len(players) == 1
         assert players[0].player_id == self.player_id
         mock_session.get.assert_called_once_with(Campaign, self.campaign_id)
 
-    def test_get_campaign_players_not_found(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_get_campaign_players_not_found(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_session.get.return_value = None
 
         # Act & Assert
         with pytest.raises(NotFoundError):
-            campaign_manager.get_campaign_players(999)
+            await campaign_manager.get_campaign_players(999)
 
-    def test_update_campaign_state(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_update_campaign_state(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         new_state = '{"progress": "halfway"}'
@@ -199,7 +224,9 @@ class TestCampaignManager(BaseTestData):
         mock_session.get.return_value = mock_campaign
 
         # Act
-        updated = campaign_manager.update_campaign_state(self.campaign_id, new_state)
+        updated = await campaign_manager.update_campaign_state(
+            self.campaign_id, new_state
+        )
 
         # Assert
         assert updated.state == new_state
@@ -208,12 +235,12 @@ class TestCampaignManager(BaseTestData):
         mock_session.commit.assert_called_once()
         mock_session.refresh.assert_called_once_with(mock_campaign)
 
-    def test_update_campaign_state_not_found(
-        self, campaign_manager: CampaignManager, mock_session: MagicMock
+    async def test_update_campaign_state_not_found(
+        self, campaign_manager: CampaignManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_session.get.return_value = None
 
         # Act & Assert
         with pytest.raises(NotFoundError):
-            campaign_manager.update_campaign_state(999, "new_state")
+            await campaign_manager.update_campaign_state(999, "new_state")

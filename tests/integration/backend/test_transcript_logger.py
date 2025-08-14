@@ -1,15 +1,18 @@
-import os
 import json
+import os
 import shutil
 import tempfile
+
 import pytest
 
 from packages.shared.transcript_logger import TranscriptLogger
 
-pytestmark = pytest.mark.skip(reason="Takes too long. Not testing unless necessary")
+pytestmark = [
+    pytest.mark.asyncio,
+    pytest.mark.skip(reason="Takes too long. Not testing unless necessary"),
+]
 
 
-@pytest.mark.asyncio
 async def test_log_message_creates_log_file_and_appends_entry():
     temp_dir = tempfile.mkdtemp()
     logger = TranscriptLogger()
@@ -38,7 +41,6 @@ async def test_log_message_creates_log_file_and_appends_entry():
         shutil.rmtree(temp_dir)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "campaign_id,should_create",
     [
@@ -81,7 +83,6 @@ async def test_log_message_campaign_id_edge_cases(tmp_path, campaign_id, should_
         logger.__class__.__dict__["__init__"].__globals__["LOG_BASE_DIR"] = orig_base
 
 
-@pytest.mark.asyncio
 async def test_log_message_handles_invalid_campaign_id():
     logger = TranscriptLogger()
     # Patch LOG_BASE_DIR to a temp dir
@@ -104,7 +105,6 @@ async def test_log_message_handles_invalid_campaign_id():
         shutil.rmtree(temp_dir)
 
 
-@pytest.mark.asyncio
 async def test_log_rotation_and_size_limit():
     temp_dir = tempfile.mkdtemp()
     logger = TranscriptLogger()
@@ -127,8 +127,8 @@ async def test_log_rotation_and_size_limit():
         rotated1 = f"{log_path}.1"
         assert os.path.exists(rotated1), "transcript.log.1 should exist"
         # If more than 2 rotations, .2 and .3 may exist, but .4+ should not
-        rotated2 = f"{log_path}.2"
-        rotated3 = f"{log_path}.3"
+        f"{log_path}.2"
+        f"{log_path}.3"
         rotated4 = f"{log_path}.4"
         assert not os.path.exists(rotated4), (
             "No more than 3 rotated logs should be kept"

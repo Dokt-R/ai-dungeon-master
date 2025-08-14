@@ -1,15 +1,10 @@
-import pytest
-
-# import pytest_asyncio
-# import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-# import discord
+import pytest
 from discord.ext import commands
 
-# Import the functions and variables from main.py
-from packages.bot.main import load_cogs, bot
+from packages.bot.main import bot, load_cogs
 
 
 @pytest.mark.asyncio
@@ -105,10 +100,10 @@ async def test_load_cogs_success():
 
         # Check that load_extension was called for each cog
         expected_cogs = [
-            "cogs.utility_cog",
-            "cogs.admin_cog",
-            "cogs.campaign_cog",
-            "cogs.character_cog",
+            "packages.bot.cogs.utility_cog",
+            "packages.bot.cogs.admin_cog",
+            "packages.bot.cogs.campaign_cog",
+            "packages.bot.cogs.character_cog",
         ]
 
         assert mock_load.call_count == 4
@@ -153,7 +148,7 @@ def test_environment_variable_loading():
     # Check that load_dotenv was called (indirectly by checking if os.getenv works)
     # This test assumes that the .env file or environment variables are set up
     # In a real test environment, you might want to mock this
-    token = os.getenv("DISCORD_BOT_TOKEN")
+    os.getenv("DISCORD_BOT_TOKEN")
     # Token might be None in test environment, but the function should have been called
     assert (
         True

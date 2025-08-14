@@ -1,11 +1,13 @@
-import discord
-from discord.ext import commands
-import httpx
 import os
+
+import discord
+import httpx
+from discord.ext import commands
+
 from packages.shared.error_handler import (
     ValidationError,
     discord_error_handler,
-)  # noqa: F401
+)
 
 
 class AdminCog(commands.Cog):
@@ -37,7 +39,7 @@ class AdminCog(commands.Cog):
             except httpx.HTTPStatusError as e:
                 data = await e.response.json()
                 print(
-                    f"Error creating player for {username} ({player_id}): {data.get('detail', e.response.text)}"
+                    f"Error creating player for {username} ({player_id}): {data.get('detail', 'Invalid request')}"
                 )
 
     @discord.app_commands.command(
@@ -88,7 +90,9 @@ class AdminCog(commands.Cog):
                     "API key securely stored for this server.", ephemeral=True
                 )
             else:
-                raise ValidationError(f"Failed to store API key: {response.text}")
+                raise ValidationError(
+                    "Failed to store API key due to an invalid request."
+                )
 
 
 async def setup(bot):

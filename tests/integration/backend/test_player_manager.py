@@ -1,7 +1,10 @@
 import pytest
 from sqlmodel import select
-from packages.shared.error_handler import ValidationError, NotFoundError
-from packages.shared.models import Campaign, Player, CampaignPlayerLink
+
+from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.models import Campaign, CampaignPlayerLink, Player
+
+pytestmark = pytest.mark.asyncio
 
 
 class BaseTestData:
@@ -18,11 +21,11 @@ class BaseTestData:
 
 
 class TestJoinCampaign(BaseTestData):
-    def test_join_campaign_normal(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_join_campaign_normal(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             username=self.username,
@@ -30,8 +33,8 @@ class TestJoinCampaign(BaseTestData):
             character_name=self.character_name,
         )
 
-        player = session.get(Player, result.player_id)
-        campaign = session.get(Campaign, result.campaign_id)
+        player = await session.get(Player, result["player_id"])
+        campaign = await session.get(Campaign, result["campaign_id"])
 
         assert campaign.campaign_name == self.campaign_name
 
@@ -42,104 +45,110 @@ class TestJoinCampaign(BaseTestData):
         assert player.characters[0].name == self.character_name
         assert player.campaigns[0].campaign_name == self.campaign_name
 
-    def test_join_campaign_existing_player_and_character(
+    async def test_join_campaign_existing_player_and_character(
         self, managers, session, insert_player
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
-        character = managers.character.add_character(
+        await insert_player(self.player_id)
+        character = await managers.character.add_character(
             self.player_id, self.character_name, self.url
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             character_name=self.character_name,
         )
 
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
 
         assert player.characters[0].character_id == character.character_id
         assert player.player_id == self.player_id
         assert player.player_status == "joined"
 
-    def test_join_campaign_one_character_null_input(
+    async def test_join_campaign_one_character_null_input(
         self, managers, session, insert_player
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
-        managers.character.add_character(self.player_id, self.character_name, self.url)
-        result = managers.player.join_campaign(
+        await insert_player(self.player_id)
+        await managers.character.add_character(
+            self.player_id, self.character_name, self.url
+        )
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
         )
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
 
         assert player.characters[0].character_id is not None
         assert player.player_id == self.player_id
         assert player.player_status == "joined"
 
-    def test_join_campaign_two_characters(self, managers, session, insert_player):
-        managers.campaign.create_campaign(
+    async def test_join_campaign_two_characters(self, managers, session, insert_player):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
-        managers.character.add_character(self.player_id, self.character_name, self.url)
-        joined_character = managers.character.add_character(
+        await insert_player(self.player_id)
+        await managers.character.add_character(
+            self.player_id, self.character_name, self.url
+        )
+        joined_character = await managers.character.add_character(
             self.player_id, self.character_name2, self.url2
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             character_name=self.character_name2,
         )
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
 
         assert player.characters[1].character_id == joined_character.character_id
 
-    def test_join_campaign_two_characters_no_name(
+    async def test_join_campaign_two_characters_no_name(
         self, managers, session, insert_player
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
-        managers.character.add_character(self.player_id, self.character_name, self.url)
-        managers.character.add_character(
+        await insert_player(self.player_id)
+        await managers.character.add_character(
+            self.player_id, self.character_name, self.url
+        )
+        await managers.character.add_character(
             self.player_id, self.character_name2, self.url2
         )
         with pytest.raises(ValidationError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
             )
 
-    def test_join_campaign_no_character_null_input(
+    async def test_join_campaign_no_character_null_input(
         self, managers, session, insert_player
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id)
+        await insert_player(self.player_id)
         with pytest.raises(NotFoundError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
             )
 
-    def test_join_campaign_no_campaign_specified_and_no_last_active(
+    async def test_join_campaign_no_campaign_specified_and_no_last_active(
         self, managers, session
     ):
         with pytest.raises(NotFoundError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=None,
@@ -147,9 +156,9 @@ class TestJoinCampaign(BaseTestData):
                 character_name=self.character_name,
             )
 
-    def test_join_campaign_campaign_not_found(self, managers, session):
+    async def test_join_campaign_campaign_not_found(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name="Nonexistent",
@@ -157,11 +166,11 @@ class TestJoinCampaign(BaseTestData):
                 character_name=self.character_name,
             )
 
-    def test_join_campaign_already_joined(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_join_campaign_already_joined(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.player.join_campaign(
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
@@ -169,18 +178,20 @@ class TestJoinCampaign(BaseTestData):
             character_name=self.character_name,
         )
         with pytest.raises(ValidationError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
                 username=self.username,
             )
 
-    def test_join_campaign_creates_character_if_not_exists(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_join_campaign_creates_character_if_not_exists(
+        self, managers, session
+    ):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
@@ -189,63 +200,67 @@ class TestJoinCampaign(BaseTestData):
             character_url=self.url,
         )
 
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
 
         assert player.characters is not None
         assert player.characters[0].character_url == self.url
 
-    def test_join_campaign_with_last_active_campaign(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_join_campaign_with_last_active_campaign(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.campaign.create_campaign(self.server_id, "Side Quest", self.owner_id)
-        managers.player.join_campaign(
+        await managers.campaign.create_campaign(
+            self.server_id, "Side Quest", self.owner_id
+        )
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        managers.player.end_campaign(
+        await managers.player.end_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
         )
-        managers.player.join_campaign(
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name="Side Quest",
             username=self.username,
         )
-        managers.player.end_campaign(
+        await managers.player.end_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name="Side Quest",
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             username=self.username,
         )
 
-        campaign = session.get(Campaign, result.campaign_id)
+        campaign = await session.get(Campaign, result["campaign_id"])
 
         assert campaign.campaign_name == "Side Quest"
         # Expects to raise error as player already joined the campaign
         with pytest.raises(ValidationError):
-            managers.player.join_campaign(
+            await managers.player.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=None,
                 username=self.username,
             )
 
-    def test_join_different_campaign_with_without_end(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_join_different_campaign_with_without_end(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.campaign.create_campaign(self.server_id, "Side Quest", self.owner_id)
-        managers.player.join_campaign(
+        await managers.campaign.create_campaign(
+            self.server_id, "Side Quest", self.owner_id
+        )
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
@@ -253,15 +268,15 @@ class TestJoinCampaign(BaseTestData):
             character_name=self.character_name,
         )
         # Join a different campaign without initiating /campaign end command
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name="Side Quest",
             username=self.username,
         )
 
-        campaign = session.get(Campaign, result.campaign_id)
-        player = session.get(Player, result.player_id)
+        campaign = await session.get(Campaign, result["campaign_id"])
+        player = await session.get(Player, result["player_id"])
 
         assert campaign.campaign_name == "Side Quest"
         assert player.last_active_campaign == "Side Quest"
@@ -269,170 +284,184 @@ class TestJoinCampaign(BaseTestData):
 
 
 class TestEndCampaign(BaseTestData):
-    def test_end_campaign_normal(self, managers, session):
-        campaign = managers.campaign.create_campaign(
+    async def test_end_campaign_normal(self, managers, session):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.player.join_campaign(
+        campaign_name = campaign.campaign_name
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        managers.player.end_campaign(
+        await managers.player.end_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
         )
+        assert campaign_name == self.campaign_name
+        assert result["player_id"] == self.player_id
 
-        assert campaign.campaign_name == self.campaign_name
-        assert result.player_id == self.player_id
-
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
         assert player.player_status == "cmd"
 
-        link = session.exec(
+        link = await session.execute(
             select(CampaignPlayerLink)
             .where(CampaignPlayerLink.player_id == self.player_id)
             .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
-        ).first()
+        )
 
         assert link is not None
 
-    def test_end_campaign_no_campaign_specified_uses_last_active(
+    async def test_end_campaign_no_campaign_specified_uses_last_active(
         self, managers, session
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        result = managers.player.join_campaign(
+        result = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        managers.player.end_campaign(
+        await managers.player.end_campaign(
             player_id=self.player_id, server_id=self.server_id, campaign_name=None
         )
 
-        campaign = session.get(Campaign, result.campaign_id)
-        player = session.get(Player, result.player_id)
+        player = await session.get(Player, result["player_id"])
 
-        assert result.player_id == self.player_id
-        assert campaign.campaign_name == self.campaign_name
+        assert result["player_id"] == self.player_id
+        assert player.last_active_campaign == self.campaign_name
         assert player.player_status == "cmd"
 
-    def test_end_campaign_campaign_not_found(self, managers, session):
+    async def test_end_campaign_campaign_not_found(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.end_campaign(
+            await managers.player.end_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name="Nonexistent",
             )
 
-    def test_end_campaign_no_last_active(self, managers, session, insert_player):
+    async def test_end_campaign_no_last_active(self, managers, session, insert_player):
+        await insert_player(self.player_id, self.username)
         with pytest.raises(ValidationError):
-            insert_player(self.player_id, self.username)
-            managers.player.end_campaign(
+            await managers.player.end_campaign(
                 player_id=self.player_id, server_id=self.server_id, campaign_name=None
             )
 
-    def test_end_campaign_player_never_joined(self, managers, session, insert_player):
-        campaign = managers.campaign.create_campaign(
+    async def test_end_campaign_player_never_joined(
+        self, managers, session, insert_player
+    ):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        insert_player(self.player_id, self.username)
+        await insert_player(self.player_id, self.username)
         with pytest.raises(ValidationError):
-            managers.player.end_campaign(
+            await managers.player.end_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
             )
 
-        link = session.exec(
-            select(CampaignPlayerLink)
-            .where(CampaignPlayerLink.player_id == self.player_id)
-            .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
-        ).first()
+        link = (
+            (
+                await session.execute(
+                    select(CampaignPlayerLink)
+                    .where(CampaignPlayerLink.player_id == self.player_id)
+                    .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
+                )
+            )
+            .scalars()
+            .first()
+        )
         assert link is None
 
 
 class TestRemoveCampaign(BaseTestData):
-    def test_remove_campaign_normal(self, managers, session):
-        campaign = managers.campaign.create_campaign(
+    async def test_remove_campaign_normal(self, managers, session):
+        campaign = await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        data = managers.player.join_campaign(
+        campaign_id = campaign.campaign_id
+        data = await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        result = managers.player.remove_campaign(
+        result = await managers.player.remove_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
         )
 
-        assert result is True
+        assert result["status"] == "left"
 
-        link = session.exec(
-            select(CampaignPlayerLink).where(
-                CampaignPlayerLink.player_id == self.player_id,
-                CampaignPlayerLink.campaign_id == campaign.campaign_id,
+        link = (
+            (
+                await session.execute(
+                    select(CampaignPlayerLink).where(
+                        CampaignPlayerLink.player_id == self.player_id,
+                        CampaignPlayerLink.campaign_id == campaign_id,
+                    )
+                )
             )
-        ).first()
+            .scalars()
+            .first()
+        )
         assert link is None
 
-        player = session.get(Player, data.player_id)
+        player = await session.get(Player, data["player_id"])
         assert player is not None
         assert player.last_active_campaign is None
 
-        campaign = session.get(Campaign, data.campaign_id)
+        campaign = await session.get(Campaign, data["campaign_id"])
         assert campaign is not None
         assert all(p.player_id != player.player_id for p in campaign.players)
 
-    def test_remove_campaign_no_campaign_specified_uses_last_active(
+    async def test_remove_campaign_no_campaign_specified_uses_last_active(
         self, managers, session
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.player.join_campaign(
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        result = managers.player.remove_campaign(
+        result = await managers.player.remove_campaign(
             player_id=self.player_id, server_id=self.server_id, campaign_name=None
         )
-        assert result is True
+        assert result["status"] == "left"
 
-    def test_remove_campaign_campaign_not_found(self, managers, session):
+    async def test_remove_campaign_campaign_not_found(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.remove_campaign(
+            await managers.player.remove_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name="Nonexistent",
             )
 
-    def test_remove_campaign_no_last_active(self, managers, session):
+    async def test_remove_campaign_no_last_active(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.remove_campaign(
+            await managers.player.remove_campaign(
                 player_id=self.player_id, server_id=self.server_id, campaign_name=None
             )
 
-    def test_remove_campaign_player_never_joined(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_remove_campaign_player_never_joined(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
         with pytest.raises(NotFoundError):
-            managers.player.remove_campaign(
+            await managers.player.remove_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
@@ -440,11 +469,11 @@ class TestRemoveCampaign(BaseTestData):
 
 
 class TestGetPlayerStatus(BaseTestData):
-    def test_get_player_status_normal(self, managers, session):
-        managers.campaign.create_campaign(
+    async def test_get_player_status_normal(self, managers, session):
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.player.join_campaign(
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
@@ -452,7 +481,7 @@ class TestGetPlayerStatus(BaseTestData):
             character_name=self.character_name,
             character_url=self.url,
         )
-        result = managers.player.get_player(self.player_id)
+        result = await managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert result["username"] == self.username
         assert result["last_active_campaign"] == self.campaign_name
@@ -463,48 +492,50 @@ class TestGetPlayerStatus(BaseTestData):
         assert result["characters"][0].name == self.character_name
         assert result["characters"][0].character_url == self.url
 
-    def test_get_player_status_no_campaigns_or_characters(
+    async def test_get_player_status_no_campaigns_or_characters(
         self, managers, session, insert_player
     ):
-        insert_player(self.player_id, self.username)
-        result = managers.player.get_player(self.player_id)
+        await insert_player(self.player_id, self.username)
+        result = await managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert result["username"] == self.username
         assert result["last_active_campaign"] is None
         assert result["campaigns"] == []
         assert result["characters"] == []
 
-    def test_get_player_status_not_found(self, managers, session):
+    async def test_get_player_status_not_found(self, managers, session):
         with pytest.raises(NotFoundError):
-            managers.player.get_player("nonexistent")
+            await managers.player.get_player("nonexistent")
 
-    def test_get_player_status_multiple_campaigns_and_characters(
+    async def test_get_player_status_multiple_campaigns_and_characters(
         self, managers, session
     ):
-        managers.campaign.create_campaign(
+        await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        managers.campaign.create_campaign(self.server_id, "Side Quest", self.owner_id)
-        managers.player.join_campaign(
+        await managers.campaign.create_campaign(
+            self.server_id, "Side Quest", self.owner_id
+        )
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
             username=self.username,
             character_name=self.character_name,
         )
-        managers.player.end_campaign(
+        await managers.player.end_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
         )
-        managers.player.join_campaign(
+        await managers.player.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name="Side Quest",
             username=self.username,
             character_name="Sir Test 2",
         )
-        result = managers.player.get_player(self.player_id)
+        result = await managers.player.get_player(self.player_id)
         assert result["player_id"] == self.player_id
         assert len(result["campaigns"]) == 2
         campaign_names = {c.campaign_name for c in result["campaigns"]}

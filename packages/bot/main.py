@@ -1,12 +1,15 @@
+import logging
+import os
+
 import discord
 from discord.ext import commands
-import os
 from dotenv import load_dotenv
 
-import logging
-
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="bot.log",
+    filemode="a",
 )
 
 
@@ -32,12 +35,12 @@ async def on_ready():
 
 
 async def load_cogs():
-    await bot.load_extension("cogs.utility_cog")
-    await bot.load_extension("cogs.admin_cog")
-    await bot.load_extension("cogs.campaign_cog")
-    await bot.load_extension("cogs.character_cog")
+    await bot.load_extension("packages.bot.cogs.utility_cog")
+    await bot.load_extension("packages.bot.cogs.admin_cog")
+    await bot.load_extension("packages.bot.cogs.campaign_cog")
+    await bot.load_extension("packages.bot.cogs.character_cog")
     # Load test cog for error handler validation
-    from cogs.utility_cog import setup_error_test
+    from packages.bot.cogs.utility_cog import setup_error_test
 
     await setup_error_test(bot)
 

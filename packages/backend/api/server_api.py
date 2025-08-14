@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Path, Depends
-from packages.shared.models import ServerConfigModel, Server
+from fastapi import APIRouter, Depends, Path
+
+from packages.backend.components.server_manager import ServerSettingsManager
 from packages.shared.error_handler import (
+    NotFoundError,
     ValidationError,
 )
-from packages.backend.components.server_manager import ServerSettingsManager
+from packages.shared.models import Server, ServerConfigModel
 
 router = APIRouter()
 
@@ -11,7 +13,7 @@ router = APIRouter()
 @router.put(
     "/servers/{server_id}/config", summary="Create or Update Server Configuration"
 )
-def set_server_config(
+async def set_server_config(
     server_id: str = Path(..., description="The Discord server ID"),
     config: ServerConfigModel = ...,
     settings_manager: ServerSettingsManager = Depends(),
@@ -34,5 +36,12 @@ def set_server_config(
         character_sheet_mode=config.character_sheet_mode,
     )
 
-    settings_manager.store_server_config(server_config_db)
-    return {"message": "Server configuration updated successfully."}
+    try:
+        settings_manager.store_server_config(server_config_db)
+        return {"message": "Server configuration updated successfully."}
+    except NotFoundError as e:
+        raise e
+    except Exception as e:
+        raise ValidationError(
+            "An unexpected error occurred", "INTERNAL_SERVER_ERROR", e
+        ) from e

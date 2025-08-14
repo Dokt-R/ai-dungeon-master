@@ -1,9 +1,10 @@
 from typing import Optional
 
-from sqlmodel import Session, select
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
-from packages.shared.db import get_session
+from packages.shared.db import get_async_session
 from packages.shared.error_handler import NotFoundError, ValidationError
 from packages.shared.models import Campaign, CampaignPlayerLink, Character, Player
 
@@ -13,17 +14,17 @@ class PlayerManager:
     Manages player participation, campaign membership, and character associations.
     """
 
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session)):
         """
         Initialize the PlayerManager with a database session.
         """
         self.session = session
 
-    def create_player(self, player_id: str, username: str) -> dict:
+    async def create_player(self, player_id: str, username: str) -> dict:
         """
         Create a new player or update the username if the player already exists.
         """
-        player = self.session.get(Player, player_id)
+        player = await self.session.get(Player, player_id)
         if player:
             if player.username != username:
                 player.username = username
@@ -31,11 +32,11 @@ class PlayerManager:
         else:
             player = Player(player_id=player_id, username=username)
             self.session.add(player)
-        self.session.commit()
-        self.session.refresh(player)
+        await self.session.commit()
+        await self.session.refresh(player)
         return {"player_id": player.player_id, "username": player.username}
 
-    def join_campaign(
+    async def join_campaign(
         self,
         player_id: str,
         server_id: str,
@@ -47,7 +48,7 @@ class PlayerManager:
         """
         Join a campaign as a player, optionally associating a character.
         """
-        player = self.session.get(Player, player_id)
+        player = await self.session.get(Player, player_id)
         if not player:
             player = Player(player_id=player_id, username=username)
             self.session.add(player)
@@ -62,11 +63,12 @@ class PlayerManager:
         statement = select(Campaign).where(
             Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
         )
-        campaign = self.session.exec(statement).first()
+        result = await self.session.execute(statement)
+        campaign = result.scalars().first()
         if not campaign:
             raise NotFoundError(f"Campaign '{campaign_name}' not found.")
 
-        # Check if already joined, to
+        # Check if already joined
         statement = (
             select(CampaignPlayerLink)
             .join(Campaign)
@@ -74,8 +76,8 @@ class PlayerManager:
             .where(Campaign.server_id == server_id)
             .where(player.player_status == "joined")
         )
-
-        if self.session.exec(statement).first():
+        result = await self.session.execute(statement)
+        if result.scalars().first():
             if campaign_name == player.last_active_campaign:
                 raise ValidationError("""Player is already in a campaign.\n
                     Please user /campaign end to enter command mode\n
@@ -86,7 +88,8 @@ class PlayerManager:
             statement = select(Character).where(
                 Character.player_id == player_id, Character.name == character_name
             )
-            character = self.session.exec(statement).first()
+            result = await self.session.execute(statement)
+            character = result.scalars().first()
             if not character:
                 character = Character(
                     player_id=player_id,
@@ -96,7 +99,8 @@ class PlayerManager:
                 self.session.add(character)
         else:
             statement = select(Character).where(Character.player_id == player_id)
-            characters = self.session.exec(statement).all()
+            result = await self.session.execute(statement)
+            characters = result.scalars().all()
             if len(characters) > 1:
                 raise ValidationError(
                     "Player has multiple characters, please specify one."
@@ -112,27 +116,35 @@ class PlayerManager:
             player_status="joined",
         )
 
-        merge_link = self.session.merge(link)
+        merge_link = await self.session.merge(link)
         player.last_active_campaign = campaign.campaign_name
         player.player_status = "joined"
+        # Pre commit attributes to avoid SQLAlchemy lazy load
+        return_campaign_name = campaign.campaign_name
+        return_campaign_id = campaign.campaign_id
+        return_player_id = player.player_id
+        return_character_id = character.character_id
+        return_player_status = player.player_status
+        # Continue with the DB actions
         self.session.add(player)
-        self.session.commit()
-        self.session.refresh(merge_link)
+        await self.session.commit()
+        await self.session.refresh(merge_link)
         return {
-            "campaign_name": campaign.campaign_name,
-            "player_id": player.player_id,
-            "character_id": character.character_id,
-            "status": player.player_status,
+            "campaign_name": return_campaign_name,
+            "campaign_id": return_campaign_id,
+            "player_id": return_player_id,
+            "character_id": return_character_id,
+            "status": return_player_status,
         }
 
-    def remove_campaign(
+    async def remove_campaign(
         self, player_id: str, server_id: str, campaign_name: str
     ) -> dict:
         """
         Remove the campaign association for a given player.
         If the removed campaign is the player's last active campaign, clear it.
         """
-        player = self.session.get(Player, player_id)
+        player = await self.session.get(Player, player_id)
         if not player:
             raise NotFoundError(f"Player with id '{player_id}' not found.")
 
@@ -145,7 +157,8 @@ class PlayerManager:
         statement = select(Campaign).where(
             Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
         )
-        campaign = self.session.exec(statement).first()
+        result = await self.session.execute(statement)
+        campaign = result.scalars().first()
         if not campaign:
             raise NotFoundError(f"Campaign '{campaign_name}' not found.")
 
@@ -154,32 +167,33 @@ class PlayerManager:
             CampaignPlayerLink.player_id == player_id,
             CampaignPlayerLink.campaign_id == campaign.campaign_id,
         )
-        link = self.session.exec(link_stmt).first()
+        result = await self.session.execute(link_stmt)
+        link = result.scalars().first()
         if not link:
             raise NotFoundError("Player is not part of the specified campaign.")
 
         # Delete the link
-        self.session.delete(link)
+        await self.session.delete(link)
 
         # Clear last active campaign if it's the one being removed
         if player.last_active_campaign == campaign_name:
             player.last_active_campaign = None
             self.session.add(player)
 
-        self.session.commit()
+        await self.session.commit()
         return {
             "campaign_name": campaign_name,
             "player_id": player_id,
             "status": "left",
         }
 
-    def end_campaign(
+    async def end_campaign(
         self, player_id: str, server_id: str, campaign_name: Optional[str] = None
     ) -> dict:
         """
         End a campaign for a player by setting their status to 'cmd'.
         """
-        player = self.session.get(Player, player_id)
+        player = await self.session.get(Player, player_id)
         if not player:
             raise NotFoundError(f"Player with id '{player_id}' not found.")
 
@@ -193,50 +207,43 @@ class PlayerManager:
         statement = select(Campaign).where(
             Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
         )
-        campaign = self.session.exec(statement).first()
+        result = await self.session.execute(statement)
+        campaign = result.scalars().first()
 
         if not campaign:
             raise NotFoundError(f"Campaign '{campaign_name}' not found.")
 
+        statement = (
+            select(CampaignPlayerLink)
+            .where(CampaignPlayerLink.player_id == player_id)
+            .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
+        )
+        result = await self.session.execute(statement)
+        link = result.scalars().first()
+
+        if not link:
+            raise ValidationError(
+                f"Player '{player.username}' has not joined campaign '{campaign_name}'."
+            )
+
         if player.player_status == "cmd":
             raise ValidationError("Player is already in command mode")
 
-        statement = (
-            select(CampaignPlayerLink)
-            .where(CampaignPlayerLink.player_id == player_id)
-            .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
-        )
-        link = self.session.exec(statement).first()
-
-        if link:
-            player.player_status = "cmd"
-            self.session.add(link)
-            self.session.commit()
+        player.player_status = "cmd"
+        self.session.add(player)
+        await self.session.commit()
 
         return {
-            "campaign_name": campaign.campaign_name,
-            "player_id": player.player_id,
+            "campaign_name": campaign_name,
+            "player_id": player_id,
             "player_status": "cmd",
         }
 
-        statement = (
-            select(CampaignPlayerLink)
-            .where(CampaignPlayerLink.player_id == player_id)
-            .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
-        )
-        link = self.session.exec(statement).first()
-
-        if link:
-            self.session.delete(link)
-            self.session.commit()
-            return True
-        return False
-
-    def get_player(self, player_id: str) -> dict:
+    async def get_player(self, player_id: str) -> dict:
         """
         Retrieve a summary of the player's campaigns, characters, and current status.
         """
-        player = self.session.get(Player, player_id)
+        player = await self.session.get(Player, player_id)
         if not player:
             raise NotFoundError(f"Player with ID '{player_id}' not found.")
 

@@ -1,7 +1,9 @@
 import pytest
 
+pytestmark = pytest.mark.asyncio
 
-def test_set_server_config_success(client, monkeypatch):
+
+async def test_set_server_config_success(client, monkeypatch):
     # Patch the ServerSettingsManager to avoid actual DB/crypto
     def mock_store_server_config(server_api):
         assert server_api.server_id == "123"
@@ -17,7 +19,7 @@ def test_set_server_config_success(client, monkeypatch):
         "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
-    response = client.put("/servers/123/config", json=payload)
+    response = await client.put("/servers/123/config", json=payload)
     assert response.status_code == 200
     assert response.json()["message"] == "Server configuration updated successfully."
 
@@ -25,7 +27,7 @@ def test_set_server_config_success(client, monkeypatch):
 @pytest.mark.skip(
     reason="Manual test required as the Exception 500 code causes TestClient error"
 )
-def test_set_server_config_failure(client, monkeypatch):
+async def test_set_server_config_failure(client, monkeypatch):
     def mock_store_server_config(self, server_api):
         raise Exception("DB error")
 
@@ -39,7 +41,7 @@ def test_set_server_config_failure(client, monkeypatch):
         "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
-    response = client.put("/servers/123/config", json=payload)
+    response = await client.put("/servers/123/config", json=payload)
     assert response.status_code == 500
     assert response.json() == {
         "error": {
@@ -49,14 +51,14 @@ def test_set_server_config_failure(client, monkeypatch):
     }
 
 
-def test_set_server_config_validation_error(client):
+async def test_set_server_config_validation_error(client):
     payload = {
         "api_key": "",  # Invalid: empty API key
         "dm_roll_visibility": "public",
         "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
-    response = client.put("/servers/123/config", json=payload)
+    response = await client.put("/servers/123/config", json=payload)
     # Should now be 400 due to ValidationError
     assert response.status_code == 400
     assert "error" in response.json()
@@ -64,7 +66,7 @@ def test_set_server_config_validation_error(client):
     assert "API key is required" in response.json()["error"]["message"]
 
 
-def test_set_server_config_not_found(client, monkeypatch):
+async def test_set_server_config_not_found(client, monkeypatch):
     def mock_store_server_config(server_api):
         from packages.shared.error_handler import NotFoundError
 
@@ -80,7 +82,7 @@ def test_set_server_config_not_found(client, monkeypatch):
         "player_roll_mode": "auto",
         "character_sheet_mode": "digital_sheet",
     }
-    response = client.put("/servers/123/config", json=payload)
+    response = await client.put("/servers/123/config", json=payload)
     assert response.status_code == 404
     assert "error" in response.json()
     assert response.json()["error"]["code"] == "NOT_FOUND"

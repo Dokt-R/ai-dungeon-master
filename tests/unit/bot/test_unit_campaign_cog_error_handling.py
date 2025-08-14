@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from packages.bot.cogs import campaign_cog
+from packages.shared.error_handler import ValidationError
 
 
 @pytest.fixture
@@ -25,12 +28,9 @@ async def test_campaign_new_http_error(cog):
     campaign_name = "test_campaign"
 
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        await cog._handle_campaign_new(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "unexpected error"
-            in interaction.response.send_message.call_args[0][0].lower()
-        )
+        with pytest.raises(ValidationError) as excinfo:
+            await cog._handle_campaign_new(interaction, campaign_name)
+        assert "An unexpected error occurred" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -42,12 +42,9 @@ async def test_campaign_join_http_error(cog):
     campaign_name = "existing_campaign"
 
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        await cog._handle_campaign_join(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "failed to join campaign"
-            in interaction.response.send_message.call_args[0][0].lower()
-        )
+        with pytest.raises(ValidationError) as excinfo:
+            await cog._handle_campaign_join(interaction, campaign_name)
+        assert "An unexpected error occurred" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -59,12 +56,9 @@ async def test_campaign_continue_http_error(cog):
     interaction.response = AsyncMock()
 
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        await cog._handle_campaign_continue(interaction)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "failed to continue campaign"
-            in interaction.response.send_message.call_args[0][0].lower()
-        )
+        with pytest.raises(ValidationError) as excinfo:
+            await cog._handle_campaign_continue(interaction)
+        assert "An unexpected error occurred" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -76,12 +70,9 @@ async def test_campaign_end_http_error(cog):
     interaction.response = AsyncMock()
 
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        await cog._handle_campaign_end(interaction)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "failed to exit campaign"
-            in interaction.response.send_message.call_args[0][0].lower()
-        )
+        with pytest.raises(ValidationError) as excinfo:
+            await cog._handle_campaign_end(interaction)
+        assert "An unexpected error occurred" in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -92,12 +83,9 @@ async def test_campaign_info_http_error(cog):
     interaction.guild.id = "server123"
 
     with patch("httpx.AsyncClient.get", side_effect=Exception("Network error")):
-        await cog._handle_campaign_info(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert (
-            "unexpected error"
-            in interaction.response.send_message.call_args[0][0].lower()
-        )
+        with pytest.raises(ValidationError) as excinfo:
+            await cog._handle_campaign_info(interaction, campaign_name)
+        assert "An unexpected error occurred" in str(excinfo.value)
 
 
 @pytest.mark.asyncio

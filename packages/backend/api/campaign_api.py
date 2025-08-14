@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.shared.models import (
     CampaignCreateRequest,
@@ -9,11 +10,11 @@ from packages.shared.models import (
 router = APIRouter(prefix="/campaigns", tags=["campaigns"])
 
 
-@router.post("/new", summary="Create a new campaign")
-def create_campaign(
+@router.post("/create", summary="Create a new campaign")
+async def create_campaign(
     req: CampaignCreateRequest, campaign_manager: CampaignManager = Depends()
 ):
-    campaign = campaign_manager.create_campaign(
+    campaign = await campaign_manager.create_campaign(
         server_id=req.server_id,
         campaign_name=req.campaign_name,
         owner_id=req.owner_id,
@@ -25,10 +26,10 @@ def create_campaign(
 
 
 @router.delete("/delete", summary="Delete a campaign")
-def delete_campaign(
+async def delete_campaign(
     req: CampaignDeleteRequest, campaign_manager: CampaignManager = Depends()
 ):
-    campaign_manager.delete_campaign(
+    await campaign_manager.delete_campaign(
         server_id=req.server_id,
         campaign_name=req.campaign_name,
         requester_id=req.requester_id,
@@ -38,10 +39,10 @@ def delete_campaign(
 
 
 @router.get("/{campaign_id}/players", summary="List players in a campaign")
-def get_campaign_players(
+async def get_campaign_players(
     campaign_id: int, campaign_manager: CampaignManager = Depends()
 ):
-    players = campaign_manager.get_campaign_players(campaign_id)
+    players = await campaign_manager.get_campaign_players(campaign_id)
     return [
         {"player_id": player.player_id, "username": player.username}
         for player in players
@@ -49,10 +50,10 @@ def get_campaign_players(
 
 
 @router.get("/{server_id}/{campaign_name}", summary="Get campaign details")
-def get_campaign(
+async def get_campaign(
     server_id: str, campaign_name: str, campaign_manager: CampaignManager = Depends()
 ):
-    campaign = campaign_manager.get_campaign(server_id, campaign_name)
+    campaign = await campaign_manager.get_campaign(server_id, campaign_name)
     # Return a dictionary instead of the Campaign object to avoid serialization issues
     return {
         "campaign_id": campaign.campaign_id,
@@ -64,12 +65,12 @@ def get_campaign(
 
 
 @router.put("/{campaign_id}/state", summary="Update campaign state")
-def update_campaign_state(
+async def update_campaign_state(
     campaign_id: int,
     req: CampaignStateRequest,
     campaign_manager: CampaignManager = Depends(),
 ):
-    campaign = campaign_manager.update_campaign_state(campaign_id, req.state)
+    campaign = await campaign_manager.update_campaign_state(campaign_id, req.state)
     # Return a dictionary instead of the Campaign object to avoid serialization issues
     return {
         "campaign_id": campaign.campaign_id,

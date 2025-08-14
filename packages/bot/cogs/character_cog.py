@@ -1,13 +1,14 @@
+import os
+
 import discord
+import httpx
 from discord import app_commands
 from discord.ext import commands
-import os
-import httpx
 
 from packages.shared.error_handler import (
-    discord_error_handler,
-    ValidationError,
     NotFoundError,
+    ValidationError,
+    discord_error_handler,
 )
 
 
@@ -49,7 +50,7 @@ class CharacterCog(commands.Cog):
             else:
                 data = await response.json()
                 raise ValidationError(
-                    f"Failed to add character: {data.get('detail', response.text)}"
+                    f"Failed to add character: {data.get('detail', 'Invalid request')}"
                 )
 
     @character.command(name="update", description="Update an existing character.")
@@ -89,7 +90,7 @@ class CharacterCog(commands.Cog):
             else:
                 data = await response.json()
                 raise ValidationError(
-                    f"Failed to update character: {data.get('detail', response.text)}"
+                    f"Failed to update character: {data.get('detail', 'Invalid request')}"
                 )
 
     @character.command(
@@ -115,7 +116,7 @@ class CharacterCog(commands.Cog):
             else:
                 data = await response.json()
                 raise NotFoundError(
-                    f"Failed to remove character: {data.get('detail', response.text)}"
+                    f"Failed to remove character: {data.get('detail', 'Invalid request')}"
                 )
 
     @character.command(name="list", description="List all your characters.")
@@ -149,7 +150,7 @@ class CharacterCog(commands.Cog):
             else:
                 data = await response.json()
                 raise ValidationError(
-                    f"Failed to list characters: {data.get('detail', response.text)}"
+                    f"Failed to list characters: {data.get('detail', 'Invalid request')}"
                 )
 
     async def cog_load(self):

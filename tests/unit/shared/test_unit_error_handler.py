@@ -1,11 +1,13 @@
-import pytest
 import logging
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from packages.shared.error_handler import (
+    AIAPIError,
     CustomException,
     NotFoundError,
     ValidationError,
-    AIAPIError,
     discord_error_handler,
 )
 

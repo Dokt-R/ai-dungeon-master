@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
-from packages.shared.models import Player, Campaign, Character
+
+from packages.shared.models import Campaign, Character, Player
 
 # Optional: if you're using SQLModel for these, adjust imports accordingly
 
@@ -34,8 +35,8 @@ def make_discord_interaction(
     user_id=None, guild_id=None, is_admin=False, is_manage_guild=False, **overrides
 ):
     """Factory for Discord interaction objects (not persisted)."""
-    from unittest.mock import MagicMock
     import uuid
+    from unittest.mock import MagicMock
 
     interaction = MagicMock()
     interaction.user.id = user_id or str(uuid.uuid4())
@@ -56,8 +57,8 @@ def make_discord_interaction(
 
 def make_discord_cog(bot=None, **overrides):
     """Factory for Discord cog objects (not persisted)."""
-    from unittest.mock import MagicMock
     import uuid
+    from unittest.mock import MagicMock
 
     cog = MagicMock()
     cog.bot = bot or MagicMock()

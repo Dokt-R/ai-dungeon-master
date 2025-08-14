@@ -1,5 +1,7 @@
+from unittest.mock import call, patch
+
 import pytest
-from unittest.mock import patch, call
+
 from packages.shared.transcript_logger import TranscriptLogger
 
 

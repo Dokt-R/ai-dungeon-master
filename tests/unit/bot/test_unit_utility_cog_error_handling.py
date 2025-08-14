@@ -1,6 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from packages.bot.cogs.utility_cog import UtilityCog
+
+pytestmark = pytest.mark.asyncio
 
 
 class DummyInteraction:
@@ -10,7 +14,6 @@ class DummyInteraction:
         self.response.is_done = MagicMock(return_value=False)
 
 
-@pytest.mark.asyncio
 async def test_getting_started_generic_exception():
     """Test getting_started command when a generic exception occurs."""
     interaction = DummyInteraction()
@@ -27,7 +30,6 @@ async def test_getting_started_generic_exception():
         )
 
 
-@pytest.mark.asyncio
 async def test_cost_generic_exception():
     """Test cost command when a generic exception occurs."""
     interaction = DummyInteraction()
@@ -44,7 +46,6 @@ async def test_cost_generic_exception():
         )
 
 
-@pytest.mark.asyncio
 async def test_help_generic_exception():
     """Test help command when a generic exception occurs."""
     interaction = DummyInteraction()
@@ -61,7 +62,6 @@ async def test_help_generic_exception():
         )
 
 
-@pytest.mark.asyncio
 async def test_help_with_topic_generic_exception():
     """Test help command with topic when a generic exception occurs."""
     interaction = DummyInteraction()

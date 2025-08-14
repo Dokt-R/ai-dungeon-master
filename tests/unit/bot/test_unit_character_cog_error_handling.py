@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from packages.bot.cogs.character_cog import CharacterCog
 
 
@@ -105,7 +107,7 @@ async def test_character_add_command_http_error(cog):
         await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "failed to add character" in args[0].lower()
+        assert "an unexpected error occurred" in args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -125,7 +127,7 @@ async def test_character_update_command_http_error(cog):
         )
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "failed to update character" in args[0].lower()
+        assert "an unexpected error occurred" in args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -143,7 +145,7 @@ async def test_character_remove_command_http_error(cog):
         await cog.remove.callback(cog, interaction, character_id=1)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "failed to remove character" in args[0].lower()
+        assert "an unexpected error occurred" in args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -161,5 +163,5 @@ async def test_character_list_command_http_error(cog):
         await cog.list.callback(cog, interaction)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "failed to list characters" in args[0].lower()
+        assert "an unexpected error occurred" in args[0].lower()
         assert kwargs.get("ephemeral") is True

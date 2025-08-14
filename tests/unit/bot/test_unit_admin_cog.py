@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from packages.bot.cogs.admin_cog import AdminCog
 from tests.utils.factories import MockInteraction
 
@@ -93,8 +95,8 @@ class TestOnServerSetkey:
 
         with patch("httpx.AsyncClient.put", new=mock_put):
             await cog.server_setkey.callback(cog, interaction, "testkey")
-            interaction.response.send_message.assert_awaited_with(
-                "Failed to store API key: Internal Server Error", ephemeral=True
+            interaction.response.send_message.assert_called_with(
+                "Failed to store API key due to an invalid request.", ephemeral=True
             )
 
 

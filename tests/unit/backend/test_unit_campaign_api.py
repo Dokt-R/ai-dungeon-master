@@ -1,23 +1,27 @@
-import pytest
-from unittest.mock import MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock, MagicMock
 
-from packages.backend.main import app
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
 from packages.backend.components.campaign_manager import CampaignManager
+from packages.backend.main import app
 from packages.shared.models import Campaign
 
 
 # Mock the CampaignManager dependency
 @pytest.fixture
 def mock_campaign_manager():
-    return MagicMock(spec=CampaignManager)
+    return AsyncMock(spec=CampaignManager)
 
 
-@pytest.fixture
-def client(mock_campaign_manager: MagicMock):
+@pytest_asyncio.fixture
+async def client(mock_campaign_manager: AsyncMock):
     app.dependency_overrides[CampaignManager] = lambda: mock_campaign_manager
-    with TestClient(app) as client:
-        yield client
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
+        yield c
     app.dependency_overrides = {}
 
 
@@ -29,9 +33,10 @@ class BaseTestData:
     campaign_id = 123
 
 
+@pytest.mark.asyncio
 class TestCampaignAPI(BaseTestData):
-    def test_create_campaign(
-        self, client: TestClient, mock_campaign_manager: MagicMock
+    async def test_create_campaign(
+        self, client: AsyncClient, mock_campaign_manager: AsyncMock
     ):
         # Arrange
         mock_campaign = Campaign(
@@ -43,8 +48,8 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.create_campaign.return_value = mock_campaign
 
         # Act
-        response = client.post(
-            "/campaigns/new",
+        response = await client.post(
+            "/campaigns/create",
             json={
                 "server_id": self.server_id,
                 "campaign_name": self.campaign_name,
@@ -63,7 +68,9 @@ class TestCampaignAPI(BaseTestData):
             owner_id=self.owner_id,
         )
 
-    def test_get_campaign(self, client: TestClient, mock_campaign_manager: MagicMock):
+    async def test_get_campaign(
+        self, client: AsyncClient, mock_campaign_manager: AsyncMock
+    ):
         # Arrange
         # Create a mock Campaign object instead of a real one to avoid relationship issues
         mock_campaign = MagicMock()
@@ -75,7 +82,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.get_campaign.return_value = mock_campaign
 
         # Act
-        response = client.get(f"/campaigns/{self.server_id}/{self.campaign_name}")
+        response = await client.get(f"/campaigns/{self.server_id}/{self.campaign_name}")
 
         # Assert
         assert response.status_code == 200
@@ -85,14 +92,14 @@ class TestCampaignAPI(BaseTestData):
             self.server_id, self.campaign_name
         )
 
-    def test_delete_campaign(
-        self, client: TestClient, mock_campaign_manager: MagicMock
+    async def test_delete_campaign(
+        self, client: AsyncClient, mock_campaign_manager: AsyncMock
     ):
         # Arrange
         mock_campaign_manager.delete_campaign.return_value = None
 
         # Act
-        response = client.request(
+        response = await client.request(
             "DELETE",
             "/campaigns/delete",
             json={
@@ -113,8 +120,8 @@ class TestCampaignAPI(BaseTestData):
             is_admin=False,
         )
 
-    def test_get_campaign_players(
-        self, client: TestClient, mock_campaign_manager: MagicMock
+    async def test_get_campaign_players(
+        self, client: AsyncClient, mock_campaign_manager: AsyncMock
     ):
         # Arrange
         mock_player = MagicMock()
@@ -124,7 +131,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.get_campaign_players.return_value = mock_players
 
         # Act
-        response = client.get(f"/campaigns/{self.campaign_id}/players")
+        response = await client.get(f"/campaigns/{self.campaign_id}/players")
 
         # Assert
         assert response.status_code == 200
@@ -136,8 +143,8 @@ class TestCampaignAPI(BaseTestData):
             self.campaign_id
         )
 
-    def test_update_campaign_state(
-        self, client: TestClient, mock_campaign_manager: MagicMock
+    async def test_update_campaign_state(
+        self, client: AsyncClient, mock_campaign_manager: AsyncMock
     ):
         # Arrange
         new_state = "paused"
@@ -151,7 +158,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.update_campaign_state.return_value = mock_campaign
 
         # Act
-        response = client.put(
+        response = await client.put(
             f"/campaigns/{self.campaign_id}/state", json={"state": new_state}
         )
 

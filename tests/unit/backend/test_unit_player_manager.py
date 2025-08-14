@@ -1,14 +1,17 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, create_autospec
-from sqlmodel import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from packages.backend.components.player_manager import PlayerManager
-from packages.shared.models import Campaign, Player, Character, CampaignPlayerLink
-from packages.shared.error_handler import ValidationError, NotFoundError
+from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.models import Campaign, CampaignPlayerLink, Character, Player
 
 
 @pytest.fixture
 def mock_session():
-    return create_autospec(Session)
+    session = AsyncMock(spec=AsyncSession)
+    return session
 
 
 @pytest.fixture
@@ -28,9 +31,10 @@ class BaseTestData:
     character_id = 1
 
 
+@pytest.mark.asyncio
 class TestJoinCampaign(BaseTestData):
-    def test_join_campaign_normal(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_join_campaign_normal(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id, username=self.username)
@@ -46,17 +50,29 @@ class TestJoinCampaign(BaseTestData):
         )
 
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),  # find campaign
-            MagicMock(first=MagicMock(return_value=None)),  # check if joined
-            MagicMock(first=MagicMock(return_value=mock_character)),  # find character
+        mock_session.execute.side_effect = [
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),  # find campaign
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=None))
+                )
+            ),  # check if joined
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_character))
+                )
+            ),  # find character
         ]
         mock_session.merge.return_value = CampaignPlayerLink(
             campaign_id=self.campaign_id, player_id=self.player_id
         )
 
         # Act
-        result = player_manager.join_campaign(
+        result = await player_manager.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             username=self.username,
@@ -70,8 +86,8 @@ class TestJoinCampaign(BaseTestData):
         assert result["status"] == "joined"
         mock_session.commit.assert_called_once()
 
-    def test_join_campaign_no_character_one_exists(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_join_campaign_no_character_one_exists(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id, username=self.username)
@@ -87,14 +103,26 @@ class TestJoinCampaign(BaseTestData):
         )
 
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),  # find campaign
-            MagicMock(first=MagicMock(return_value=None)),  # check if joined
-            MagicMock(all=MagicMock(return_value=[mock_character])),  # find characters
+        mock_session.execute.side_effect = [
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),  # find campaign
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=None))
+                )
+            ),  # check if joined
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(all=MagicMock(return_value=[mock_character]))
+                )
+            ),  # find characters
         ]
 
         # Act
-        result = player_manager.join_campaign(
+        result = await player_manager.join_campaign(
             player_id=self.player_id,
             server_id=self.server_id,
             campaign_name=self.campaign_name,
@@ -104,8 +132,8 @@ class TestJoinCampaign(BaseTestData):
         assert result["character_id"] == self.character_id
         mock_session.commit.assert_called_once()
 
-    def test_join_campaign_no_character_multiple_exist(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_join_campaign_no_character_multiple_exist(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id, username=self.username)
@@ -115,24 +143,36 @@ class TestJoinCampaign(BaseTestData):
             campaign_name=self.campaign_name,
         )
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),  # find campaign
-            MagicMock(first=MagicMock(return_value=None)),  # check if joined
+        mock_session.execute.side_effect = [
             MagicMock(
-                all=MagicMock(return_value=[MagicMock(), MagicMock()])
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),  # find campaign
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=None))
+                )
+            ),  # check if joined
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(
+                        all=MagicMock(return_value=[MagicMock(), MagicMock()])
+                    )
+                )
             ),  # find characters
         ]
 
         # Act & Assert
         with pytest.raises(ValidationError):
-            player_manager.join_campaign(
+            await player_manager.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
             )
 
-    def test_join_campaign_already_joined(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_join_campaign_already_joined(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(
@@ -147,25 +187,32 @@ class TestJoinCampaign(BaseTestData):
             campaign_name=self.campaign_name,
         )
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),  # find campaign
+        mock_session.execute.side_effect = [
             MagicMock(
-                first=MagicMock(return_value=MagicMock())
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),  # find campaign
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=MagicMock()))
+                )
             ),  # check if joined -> yes
         ]
 
         # Act & Assert
         with pytest.raises(ValidationError):
-            player_manager.join_campaign(
+            await player_manager.join_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,
                 campaign_name=self.campaign_name,
             )
 
 
+@pytest.mark.asyncio
 class TestEndCampaign(BaseTestData):
-    def test_end_campaign_normal(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_end_campaign_normal(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id, player_status="joined")
@@ -173,23 +220,31 @@ class TestEndCampaign(BaseTestData):
         mock_link = CampaignPlayerLink()
 
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),
-            MagicMock(first=MagicMock(return_value=mock_link)),
+        mock_session.execute.side_effect = [
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_link))
+                )
+            ),
         ]
 
         # Act
-        result = player_manager.end_campaign(
+        result = await player_manager.end_campaign(
             self.player_id, self.server_id, self.campaign_name
         )
 
         # Assert
         assert result["player_status"] == "cmd"
-        mock_session.add.assert_called_once_with(mock_link)
+        mock_session.add.assert_called_once_with(mock_player)
         mock_session.commit.assert_called_once()
 
-    def test_end_campaign_no_campaign_uses_last_active(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_end_campaign_no_campaign_uses_last_active(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(
@@ -201,22 +256,31 @@ class TestEndCampaign(BaseTestData):
         mock_link = CampaignPlayerLink()
 
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),
-            MagicMock(first=MagicMock(return_value=mock_link)),
+        mock_session.execute.side_effect = [
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_link))
+                )
+            ),
         ]
 
         # Act
-        player_manager.end_campaign(self.player_id, self.server_id)
+        await player_manager.end_campaign(self.player_id, self.server_id)
 
         # Assert
         assert mock_player.player_status == "cmd"
         mock_session.commit.assert_called_once()
 
 
+@pytest.mark.asyncio
 class TestRemoveCampaign(BaseTestData):
-    def test_remove_campaign_normal(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_remove_campaign_normal(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(player_id=self.player_id)
@@ -226,13 +290,21 @@ class TestRemoveCampaign(BaseTestData):
         mock_link = CampaignPlayerLink()
 
         mock_session.get.return_value = mock_player
-        mock_session.exec.side_effect = [
-            MagicMock(first=MagicMock(return_value=mock_campaign)),
-            MagicMock(first=MagicMock(return_value=mock_link)),
+        mock_session.execute.side_effect = [
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_campaign))
+                )
+            ),
+            MagicMock(
+                scalars=MagicMock(
+                    return_value=MagicMock(first=MagicMock(return_value=mock_link))
+                )
+            ),
         ]
 
         # Act
-        result = player_manager.remove_campaign(
+        result = await player_manager.remove_campaign(
             self.player_id, self.server_id, self.campaign_name
         )
 
@@ -242,9 +314,10 @@ class TestRemoveCampaign(BaseTestData):
         mock_session.commit.assert_called_once()
 
 
+@pytest.mark.asyncio
 class TestGetPlayerStatus(BaseTestData):
-    def test_get_player_status_normal(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_get_player_status_normal(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_player = Player(
@@ -256,18 +329,18 @@ class TestGetPlayerStatus(BaseTestData):
         mock_session.get.return_value = mock_player
 
         # Act
-        result = player_manager.get_player(self.player_id)
+        result = await player_manager.get_player(self.player_id)
 
         # Assert
         assert result["player_id"] == self.player_id
         assert result["username"] == self.username
 
-    def test_get_player_status_not_found(
-        self, player_manager: PlayerManager, mock_session: MagicMock
+    async def test_get_player_status_not_found(
+        self, player_manager: PlayerManager, mock_session: AsyncMock
     ):
         # Arrange
         mock_session.get.return_value = None
 
         # Act & Assert
         with pytest.raises(NotFoundError):
-            player_manager.get_player("nonexistent")
+            await player_manager.get_player("nonexistent")

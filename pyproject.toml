@@ -13,3 +13,11 @@ dependencies = []
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.ruff]
+line-length = 88
+lint.extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["packages"]  # Your local modules
+combine-as-imports = true

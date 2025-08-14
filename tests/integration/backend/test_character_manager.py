@@ -1,134 +1,145 @@
 import pytest
-from packages.shared.error_handler import ValidationError, NotFoundError
-from packages.shared.models import Campaign, CampaignPlayerLink
+
+from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.models import CampaignPlayerLink
+
+pytestmark = pytest.mark.asyncio
 
 
 class TestAddCharacter:
-    def test_add_character_normal(
+    async def test_add_character_normal(
         self, managers, session, insert_player, select_character
     ):
-        insert_player()
-        character = managers.character.add_character(
+        await insert_player()
+        character = await managers.character.add_character(
             "user-id-1", "Hero", "http://dndbeyond.com/hero"
         )
         assert isinstance(character.character_id, int)
-        db_char = select_character(character.character_id)
+        db_char = await select_character(character.character_id)
         assert db_char.name == "Hero"
         assert db_char.character_url == "http://dndbeyond.com/hero"
 
-    def test_add_character_missing_player(self, managers):
+    async def test_add_character_missing_player(self, managers):
         with pytest.raises(NotFoundError):
-            managers.character.add_character("user-id-2", "Hero")
+            await managers.character.add_character("user-id-2", "Hero")
 
-    def test_add_character_duplicate_name(self, managers, session, insert_player):
-        insert_player()
-        managers.character.add_character("user-id-1", "Hero")
+    async def test_add_character_duplicate_name(self, managers, session, insert_player):
+        await insert_player()
+        await managers.character.add_character("user-id-1", "Hero")
         with pytest.raises(ValidationError):
-            managers.character.add_character("user-id-1", "Hero")
+            await managers.character.add_character("user-id-1", "Hero")
 
-    def test_add_character_without_character_url(
+    async def test_add_character_without_character_url(
         self, managers, session, insert_player, select_character
     ):
-        insert_player()
-        character = managers.character.add_character("user-id-1", "Hero")
+        await insert_player()
+        character = await managers.character.add_character("user-id-1", "Hero")
         assert isinstance(character.character_id, int)
-        db_char = select_character(character.character_id)
+        db_char = await select_character(character.character_id)
         assert db_char.name == "Hero"
         assert db_char.character_url is None
 
 
 class TestUpdateCharacter:
-    def test_update_character_normal(
+    async def test_update_character_normal(
         self, managers, session, insert_player, select_character
     ):
-        insert_player()
-        character = managers.character.add_character("user-id-1", "Hero", "url1")
-        result = managers.character.update_character(
+        await insert_player()
+        character = await managers.character.add_character("user-id-1", "Hero", "url1")
+        result = await managers.character.update_character(
             character.character_id, name="Hero2", character_url="url2"
         )
         assert result.name == "Hero2"
-        db_char = select_character(character.character_id)
+        db_char = await select_character(character.character_id)
         assert db_char.name == "Hero2"
         assert db_char.character_url == "url2"
 
-    def test_update_character_no_fields(self, managers, session, insert_player):
-        insert_player()
-        character = managers.character.add_character("user-id-1", "Hero")
+    async def test_update_character_no_fields(self, managers, session, insert_player):
+        await insert_player()
+        character = await managers.character.add_character("user-id-1", "Hero")
         with pytest.raises(ValidationError):
-            managers.character.update_character(character.character_id)
+            await managers.character.update_character(character.character_id)
 
-    def test_update_character_not_found(self, managers):
+    async def test_update_character_not_found(self, managers):
         with pytest.raises(NotFoundError):
-            managers.character.update_character(9999, name="NewName")
+            await managers.character.update_character(9999, name="NewName")
 
-    def test_update_character_duplicate_name(self, managers, session, insert_player):
-        insert_player()
-        managers.character.add_character("user-id-1", "Hero")
-        char2 = managers.character.add_character("user-id-1", "Hero2")
+    async def test_update_character_duplicate_name(
+        self, managers, session, insert_player
+    ):
+        await insert_player()
+        await managers.character.add_character("user-id-1", "Hero")
+        char2 = await managers.character.add_character("user-id-1", "Hero2")
         with pytest.raises(ValidationError):
-            managers.character.update_character(char2.character_id, name="Hero")
+            await managers.character.update_character(char2.character_id, name="Hero")
 
 
 class TestRemoveCharacter:
-    def test_remove_character_normal(
+    async def test_remove_character_normal(
         self, managers, session, insert_player, select_character
     ):
-        insert_player()
-        character = managers.character.add_character("user-id-1", "Hero")
-        result = managers.character.remove_character(character.character_id)
+        await insert_player()
+        character = await managers.character.add_character("user-id-1", "Hero")
+        result = await managers.character.remove_character(character.character_id)
         assert result is True
-        db_char = select_character(character.character_id)
+        db_char = await select_character(character.character_id)
         assert db_char is None
 
-    def test_remove_character_not_found(self, managers):
-        result = managers.character.remove_character(9999)
+    async def test_remove_character_not_found(self, managers):
+        result = await managers.character.remove_character(9999)
         assert result is False
 
-    def test_remove_character_does_not_set_campaignplayers_null(
+    async def test_remove_character_does_not_set_campaignplayers_null(
         self, managers, session, insert_player
     ):
-        player = insert_player()
-        character = managers.character.add_character("user-id-1", "Hero")
-        campaign = Campaign(
-            server_id="server1", campaign_name="Epic Quest", owner_id="owner1"
+        player = await insert_player()
+        player_id = player.player_id
+
+        character = await managers.character.add_character("user-id-1", "Hero")
+        character_id = character.character_id
+
+        campaign = await managers.campaign.create_campaign(
+            "server_id", "campaign_name", "owner_id"
         )
+        campaign_id = campaign.campaign_id
+
         session.add(campaign)
-        session.commit()
+        await session.commit()
 
         link = CampaignPlayerLink(
-            campaign_id=campaign.campaign_id,
-            player_id=player.player_id,
-            character_id=character.character_id,
+            campaign_id=campaign_id,
+            player_id=player_id,
+            character_id=character_id,
         )
         session.add(link)
-        session.commit()
+        await session.commit()
 
-        managers.character.remove_character(character.character_id)
+        await managers.character.remove_character(character_id)
 
-        db_link = session.get(
-            CampaignPlayerLink, (campaign.campaign_id, player.player_id)
-        )
+        db_link = await session.get(CampaignPlayerLink, (campaign_id, player_id))
         assert db_link is not None
 
 
 class TestGetCharactersForPlayer:
-    def test_get_characters_for_player_normal(self, managers, session, insert_player):
-        insert_player()
-        managers.character.add_character("user-id-1", "Hero", "url1")
-        managers.character.add_character("user-id-1", "Hero2", "url2")
-        chars = managers.character.get_characters_for_player("user-id-1")
+    async def test_get_characters_for_player_normal(
+        self, managers, session, insert_player
+    ):
+        await insert_player()
+        await managers.character.add_character("user-id-1", "Hero", "url1")
+        await managers.character.add_character("user-id-1", "Hero2", "url2")
+        chars = await managers.character.get_characters_for_player("user-id-1")
         assert isinstance(chars, list)
         assert len(chars) == 2
         names = {c.name for c in chars}
         assert "Hero" in names and "Hero2" in names
 
-    def test_get_characters_for_player_no_characters(
+    async def test_get_characters_for_player_no_characters(
         self, managers, session, insert_player
     ):
-        insert_player()
-        chars = managers.character.get_characters_for_player("user-id-1")
+        await insert_player()
+        chars = await managers.character.get_characters_for_player("user-id-1")
         assert chars == []
 
-    def test_get_characters_for_player_nonexistent_player(self, managers):
-        chars = managers.character.get_characters_for_player("nonexistent")
+    async def test_get_characters_for_player_nonexistent_player(self, managers):
+        chars = await managers.character.get_characters_for_player("nonexistent")
         assert chars == []

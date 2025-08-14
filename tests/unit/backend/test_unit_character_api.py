@@ -1,24 +1,28 @@
-import pytest
-from unittest.mock import MagicMock
-from fastapi.testclient import TestClient
+from unittest.mock import AsyncMock
 
-from packages.backend.main import app
+import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+
 from packages.backend.components.character_manager import CharacterManager
-from packages.shared.models import Character
+from packages.backend.main import app
 from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.models import Character
 
 
 # Mock the CharacterManager dependency
 @pytest.fixture
 def mock_character_manager():
-    return MagicMock(spec=CharacterManager)
+    return AsyncMock(spec=CharacterManager)
 
 
-@pytest.fixture
-def client(mock_character_manager: MagicMock):
+@pytest_asyncio.fixture
+async def client(mock_character_manager: AsyncMock):
     app.dependency_overrides[CharacterManager] = lambda: mock_character_manager
-    with TestClient(app) as client:
-        yield client
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
+        yield c
     app.dependency_overrides = {}
 
 
@@ -29,8 +33,11 @@ class BaseTestData:
     character_id = 1
 
 
+@pytest.mark.asyncio
 class TestCharacterAPI(BaseTestData):
-    def test_add_character(self, client: TestClient, mock_character_manager: MagicMock):
+    async def test_add_character(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
+    ):
         # Arrange
         mock_character = Character(
             character_id=self.character_id,
@@ -41,7 +48,7 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.add_character.return_value = mock_character
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/add",
             json={
                 "player_id": self.player_id,
@@ -61,8 +68,8 @@ class TestCharacterAPI(BaseTestData):
             character_url=self.character_url,
         )
 
-    def test_add_character_not_found_player(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_add_character_not_found_player(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.add_character.side_effect = NotFoundError(
@@ -70,7 +77,7 @@ class TestCharacterAPI(BaseTestData):
         )
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/add",
             json={
                 "player_id": "nonexistent",
@@ -82,14 +89,14 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 404
         assert "Player does not exist" in response.text
 
-    def test_update_character(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_update_character(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.update_character.return_value = True
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/update",
             json={"character_id": self.character_id, "name": "NewName"},
         )
@@ -101,8 +108,8 @@ class TestCharacterAPI(BaseTestData):
             character_id=self.character_id, name="NewName", character_url=None
         )
 
-    def test_update_character_not_found(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_update_character_not_found(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.update_character.side_effect = NotFoundError(
@@ -110,7 +117,7 @@ class TestCharacterAPI(BaseTestData):
         )
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/update", json={"character_id": 99999, "name": "NewName"}
         )
 
@@ -118,8 +125,8 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 404
         assert "Character does not exist" in response.text
 
-    def test_update_character_duplicate_name(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_update_character_duplicate_name(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.update_character.side_effect = ValidationError(
@@ -127,7 +134,7 @@ class TestCharacterAPI(BaseTestData):
         )
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/update",
             json={"character_id": self.character_id, "name": "ExistingName"},
         )
@@ -136,14 +143,14 @@ class TestCharacterAPI(BaseTestData):
         assert response.status_code == 400
         assert "Name already exists" in response.text
 
-    def test_remove_character(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_remove_character(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.remove_character.return_value = True
 
         # Act
-        response = client.post(
+        response = await client.post(
             "/characters/remove", json={"character_id": self.character_id}
         )
 
@@ -154,21 +161,21 @@ class TestCharacterAPI(BaseTestData):
             character_id=self.character_id
         )
 
-    def test_remove_character_not_found(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_remove_character_not_found(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_character_manager.remove_character.return_value = False
 
         # Act
-        response = client.post("/characters/remove", json={"character_id": 999})
+        response = await client.post("/characters/remove", json={"character_id": 999})
 
         # Assert
         assert response.status_code == 404
         assert "Character not found" in response.text
 
-    def test_list_characters(
-        self, client: TestClient, mock_character_manager: MagicMock
+    async def test_list_characters(
+        self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
         mock_characters = [
@@ -181,7 +188,9 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.get_characters_for_player.return_value = mock_characters
 
         # Act
-        response = client.post("/characters/list", json={"player_id": self.player_id})
+        response = await client.post(
+            "/characters/list", json={"player_id": self.player_id}
+        )
 
         # Assert
         assert response.status_code == 200

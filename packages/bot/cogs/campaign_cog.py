@@ -1,10 +1,13 @@
-import discord
-from discord import app_commands
-from discord.ext import commands
-import httpx
 import os
 
+import discord
+import httpx
+from discord import app_commands
+from discord.ext import commands
+
 from packages.shared.error_handler import (
+    NotFoundError,
+    ValidationError,
     discord_error_handler,
 )
 
@@ -17,7 +20,8 @@ class CampaignCog(commands.Cog):
     campaign = app_commands.Group(name="campaign", description="Manage campaigns")
 
     @campaign.command(
-        name="new", description="Create a new campaign and prompt for character setup."
+        name="create",
+        description="Create a new campaign and prompt for character setup.",
     )
     @app_commands.describe(name="The name of the new campaign")
     @discord_error_handler()
@@ -42,7 +46,7 @@ class CampaignCog(commands.Cog):
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.post(
-                    f"{self.api_base_url}/campaigns/new",
+                    f"{self.api_base_url}/campaigns/create",
                     json={
                         "server_id": str(interaction.guild.id),
                         "campaign_name": campaign_name,
@@ -50,24 +54,27 @@ class CampaignCog(commands.Cog):
                     },
                 )
                 response.raise_for_status()
+
                 data = await response.json()
+
                 await interaction.response.send_message(
                     "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
                     f"Campaign '{campaign_name}' created successfully!\n"
-                    # TODO: This is probably redundant or invalid. A player could already have a character sheet
-                    # An if statement should be implemented when we have character sheets
                     "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
                     ephemeral=False,
                 )
             except httpx.HTTPStatusError as e:
-                data = await e.response.json()
-                await interaction.response.send_message(
-                    f"Failed to create campaign: {data.get('detail', e.response.text)}",
-                    ephemeral=True,
-                )
-            except Exception as e:
-                await interaction.response.send_message(
-                    f"Failed to create campaign: {e}", ephemeral=True
+                message = "Failed to create campaign. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except (ValueError, httpx.HTTPError):
+                        pass
+                raise ValidationError(message)
+            except Exception:
+                raise ValidationError(
+                    "An unexpected error occurred while creating the campaign. Please try again later."
                 )
 
     @campaign.command(
@@ -93,24 +100,27 @@ class CampaignCog(commands.Cog):
                         "player_id": str(interaction.user.id),
                     },
                 )
-                if response.status_code == 200:
-                    await interaction.response.send_message(
-                        "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                        f"You have joined campaign '{campaign_name}'!\n"
-                        # TODO: This is probably redundant or invalid. A player could already have a character sheet
-                        # An if statement should be implemented when we have character sheets
-                        "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
-                        ephemeral=False,
-                    )
-                else:
-                    data = await response.json()
-                    await interaction.response.send_message(
-                        f"Failed to join campaign: {data.get('detail', response.text)}",
-                        ephemeral=True,
-                    )
-            except Exception as e:
+                response.raise_for_status()
                 await interaction.response.send_message(
-                    f"Failed to join campaign: {e}", ephemeral=True
+                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+                    f"You have joined campaign '{campaign_name}'!\n"
+                    "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
+                    ephemeral=False,
+                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to join campaign. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except ValueError:
+                        pass
+                if e.response and e.response.status_code == 404:
+                    raise NotFoundError(message)
+                raise ValidationError(message)
+            except Exception:
+                raise ValidationError(
+                    "An unexpected error occurred while joining the campaign. Please try again later."
                 )
 
     @campaign.command(
@@ -145,20 +155,23 @@ class CampaignCog(commands.Cog):
                     f"{self.api_base_url}/players/end_campaign",
                     json=payload,
                 )
-                if response.status_code == 200:
-                    await interaction.response.send_message(
-                        "**Exiting immersive mode. Progress has been saved. You are now in command mode.**\n",
-                        ephemeral=False,
-                    )
-                else:
-                    data = await response.json()
-                    await interaction.response.send_message(
-                        f"Failed to exit campaign: {data.get('detail', response.text)}",
-                        ephemeral=True,
-                    )
-            except Exception as e:
+                response.raise_for_status()
                 await interaction.response.send_message(
-                    f"Failed to exit campaign: {e}", ephemeral=True
+                    "**Exiting immersive mode. Progress has been saved. You are now in command mode.**\n",
+                    ephemeral=False,
+                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to exit campaign. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except ValueError:
+                        pass
+                raise ValidationError(message)
+            except Exception:
+                raise ValidationError(
+                    "An unexpected error occurred while exiting the campaign. Please try again later."
                 )
 
     @campaign.command(
@@ -235,18 +248,17 @@ class CampaignCog(commands.Cog):
         self, interaction: discord.Interaction, e: Exception
     ):
         if isinstance(e, httpx.HTTPStatusError):
-            try:
-                data = await e.response.json()
-                detail = data.get("detail", e.response.text)
-            except Exception:
-                detail = e.response.text
-            await interaction.followup.send(
-                f"Failed to delete campaign: {detail}",
-                ephemeral=True,
-            )
+            message = "Failed to delete campaign. Please try again later."
+            if e.response:
+                try:
+                    data = await e.response.json()
+                    message = data.get("error", {}).get("message", message)
+                except ValueError:
+                    pass
+            raise ValidationError(message)
         else:
-            await interaction.followup.send(
-                f"An unexpected error occurred: {e}", ephemeral=True
+            raise ValidationError(
+                "An unexpected error occurred while deleting the campaign. Please try again later."
             )
 
     @campaign.command(name="info", description="Display information about a campaign.")
@@ -263,14 +275,14 @@ class CampaignCog(commands.Cog):
                     f"{self.api_base_url}/campaigns/{interaction.guild.id}/{name}"
                 )
                 response.raise_for_status()
-                campaign_data = await response.json()
+                campaign_data = response.json()
 
                 # Fetch the list of players in the campaign.
                 players_response = await client.get(
                     f"{self.api_base_url}/campaigns/{campaign_data['campaign_id']}/players"
                 )
                 players_response.raise_for_status()
-                players_data = await players_response.json()
+                players_data = players_response.json()
                 player_names = (
                     [player["username"] for player in players_data]
                     if players_data
@@ -300,19 +312,22 @@ class CampaignCog(commands.Cog):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 404:
+            if e.response and e.response.status_code == 404:
                 await interaction.response.send_message(
-                    f"Campaign '{name}' not found.", ephemeral=True
+                    "Campaign not found.", ephemeral=True
                 )
             else:
-                data = await e.response.json()
-                await interaction.response.send_message(
-                    f"Failed to get campaign info: {data.get('detail', e.response.text)}",
-                    ephemeral=True,
-                )
-        except Exception as e:
-            await interaction.response.send_message(
-                f"An unexpected error occurred: {e}", ephemeral=True
+                message = "Failed to get campaign information. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except ValueError:
+                        pass
+                raise ValidationError(message)
+        except Exception:
+            raise ValidationError(
+                "An unexpected error occurred while getting campaign information. Please try again later."
             )
 
     async def _handle_campaign_continue(self, interaction: discord.Interaction):
@@ -327,28 +342,29 @@ class CampaignCog(commands.Cog):
                     f"{self.api_base_url}/players/continue_campaign",
                     json=payload,
                 )
-                if response.status_code == 200:
-                    data = await response.json()
-                    campaign_name = data.get("campaign_name", "Unknown")
-                    source = data.get("source", "save")
-                    msg = (
-                        "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                        f"**Resuming campaign '{campaign_name}'.**\n"
-                        f"Restored from {'autosave' if source == 'autosave' else 'last clean save'}.\n"
-                        "You are now back in immersive role-playing mode."
-                    )
-                    await interaction.response.send_message(msg, ephemeral=False)
-                    # TODO: After all validations pass, update only the allowed sections of the story file
-                    # according to the develop-story workflow. This should be implemented here or in the backend.
-                else:
-                    data = await response.json()
-                    await interaction.response.send_message(
-                        f"Failed to continue campaign: {data.get('detail', response.text)}",
-                        ephemeral=True,
-                    )
-            except Exception as e:
-                await interaction.response.send_message(
-                    f"Failed to continue campaign: {e}", ephemeral=True
+                response.raise_for_status()
+                data = response.json()
+                campaign_name = data.get("campaign_name", "Unknown")
+                source = data.get("source", "save")
+                msg = (
+                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+                    f"**Resuming campaign '{campaign_name}'.**\n"
+                    f"Restored from {'autosave' if source == 'autosave' else 'last clean save'}.\n"
+                    "You are now back in immersive role-playing mode."
+                )
+                await interaction.response.send_message(msg, ephemeral=False)
+            except httpx.HTTPStatusError as e:
+                message = "Failed to continue campaign. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except ValueError:
+                        pass
+                raise ValidationError(message)
+            except Exception:
+                raise ValidationError(
+                    "An unexpected error occurred while continuing the campaign. Please try again later."
                 )
 
 

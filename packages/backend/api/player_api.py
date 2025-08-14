@@ -1,19 +1,19 @@
 from fastapi import APIRouter, Depends
+
 from packages.backend.components.player_manager import PlayerManager
 from packages.shared.models import (
     CampaignEndRequest,
+    ContinueCampaignRequest,
     CreatePlayerRequest,
     JoinCampaignRequest,
-    ContinueCampaignRequest,
     LeaveCampaignRequest,
 )
-
 
 router = APIRouter(prefix="/players", tags=["players"])
 
 
 @router.post("/join_campaign", summary="Join an existing campaign")
-def join_campaign(
+async def join_campaign(
     req: JoinCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
     """
@@ -32,7 +32,7 @@ def join_campaign(
         ValidationError: If the player is already joined to a campaign or required fields are missing.
         NotFoundError: If the campaign or player does not exist.
     """
-    result = player_manager.join_campaign(
+    result = await player_manager.join_campaign(
         campaign_name=req.campaign_name,
         player_id=req.player_id,
         server_id=req.server_id,
@@ -45,7 +45,7 @@ def join_campaign(
 @router.post(
     "/end_campaign", summary="Temporarily exit a campaign into the command state"
 )
-def end_campaign(
+async def end_campaign(
     req: CampaignEndRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
     """
@@ -61,7 +61,7 @@ def end_campaign(
         ValidationError: If the campaign or player is not found or required fields are missing.
         NotFoundError: If the campaign does not exist.
     """
-    result = player_manager.end_campaign(
+    result = await player_manager.end_campaign(
         player_id=req.player_id,
         server_id=req.server_id,
         campaign_name=req.campaign_name,
@@ -73,7 +73,7 @@ def end_campaign(
 
 
 @router.post("/create", summary="Creates a player for the server")
-def create_player(
+async def create_player(
     req: CreatePlayerRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
     """
@@ -88,14 +88,14 @@ def create_player(
     Note:
         This endpoint is intended for internal testing only.
     """
-    player_data = player_manager.create_player(
+    player_data = await player_manager.create_player(
         player_id=req.player_id, username=req.username
     )
     return player_data
 
 
 @router.post("/continue_campaign", summary="Continue last active campaign")
-def continue_campaign(
+async def continue_campaign(
     req: ContinueCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
     """
@@ -110,7 +110,8 @@ def continue_campaign(
     Raises:
         NotFoundError: If the campaign or player does not exist.
     """
-    result = player_manager.continue_campaign(
+    # Note: This method is not implemented in PlayerManager
+    result = await player_manager.continue_campaign(
         player_id=req.player_id,
     )
     return {"message": "Campaign joined successfully.", "result": result}
@@ -119,7 +120,7 @@ def continue_campaign(
 @router.post(
     "/remove_campaign", summary="Leave a campaign (removes player from campaign)"
 )
-def remove_campaign(
+async def remove_campaign(
     req: LeaveCampaignRequest, player_manager: PlayerManager = Depends(PlayerManager)
 ):
     """
@@ -135,7 +136,7 @@ def remove_campaign(
         ValidationError: If the campaign or player is not found or required fields are missing.
         NotFoundError: If the campaign does not exist.
     """
-    result = player_manager.remove_campaign(
+    result = await player_manager.remove_campaign(
         player_id=req.player_id,
         server_id=req.server_id,
         campaign_name=req.campaign_name,
@@ -146,7 +147,9 @@ def remove_campaign(
 @router.get(
     "/status/{player_id}", summary="Get player status, campaigns, and characters"
 )
-def get_player(player_id: str, player_manager: PlayerManager = Depends(PlayerManager)):
+async def get_player(
+    player_id: str, player_manager: PlayerManager = Depends(PlayerManager)
+):
     """
     Retrieve a summary of the player's campaigns, characters, and current status.
 
@@ -159,5 +162,5 @@ def get_player(player_id: str, player_manager: PlayerManager = Depends(PlayerMan
     Raises:
         NotFoundError: If the player does not exist.
     """
-    result = player_manager.get_player(player_id)
+    result = await player_manager.get_player(player_id)
     return result

@@ -1,8 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import MagicMock, create_autospec, patch
-from pydantic import SecretStr
-from sqlmodel import Session
 from cryptography.fernet import Fernet
+from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.backend.components.server_manager import ServerSettingsManager
 from packages.shared.models import Server
@@ -10,7 +11,17 @@ from packages.shared.models import Server
 
 @pytest.fixture
 def mock_session():
-    return create_autospec(Session)
+    session = AsyncMock(spec=AsyncSession)
+
+    # Create a fake result object
+    fake_result = MagicMock()
+    fake_result.scalars.return_value.first.return_value = (
+        None  # or a fake Campaign instance
+    )
+
+    # Make execute() coroutine return the fake result
+    session.execute.return_value = fake_result
+    return session
 
 
 @pytest.fixture
@@ -27,8 +38,9 @@ def server_manager(mock_session: MagicMock):
         yield manager
 
 
-def test_store_and_retrieve_api_key(
-    server_manager: ServerSettingsManager, mock_session: MagicMock
+@pytest.mark.asyncio
+async def test_store_and_retrieve_api_key(
+    server_manager: ServerSettingsManager, mock_session: AsyncMock
 ):
     # Arrange
     server_id = "test_server"
@@ -43,7 +55,7 @@ def test_store_and_retrieve_api_key(
     mock_session.get.return_value = None  # Simulate no existing config
 
     # Act
-    server_manager.store_server_config(config)
+    await server_manager.store_server_config(config)
 
     # Assert that the config was added and committed
     mock_session.add.assert_called_once()
@@ -55,11 +67,12 @@ def test_store_and_retrieve_api_key(
     encrypted_key = fernet.encrypt(api_key.encode()).decode()
     mock_session.get.return_value = Server(server_id=server_id, api_key=encrypted_key)
 
-    retrieved_key = server_manager.retrieve_api_key(server_id)
+    retrieved_key = await server_manager.retrieve_api_key(server_id)
     assert retrieved_key == api_key
 
 
-def test_store_empty_api_key(server_manager: ServerSettingsManager):
+@pytest.mark.asyncio
+async def test_store_empty_api_key(server_manager: ServerSettingsManager):
     # Arrange
     config = Server(
         server_id="test_server",
@@ -68,24 +81,26 @@ def test_store_empty_api_key(server_manager: ServerSettingsManager):
 
     # Act & Assert
     with pytest.raises(ValueError, match="API key must not be empty."):
-        server_manager.store_server_config(config)
+        await server_manager.store_server_config(config)
 
 
-def test_retrieve_nonexistent_api_key(
-    server_manager: ServerSettingsManager, mock_session: MagicMock
+@pytest.mark.asyncio
+async def test_retrieve_nonexistent_api_key(
+    server_manager: ServerSettingsManager, mock_session: AsyncMock
 ):
     # Arrange
     mock_session.get.return_value = None
 
     # Act
-    retrieved_key = server_manager.retrieve_api_key("nonexistent_server")
+    retrieved_key = await server_manager.retrieve_api_key("nonexistent_server")
 
     # Assert
     assert retrieved_key is None
 
 
-def test_get_full_server_config(
-    server_manager: ServerSettingsManager, mock_session: MagicMock
+@pytest.mark.asyncio
+async def test_get_full_server_config(
+    server_manager: ServerSettingsManager, mock_session: AsyncMock
 ):
     # Arrange
     server_id = "test_server_full_config"
@@ -103,7 +118,7 @@ def test_get_full_server_config(
     mock_session.get.return_value = mock_db_config
 
     # Act
-    retrieved_config = server_manager.get_server_config(server_id)
+    retrieved_config = await server_manager.get_server_config(server_id)
 
     # Assert
     assert retrieved_config is not None

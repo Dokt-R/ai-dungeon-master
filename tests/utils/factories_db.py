@@ -1,8 +1,10 @@
 #! The code below is an example only and should be used as an idea for implementation
 import uuid
 from datetime import datetime
+
 from sqlalchemy.orm import Session
-from packages.shared.models import Player, Campaign, Character
+
+from packages.shared.models import Campaign, Character, Player
 
 
 def create_player(

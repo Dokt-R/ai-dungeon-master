@@ -1,10 +1,13 @@
 import os
 import tempfile
+
 import pytest
+
 from packages.backend.components.message_processor import MessageProcessor
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_process_player_message_logs_to_transcript(monkeypatch):
     # Setup: use a temporary directory for log output
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -34,7 +37,6 @@ async def test_process_player_message_logs_to_transcript(monkeypatch):
             assert "timestamp" in entry
 
 
-@pytest.mark.asyncio
 async def test_log_ai_response_logs_to_transcript(monkeypatch):
     # Setup: use a temporary directory for log output
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -65,7 +67,6 @@ async def test_log_ai_response_logs_to_transcript(monkeypatch):
             assert "timestamp" in entry
 
 
-@pytest.mark.asyncio
 async def test_log_ai_response_handles_logging_error(monkeypatch):
     # Patch log_message to raise an exception
     class DummyLogger:
@@ -79,7 +80,6 @@ async def test_log_ai_response_handles_logging_error(monkeypatch):
     await processor.log_ai_response("cid", "AI says something")
 
 
-@pytest.mark.asyncio
 async def test_campaign_log_integration_multiple_player_and_ai_messages(monkeypatch):
     import json
 
@@ -137,7 +137,6 @@ async def test_campaign_log_integration_multiple_player_and_ai_messages(monkeypa
         assert "timestamp" in entries[3]
 
 
-@pytest.mark.asyncio
 async def test_process_player_message_handles_logging_error(monkeypatch):
     # Patch transcript_logger.log_message to raise an exception
     class DummyLogger:

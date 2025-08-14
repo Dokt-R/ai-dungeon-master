@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import List, Optional, Literal
-from pydantic import SecretStr, BaseModel, Field as PydanticField
+from typing import List, Literal, Optional
+
+from pydantic import BaseModel, Field as PydanticField, SecretStr
 from sqlalchemy import Column, String
-from sqlmodel import Relationship, SQLModel, Field as SQLField
+from sqlmodel import Field as SQLField, Relationship, SQLModel
 
 
 # Server Configuration Model
@@ -14,7 +15,9 @@ class Server(SQLModel, table=True):
     player_roll_mode: str = "digital"
     character_sheet_mode: str = "digital_sheet"
 
-    campaigns: List["Campaign"] = Relationship(back_populates="server_api")
+    campaigns: List["Campaign"] = Relationship(
+        back_populates="server_api", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
 
 # Player Model
@@ -27,10 +30,12 @@ class Player(SQLModel, table=True):
         default=None, foreign_key="campaigns.campaign_name"
     )
 
-    characters: List["Character"] = Relationship(back_populates="player")
+    characters: List["Character"] = Relationship(
+        back_populates="player", sa_relationship_kwargs={"lazy": "selectin"}
+    )
     campaigns: List["Campaign"] = Relationship(
         back_populates="players",
-        sa_relationship_kwargs={"secondary": "campaign_players"},
+        sa_relationship_kwargs={"secondary": "campaign_players", "lazy": "selectin"},
     )
 
 
@@ -42,12 +47,16 @@ class Character(SQLModel, table=True):
     character_url: Optional[str] = None
 
     player_id: str = SQLField(foreign_key="players.player_id")
-    player: Player = Relationship(back_populates="characters")
+    player: Player = Relationship(
+        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
     campaign_id: Optional[int] = SQLField(
         default=None, foreign_key="campaigns.campaign_id"
     )
-    campaign: Optional["Campaign"] = Relationship(back_populates="characters")
+    campaign: Optional["Campaign"] = Relationship(
+        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
 
 # Campaign-Player Link Table
@@ -67,13 +76,17 @@ class Campaign(SQLModel, table=True):
     last_save: datetime = SQLField(default_factory=datetime.utcnow)
 
     server_id: str = SQLField(foreign_key="keys.server_id")
-    server_api: Server = Relationship(back_populates="campaigns")
+    server_api: Server = Relationship(
+        back_populates="campaigns", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
     players: List[Player] = Relationship(
         back_populates="campaigns",
-        sa_relationship_kwargs={"secondary": "campaign_players"},
+        sa_relationship_kwargs={"secondary": "campaign_players", "lazy": "selectin"},
     )
-    characters: List[Character] = Relationship(back_populates="campaign")
+    characters: List[Character] = Relationship(
+        back_populates="campaign", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
 
 # ======================================================================================

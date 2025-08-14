@@ -2,30 +2,30 @@ import os
 from typing import Optional
 
 from cryptography.fernet import Fernet
-from pydantic import SecretStr
 from dotenv import load_dotenv
-from sqlmodel import Session
 from fastapi import Depends
+from pydantic import SecretStr
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.shared.db import get_session
+from packages.shared.db import get_async_session
 from packages.shared.models import Server
 
 load_dotenv()
 
 
 class ServerSettingsManager:
-    def __init__(self, session: Session = Depends(get_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session)):
         self.session = session
         self.key = self._load_encryption_key()
 
-    def store_server_config(self, config: Server) -> None:
+    async def store_server_config(self, config: Server) -> None:
         """Store or update the server configuration, including the encrypted API key."""
         if not config.api_key.get_secret_value():
             raise ValueError("API key must not be empty.")
 
         encrypted_key = self._encrypt(config.api_key.get_secret_value())
 
-        db_config = self.session.get(Server, config.server_id)
+        db_config = await self.session.get(Server, config.server_id)
         if not db_config:
             db_config = Server(server_id=config.server_id)
 
@@ -35,18 +35,19 @@ class ServerSettingsManager:
         db_config.api_key = encrypted_key
 
         self.session.add(db_config)
-        self.session.commit()
+        await self.session.commit()
+        await self.session.refresh(db_config)
 
-    def retrieve_api_key(self, server_id: str) -> Optional[str]:
+    async def retrieve_api_key(self, server_id: str) -> Optional[str]:
         """Retrieve and decrypt the API key for the given server ID."""
-        config = self.session.get(Server, server_id)
+        config = await self.session.get(Server, server_id)
         if config and config.api_key:
             return self._decrypt(config.api_key)
         return None
 
-    def get_server_config(self, server_id: str) -> Optional[Server]:
+    async def get_server_config(self, server_id: str) -> Optional[Server]:
         """Retrieve the full server configuration for the given server ID."""
-        config = self.session.get(Server, server_id)
+        config = await self.session.get(Server, server_id)
         if config and config.api_key:
             decrypted_key = self._decrypt(config.api_key)
             config.api_key = SecretStr(decrypted_key)

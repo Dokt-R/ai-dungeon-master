@@ -1,9 +1,12 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from packages.bot.cogs.utility_cog import UtilityCog
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_getting_started_command():
     bot = MagicMock()
     cog = UtilityCog(bot)
@@ -15,7 +18,6 @@ async def test_getting_started_command():
     assert kwargs.get("ephemeral") is True
 
 
-@pytest.mark.asyncio
 async def test_cost_command():
     bot = MagicMock()
     cog = UtilityCog(bot)
@@ -27,7 +29,6 @@ async def test_cost_command():
     assert kwargs.get("ephemeral") is True
 
 
-@pytest.mark.asyncio
 async def test_help_command_no_topic():
     bot = MagicMock()
     cog = UtilityCog(bot)
@@ -40,7 +41,6 @@ async def test_help_command_no_topic():
     assert kwargs.get("ephemeral") is True
 
 
-@pytest.mark.asyncio
 async def test_help_command_campaign_topic():
     bot = MagicMock()
     cog = UtilityCog(bot)
@@ -52,7 +52,6 @@ async def test_help_command_campaign_topic():
     assert kwargs.get("ephemeral") is True
 
 
-@pytest.mark.asyncio
 async def test_help_command_setup_topic():
     bot = MagicMock()
     cog = UtilityCog(bot)
@@ -64,7 +63,6 @@ async def test_help_command_setup_topic():
     assert kwargs.get("ephemeral") is True
 
 
-@pytest.mark.asyncio
 async def test_help_command_unknown_topic():
     bot = MagicMock()
     cog = UtilityCog(bot)
