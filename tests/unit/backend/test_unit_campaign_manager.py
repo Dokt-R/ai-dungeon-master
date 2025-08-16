@@ -4,7 +4,11 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.backend.components.campaign_manager import CampaignManager
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import (
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 from packages.shared.models import Campaign, Player
 
 
@@ -161,7 +165,7 @@ class TestCampaignManager(BaseTestData):
         )
 
         # Act & Assert
-        with pytest.raises(PermissionError):
+        with pytest.raises(PermissionDeniedError):
             await campaign_manager.delete_campaign(
                 self.server_id, self.campaign_name, "not_the_owner", is_admin=False
             )

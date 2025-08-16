@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.backend.components.player_manager import PlayerManager
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Campaign, CampaignPlayerLink, Character, Player
 
 

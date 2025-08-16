@@ -1,55 +1,41 @@
 import functools
 import logging
 
+from packages.shared.errors import ERRORS, PLAYER_ERRORS
+from packages.shared.exceptions import (
+    AIAPIError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
+
 logger = logging.getLogger(__name__)
 
 
-class CustomException(Exception):
-    """Base class for custom exceptions."""
+def _get_player_message(code: str, **kwargs) -> str:
+    """
+    Returns a player-facing message based on error code and optional formatting args.
+    Falls back to the internal error message if no mapping exists.
+    """
+    player_err_def = PLAYER_ERRORS.get(code)
+    if player_err_def:
+        return player_err_def.message.format(**kwargs)
+    # Fallback — use internal message
+    return ERRORS[code].message.format(**kwargs)
 
-    def __init__(self, message: str, error_code: str = None, details: dict = None):
-        super().__init__(message)
-        self.message = message
-        self.error_code = error_code
-        self.details = details
-
-
-class ValidationError(CustomException):
-    """Exception raised for validation errors."""
-
-    def __init__(
-        self, message: str, error_code: str = "VALIDATION_ERROR", details: dict = None
-    ):
-        super().__init__(message, error_code, details)
-
-
-class NotFoundError(CustomException):
-    """Exception raised for not found errors."""
-
-    def __init__(
-        self, message: str, error_code: str = "NOT_FOUND", details: dict = None
-    ):
-        super().__init__(message, error_code, details)
-
-
-class AIAPIError(CustomException):
-    """Raised when an external AI API call fails."""
-
-    def __init__(
-        self, message: str, error_code: str = "AI_API_ERROR", details: dict = None
-    ):
-        super().__init__(message, error_code, details)
-
+# Example usage
+# try:
+#     ...
+# except GameException as e:
+#     player_msg = get_player_message(e.code, **e.details)
+#     await discord_channel.send(player_msg)
 
 def discord_error_handler(
     fallback_message="An unexpected error occurred. Please contact an administrator.",
 ):
     """
     Decorator for Discord command methods to centralize error handling and user messaging.
-    Usage:
-        @discord_error_handler()
-        async def command(self, interaction, ...):
-            ...
+    Sends player-facing messages to the user, logs internal details for debugging.
     """
 
     def decorator(func):
@@ -57,14 +43,15 @@ def discord_error_handler(
         async def wrapper(self, interaction, *args, **kwargs):
             try:
                 await func(self, interaction, *args, **kwargs)
-            except (ValidationError, NotFoundError, AIAPIError) as exc:
+            except (ValidationError, NotFoundError, AIAPIError, PermissionDeniedError) as exc:
                 # Log custom exceptions with their structured data and stack trace
                 logger.warning(
                     f"{type(exc).__name__} occurred: {exc.message} "
                     f"(Code: {exc.error_code}, Details: {exc.details})",
                     exc_info=True,
                 )
-                await _safe_send_message(interaction, exc.message, ephemeral=True)
+                player_message = _get_player_message(exc.error_code, **exc.details)
+                await _safe_send_message(interaction, player_message, ephemeral=True)
             except Exception as e:
                 # Log generic exceptions with full stack trace
                 logger.error(

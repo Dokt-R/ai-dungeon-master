@@ -1,7 +1,7 @@
 import pytest
 from sqlmodel import select
 
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Campaign, CampaignPlayerLink, Player
 
 pytestmark = pytest.mark.asyncio
@@ -348,7 +348,7 @@ class TestEndCampaign(BaseTestData):
 
     async def test_end_campaign_no_last_active(self, managers, session, insert_player):
         await insert_player(self.player_id, self.username)
-        with pytest.raises(ValidationError):
+        with pytest.raises(NotFoundError):
             await managers.player.end_campaign(
                 player_id=self.player_id, server_id=self.server_id, campaign_name=None
             )
@@ -360,7 +360,7 @@ class TestEndCampaign(BaseTestData):
             self.server_id, self.campaign_name, self.owner_id
         )
         await insert_player(self.player_id, self.username)
-        with pytest.raises(ValidationError):
+        with pytest.raises(NotFoundError):
             await managers.player.end_campaign(
                 player_id=self.player_id,
                 server_id=self.server_id,

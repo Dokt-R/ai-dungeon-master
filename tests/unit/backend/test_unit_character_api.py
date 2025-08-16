@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 
 from packages.backend.components.character_manager import CharacterManager
 from packages.backend.main import app
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Character
 
 

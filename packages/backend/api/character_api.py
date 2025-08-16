@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 
 from packages.backend.components.character_manager import CharacterManager
-from packages.shared.error_handler import NotFoundError
 from packages.shared.models import (
     AddCharacterRequest,
     ListCharactersRequest,
@@ -44,8 +43,6 @@ async def remove_character(
     req: RemoveCharacterRequest, character_manager: CharacterManager = Depends()
 ):
     result = await character_manager.remove_character(character_id=req.character_id)
-    if not result:
-        raise NotFoundError("Character not found")
     return {"success": result}
 
 

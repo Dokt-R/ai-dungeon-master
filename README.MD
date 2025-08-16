@@ -100,9 +100,9 @@ The recommended way to run the project is with Docker Compose. This will start b
 ## Storage and Retrieval Process
 
 - The backend service uses a database to store server API keys and configuration.
-- Data is stored in a structured format, following the defined database schema located in `packages/backend/database_schema_extension.sql`.
+- Data is stored in a structured format, managed by SQLAlchemy and SQLModel. The schema is defined in `packages/shared/models.py`.
 - The backend exposes RESTful endpoints (see `docs/architecture/api-specification.md`) for the bot and other clients to interact with server settings.
-- For more details on the database schema and how to interact with it, refer to the `database_schema_extension.sql` file.
+- For more details on the database schema and how to interact with it, refer to `packages/shared/models.py` and `packages/shared/db.py`.
 
 ---
 

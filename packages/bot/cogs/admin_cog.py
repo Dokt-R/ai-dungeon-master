@@ -4,10 +4,8 @@ import discord
 import httpx
 from discord.ext import commands
 
-from packages.shared.error_handler import (
-    ValidationError,
-    discord_error_handler,
-)
+from packages.shared.error_handler import discord_error_handler
+from packages.shared.exceptions import ValidationError
 
 
 class AdminCog(commands.Cog):

@@ -10,7 +10,7 @@ from packages.backend.api.character_api import router as character_router
 from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
 from packages.shared.db import get_async_engine, initialize_schema
-from packages.shared.error_handler import AIAPIError, NotFoundError, ValidationError
+from packages.shared.exceptions import CustomException
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -43,29 +43,15 @@ app.include_router(player_router)
 app.include_router(character_router)
 
 
-@app.exception_handler(ValidationError)
-async def validation_exception_handler(request: Request, exc: ValidationError):
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request: Request, exc: CustomException):
     return JSONResponse(
-        status_code=400,
+        status_code=exc.status_code,
         content={
             "error": {
-                "code": exc.error_code or "VALIDATION_ERROR",
+                "error_code": exc.error_code.value if hasattr(exc.error_code, "value") else str(exc.error_code),
                 "message": exc.message,
-                "details": exc.details,
-            }
-        },
-    )
-
-
-@app.exception_handler(NotFoundError)
-async def not_found_exception_handler(request: Request, exc: NotFoundError):
-    return JSONResponse(
-        status_code=404,
-        content={
-            "error": {
-                "code": exc.error_code or "NOT_FOUND",
-                "message": exc.message,
-                "details": exc.details,
+                "details": dict(exc.details),  # ensure it's JSON serializable
             }
         },
     )
@@ -79,23 +65,9 @@ async def pydantic_validation_exception_handler(
         status_code=422,
         content={
             "error": {
-                "code": "PYDANTIC_VALIDATION_ERROR",
+                "error_code": "PYDANTIC_VALIDATION_ERROR",
                 "message": "Validation failed",
                 "details": exc.errors(),
-            }
-        },
-    )
-
-
-@app.exception_handler(AIAPIError)
-async def ai_api_exception_handler(request: Request, exc: AIAPIError):
-    return JSONResponse(
-        status_code=502,  # Bad Gateway - indicates problem with upstream service
-        content={
-            "error": {
-                "code": exc.error_code or "AI_API_ERROR",
-                "message": exc.message,
-                "details": exc.details,
             }
         },
     )
@@ -108,8 +80,9 @@ async def generic_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={
             "error": {
-                "code": "INTERNAL_SERVER_ERROR",
+                "error_code": "INTERNAL_SERVER_ERROR",
                 "message": "An unexpected error occurred. Our team has been notified.",
             }
         },
     )
+

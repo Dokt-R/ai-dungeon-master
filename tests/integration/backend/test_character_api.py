@@ -3,6 +3,8 @@ import uuid
 import pytest
 import pytest_asyncio
 
+from packages.shared.errors import ErrorCode
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -70,15 +72,16 @@ async def test_add_character_missing_fields(client):
 async def test_add_character_not_found_player(client):
     resp = await add_character(client, "nonexistent", "Hero")
     assert resp.status_code == 404
-    assert "does not exist" in resp.text
 
 
 async def test_update_character_not_found(client, player_id):
     resp = await client.post(
         "/characters/update", json={"character_id": 99999, "name": "NewName"}
     )
-    assert resp.status_code == 404
-    assert "does not exist" in resp.text
+    error  = ErrorCode.CHARACTER_NOT_FOUND
+    assert resp.status_code == error.status_code
+    print(error)
+    assert error.error_code in resp.text
 
 
 async def test_update_character_duplicate_name(client, player_id):
@@ -92,18 +95,21 @@ async def test_update_character_duplicate_name(client, player_id):
     resp = await client.post(
         "/characters/update", json={"character_id": char2_id, "name": "Char1"}
     )
-    assert resp.status_code == 400
-    assert "already exists" in resp.text
+    error  = ErrorCode.DUPLICATE_CHARACTER
+    assert resp.status_code == error.status_code
+    assert error.error_code in resp.text
 
 
 async def test_add_duplicate_character(client, player_id):
     await client.post(
         "/characters/add", json={"player_id": player_id, "name": "DupChar"}
     )
-    response = await client.post(
+    resp = await client.post(
         "/characters/add", json={"player_id": player_id, "name": "DupChar"}
     )
-    assert response.status_code == 400
+    error  = ErrorCode.DUPLICATE_CHARACTER
+    assert resp.status_code == error.status_code
+    assert error.error_code in resp.text
 
 
 async def test_list_characters(client, player_id):

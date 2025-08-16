@@ -5,11 +5,8 @@ import httpx
 from discord import app_commands
 from discord.ext import commands
 
-from packages.shared.error_handler import (
-    NotFoundError,
-    ValidationError,
-    discord_error_handler,
-)
+from packages.shared.error_handler import discord_error_handler
+from packages.shared.exceptions import NotFoundError, ValidationError
 
 
 class CampaignCog(commands.Cog):

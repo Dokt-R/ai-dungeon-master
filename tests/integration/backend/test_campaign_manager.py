@@ -1,5 +1,7 @@
 import pytest
 
+from packages.shared.exceptions import PermissionDeniedError
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -54,7 +56,7 @@ class TestCampaignManager(BaseTestData):
         await managers.campaign.create_campaign(
             self.server_id, self.campaign_name, self.owner_id
         )
-        with pytest.raises(PermissionError):
+        with pytest.raises(PermissionDeniedError):
             await managers.campaign.delete_campaign(
                 self.server_id,
                 self.campaign_name,

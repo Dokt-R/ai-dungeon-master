@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Path
 
 from packages.backend.components.server_manager import ServerSettingsManager
-from packages.shared.error_handler import (
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import (
     NotFoundError,
-    ValidationError,
 )
 from packages.shared.models import Server, ServerConfigModel
 
@@ -25,7 +25,7 @@ async def set_server_config(
     """
     # The manager now handles the validation, but we can keep this for early exit
     if not config.api_key.get_secret_value().strip():
-        raise ValidationError("API key is required and must be a non-empty string.")
+        raise NotFoundError(ErrorCode.EMPTY_API_KEY)
 
     # Create the database model from the API model
     server_config_db = Server(
@@ -36,12 +36,5 @@ async def set_server_config(
         character_sheet_mode=config.character_sheet_mode,
     )
 
-    try:
-        settings_manager.store_server_config(server_config_db)
-        return {"message": "Server configuration updated successfully."}
-    except NotFoundError as e:
-        raise e
-    except Exception as e:
-        raise ValidationError(
-            "An unexpected error occurred", "INTERNAL_SERVER_ERROR", e
-        ) from e
+    settings_manager.store_server_config(server_config_db)
+    return {"message": "Server configuration updated successfully."}

@@ -1,6 +1,7 @@
 import pytest
 from pydantic import SecretStr
 
+from packages.shared.exceptions import ValidationError
 from packages.shared.models import Server
 
 pytestmark = pytest.mark.asyncio
@@ -29,7 +30,7 @@ async def test_store_empty_api_key(managers):
         character_sheet_mode="digital_sheet",
     )
 
-    with pytest.raises(ValueError, match="API key must not be empty."):
+    with pytest.raises(ValidationError):
         await managers.settings.store_server_config(config)
 
 

@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from packages.bot.cogs import campaign_cog
-from packages.shared.error_handler import ValidationError
+from packages.shared.exceptions import ValidationError
 
 
 @pytest.fixture

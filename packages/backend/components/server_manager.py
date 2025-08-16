@@ -8,6 +8,8 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.shared.db import get_async_session
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import ValidationError
 from packages.shared.models import Server
 
 load_dotenv()
@@ -21,7 +23,7 @@ class ServerSettingsManager:
     async def store_server_config(self, config: Server) -> None:
         """Store or update the server configuration, including the encrypted API key."""
         if not config.api_key.get_secret_value():
-            raise ValueError("API key must not be empty.")
+            raise ValidationError(ErrorCode.INVALID_INPUT)
 
         encrypted_key = self._encrypt(config.api_key.get_secret_value())
 

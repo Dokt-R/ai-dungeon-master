@@ -1,6 +1,6 @@
 import pytest
 
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import CampaignPlayerLink
 
 pytestmark = pytest.mark.asyncio
@@ -86,8 +86,9 @@ class TestRemoveCharacter:
         assert db_char is None
 
     async def test_remove_character_not_found(self, managers):
-        result = await managers.character.remove_character(9999)
-        assert result is False
+        with pytest.raises(NotFoundError):
+            result = await managers.character.remove_character(9999)
+            assert result is False
 
     async def test_remove_character_does_not_set_campaignplayers_null(
         self, managers, session, insert_player

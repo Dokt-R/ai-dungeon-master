@@ -5,11 +5,8 @@ import httpx
 from discord import app_commands
 from discord.ext import commands
 
-from packages.shared.error_handler import (
-    NotFoundError,
-    ValidationError,
-    discord_error_handler,
-)
+from packages.shared.error_handler import discord_error_handler
+from packages.shared.exceptions import NotFoundError, ValidationError
 
 
 class CharacterCog(commands.Cog):
@@ -30,6 +27,11 @@ class CharacterCog(commands.Cog):
     async def add(
         self, interaction: discord.Interaction, name: str, character_url: str = None
     ):
+        await self._handle_character_add(interaction, name)
+
+    async def _handle_character_add(
+            self, interaction: discord.Interaction, name: str, character_url: str = None
+    ):
         """Add a new character for the user."""
         payload = {
             "player_id": str(interaction.user.id),
@@ -37,21 +39,26 @@ class CharacterCog(commands.Cog):
             "character_url": character_url,
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.api_base_url}/characters/add",
-                json=payload,
-            )
-            if response.status_code == 200:
+            try:
+                response = await client.post(
+                    f"{self.api_base_url}/characters/add",
+                    json=payload,
+                )
+                response.raise_for_status()
                 data = await response.json()
                 await interaction.response.send_message(
                     f"Character '{name}' added successfully! (ID: {data.get('character_id')})",
                     ephemeral=True,
                 )
-            else:
-                data = await response.json()
-                raise ValidationError(
-                    f"Failed to add character: {data.get('detail', 'Invalid request')}"
-                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to add character. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except (ValueError, httpx.HTTPError):
+                        pass
+                raise ValidationError(message)
 
     @character.command(name="update", description="Update an existing character.")
     @app_commands.describe(
@@ -61,6 +68,15 @@ class CharacterCog(commands.Cog):
     )
     @discord_error_handler()
     async def update(
+        self,
+        interaction: discord.Interaction,
+        character_id: int,
+        name: str = None,
+        character_url: str = None,
+    ):
+        await self._handle_update(interaction, character_id, name, character_url)
+    
+    async def _handle_update(
         self,
         interaction: discord.Interaction,
         character_id: int,
@@ -78,20 +94,29 @@ class CharacterCog(commands.Cog):
             "character_url": character_url,
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.api_base_url}/characters/update",
-                json=payload,
-            )
-            if response.status_code == 200:
+            try:
+                response = await client.post(
+                    f"{self.api_base_url}/characters/update",
+                    json=payload,
+                )
+                response.raise_for_status()
                 await interaction.response.send_message(
                     "Character updated successfully.",
                     ephemeral=True,
                 )
-            else:
-                data = await response.json()
-                raise ValidationError(
-                    f"Failed to update character: {data.get('detail', 'Invalid request')}"
-                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to update character. Please try again later."
+                if e.response:
+                    try:
+                        data = e.response.json()
+                        message = data.get("detail", message)
+                    except (ValueError, httpx.HTTPError):
+                        pass
+                if e.response and e.response.status_code == 400:
+                    raise ValidationError(message)
+                elif e.response and e.response.status_code == 404:
+                    raise NotFoundError(message)
+                raise ValidationError(message)
 
     @character.command(
         name="remove", description="Remove a character from your account."
@@ -99,25 +124,36 @@ class CharacterCog(commands.Cog):
     @app_commands.describe(character_id="The ID of the character to remove")
     @discord_error_handler()
     async def remove(self, interaction: discord.Interaction, character_id: int):
+        await self._handle_character_remove(interaction, character_id)
+
+    async def _handle_character_remove(self, interaction: discord.Interaction, character_id: int):
         """Remove a character."""
         payload = {
             "character_id": character_id,
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.api_base_url}/characters/remove",
-                json=payload,
-            )
-            if response.status_code == 200:
+            try:
+                response = await client.post(
+                    f"{self.api_base_url}/characters/remove",
+                    json=payload,
+                )
+                response.raise_for_status()
                 await interaction.response.send_message(
                     "Character removed successfully.",
                     ephemeral=True,
                 )
-            else:
-                data = await response.json()
-                raise NotFoundError(
-                    f"Failed to remove character: {data.get('detail', 'Invalid request')}"
-                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to remove character. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("error", {}).get("message", message)
+                    except (ValueError, httpx.HTTPError):
+                        pass
+                if e.response and e.response.status_code == 404:
+                    message = "Character not found"
+                    raise NotFoundError(message)
+                raise ValidationError(message)
 
     @character.command(name="list", description="List all your characters.")
     @discord_error_handler()
@@ -127,11 +163,12 @@ class CharacterCog(commands.Cog):
             "player_id": str(interaction.user.id),
         }
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.api_base_url}/characters/list",
-                json=payload,
-            )
-            if response.status_code == 200:
+            try:
+                response = await client.post(
+                    f"{self.api_base_url}/characters/list",
+                    json=payload,
+                )
+                response.raise_for_status()
                 data = await response.json()
                 characters = data.get("characters", [])
                 if not characters:
@@ -147,11 +184,15 @@ class CharacterCog(commands.Cog):
                     msg,
                     ephemeral=True,
                 )
-            else:
-                data = await response.json()
-                raise ValidationError(
-                    f"Failed to list characters: {data.get('detail', 'Invalid request')}"
-                )
+            except httpx.HTTPStatusError as e:
+                message = "Failed to list characters. Please try again later."
+                if e.response:
+                    try:
+                        data = await e.response.json()
+                        message = data.get("detail", message)
+                    except (ValueError, httpx.HTTPError):
+                        pass
+                raise ValidationError(message)
 
     async def cog_load(self):
         pass  # No-op, registration handled in __init__

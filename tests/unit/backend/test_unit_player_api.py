@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from packages.backend.components.player_manager import PlayerManager
 from packages.backend.main import app
-from packages.shared.error_handler import NotFoundError
+from packages.shared.exceptions import NotFoundError
 
 
 @pytest.fixture

@@ -5,7 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from packages.shared.db import get_async_session
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import (
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 from packages.shared.models import Campaign, Player
 
 
@@ -31,9 +36,7 @@ class CampaignManager:
         )
         result = await self.session.execute(statement)
         if result.scalars().first():
-            raise ValidationError(
-                f"A campaign named **{campaign_name}** already exists."
-            )
+            raise ValidationError(ErrorCode.DUPLICATE_CAMPAIGN_NAME, campaign=campaign_name)
 
         new_campaign = Campaign(
             server_id=server_id, campaign_name=campaign_name, owner_id=owner_id
@@ -63,10 +66,10 @@ class CampaignManager:
         """
         campaign = await self.get_campaign(server_id, campaign_name)
         if not campaign:
-            raise NotFoundError(f"Campaign named **{campaign_name}** not found.")
+            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
 
         if not (is_admin or requester_id == campaign.owner_id):
-            raise PermissionError("Only the owner or an admin can delete.")
+            raise PermissionDeniedError(ErrorCode.PERMISSION_DENIED_ERROR)
 
         await self.session.delete(campaign)
         await self.session.commit()
@@ -78,7 +81,8 @@ class CampaignManager:
         """
         campaign = await self.session.get(Campaign, campaign_id)
         if not campaign:
-            raise NotFoundError(f"Campaign with name **{campaign_id}** not found.")
+            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_id)
+
         return campaign.players
 
     async def update_campaign_state(self, campaign_id: int, state: str) -> Campaign:
@@ -87,7 +91,8 @@ class CampaignManager:
         """
         campaign = await self.session.get(Campaign, campaign_id)
         if not campaign:
-            raise NotFoundError(f"Campaign with name **{campaign_id}** not found.")
+            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_id)
+        
         campaign.state = state
         self.session.add(campaign)
         await self.session.commit()

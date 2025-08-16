@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 
 from packages.backend.components.server_manager import ServerSettingsManager
 from packages.backend.main import app
-from packages.shared.error_handler import NotFoundError
+from packages.shared.exceptions import NotFoundError
 from packages.shared.models import Server
 
 

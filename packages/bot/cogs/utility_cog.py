@@ -1,12 +1,8 @@
 import discord
 from discord.ext import commands
 
-from packages.shared.error_handler import (
-    AIAPIError,
-    NotFoundError,
-    ValidationError,
-    discord_error_handler,
-)
+from packages.shared.error_handler import discord_error_handler
+from packages.shared.exceptions import AIAPIError, NotFoundError, ValidationError
 
 # Message constants for maintainability
 ONBOARDING_MESSAGE = (

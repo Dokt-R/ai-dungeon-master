@@ -2,6 +2,8 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
+from packages.shared.errors import ErrorCode
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -18,10 +20,22 @@ async def test_validation_error_400(client):
     # Try to create the same campaign again to trigger ValidationError
     response = await client.post("/campaigns/create", json=create_payload)
 
-    assert response.status_code == 400
-    assert "error" in response.json()
-    assert response.json()["error"]["code"] == "VALIDATION_ERROR"
-    assert "already exists" in response.json()["error"]["message"]
+    # Since we are triggering ValidationError by using a duplicate campaign we use error below
+    error = ErrorCode.DUPLICATE_CAMPAIGN_NAME
+    data = response.json()
+
+    assert response.status_code == error.status_code
+
+    # Structural checks
+    assert "error" in data
+    data = data["error"]
+
+    # Exact error code check
+    assert data["error_code"] == error.value
+
+    # Message check
+    # assert "already exists" in error["message"]
+    assert "Test Campaign" in data["message"]  # ensure campaign name is inserted
 
 
 async def test_not_found_error_404(client):
@@ -29,10 +43,17 @@ async def test_not_found_error_404(client):
     # Request a non-existent campaign to trigger NotFoundError
     response = await client.get("/campaigns/999999/players")
 
-    assert response.status_code == 404
-    assert "error" in response.json()
-    assert response.json()["error"]["code"] == "NOT_FOUND"
-    assert "not found" in response.json()["error"]["message"]
+    error = ErrorCode.CAMPAIGN_NOT_FOUND
+    data = response.json()
+
+    assert response.status_code == error.status_code
+
+    # Structural checks
+    assert "error" in data
+    data = data["error"]
+
+    # Exact error code check
+    assert data["error_code"] == error.value
 
 
 async def test_pydantic_validation_error_422(client):
@@ -48,7 +69,9 @@ async def test_pydantic_validation_error_422(client):
         },
     )
 
-    assert response.status_code == 422
+    error = ErrorCode.INVALID_INPUT
+
+    assert response.status_code == error.status_code
     assert "detail" in response.json()
     # Check that the response contains validation error details
     assert len(response.json()["detail"]) > 0
@@ -60,7 +83,7 @@ async def test_ai_api_error_502(client, monkeypatch):
     # To properly test the AIAPIError, we'll add a temporary endpoint to the app
     # that raises this specific exception. This is a common pattern for testing
     # exception handlers in FastAPI.
-    from packages.shared.error_handler import AIAPIError
+    from packages.shared.exceptions import AIAPIError
 
     test_app = FastAPI()
 

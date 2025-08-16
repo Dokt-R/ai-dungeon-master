@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from packages.shared.db import get_async_session
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Character, Player
 
 
@@ -28,16 +29,17 @@ class CharacterManager:
         """
         player = await self.session.get(Player, player_id)
         if not player:
-            raise NotFoundError(f"Player with id '{player_id}' does not exist.")
+            raise NotFoundError(ErrorCode.PLAYER_NOT_FOUND, player_id=player_id)
 
         statement = select(Character).where(
             Character.player_id == player_id, Character.name == name
         )
         result = await self.session.execute(statement)
         if result.scalars().first():
-            raise ValidationError(
-                f"Character with name '{name}' already exists for player '{player_id}'."
-            )
+            raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=name, details={"player": player_id,
+                                                                                     "name": name,
+                                                                                     "character_url": character_url
+                                                                                     }) #! Test and implement in all errors
 
         new_character = Character(
             player_id=player_id, name=name, character_url=character_url
@@ -57,13 +59,11 @@ class CharacterManager:
         Update character data by character_id.
         """
         if name is None and character_url is None:
-            raise ValidationError(
-                "At least one of name or character_url must be provided."
-            )
+            raise ValidationError(ErrorCode.CHARACTER_EMPTY_FIELDS)
 
         character = await self.session.get(Character, character_id)
         if not character:
-            raise NotFoundError(f"Character with id '{character_id}' does not exist.")
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND, character_id=character_id)
 
         if name is not None:
             statement = (
@@ -74,9 +74,7 @@ class CharacterManager:
             )
             result = await self.session.execute(statement)
             if result.scalars().first():
-                raise ValidationError(
-                    f"Character with name '{name}' already exists for this player."
-                )
+                raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=name)
             character.name = name
 
         if character_url is not None:
@@ -96,7 +94,8 @@ class CharacterManager:
             await self.session.delete(character)
             await self.session.commit()
             return True
-        return False
+        else:
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND, character_id=character_id)
 
     async def get_characters_for_player(self, player_id: str) -> List[Character]:
         """

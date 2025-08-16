@@ -335,7 +335,7 @@ class TestPlayersEndCampaign(BaseTestData):
             "player_id": self.player_id,
         }
         resp = await client.post("/players/end_campaign", json=payload)
-        assert resp.status_code == 400
+        assert resp.status_code == 404
 
         # DB: There should be no CampaignPlayers row for this player/campaign
         statement = (

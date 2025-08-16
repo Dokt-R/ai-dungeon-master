@@ -9,7 +9,7 @@ from discord.ext import commands
 
 from packages.bot.cogs import campaign_cog
 from packages.bot.cogs.campaign_cog import CampaignCog
-from packages.shared.error_handler import NotFoundError, ValidationError
+from packages.shared.exceptions import NotFoundError, ValidationError
 
 sys.modules["packages.backend.components.campaign_manager"] = mock.MagicMock()
 

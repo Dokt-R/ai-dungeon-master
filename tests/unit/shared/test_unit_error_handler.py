@@ -3,12 +3,12 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from packages.shared.error_handler import (
+from packages.shared.error_handler import discord_error_handler
+from packages.shared.exceptions import (
     AIAPIError,
     CustomException,
     NotFoundError,
     ValidationError,
-    discord_error_handler,
 )
 
 
@@ -26,7 +26,7 @@ def test_custom_exception_creation():
     assert str(exc) == "Test message"
     assert exc.message == "Test message"
     assert exc.error_code is None  # Default value for CustomException
-    assert exc.details is None
+    assert exc.details is not None
 
 
 def test_validation_error_creation():
@@ -44,8 +44,8 @@ def test_validation_error_creation():
     exc = ValidationError("Validation failed")
     assert str(exc) == "Validation failed"
     assert exc.message == "Validation failed"
-    assert exc.error_code == "VALIDATION_ERROR"  # Default value
-    assert exc.details is None
+    assert exc.error_code == "VALIDATION_ERROR"
+    assert exc.details is not None
 
 
 def test_not_found_error_creation():
@@ -62,7 +62,7 @@ def test_not_found_error_creation():
     assert str(exc) == "Resource not found"
     assert exc.message == "Resource not found"
     assert exc.error_code == "NOT_FOUND"  # Default value
-    assert exc.details is None
+    assert exc.details is not None
 
 
 def test_ai_api_error_creation():
@@ -79,7 +79,7 @@ def test_ai_api_error_creation():
     assert str(exc) == "AI API call failed"
     assert exc.message == "AI API call failed"
     assert exc.error_code == "AI_API_ERROR"  # Default value
-    assert exc.details is None
+    assert exc.details is not None
 
 
 @pytest.mark.asyncio
