@@ -8,6 +8,7 @@ from packages.shared.exceptions import NotFoundError, ValidationError
 
 pytestmark = pytest.mark.skip(reason="Edge cases that need fixing to run properly")
 
+
 @pytest.fixture
 def bot():
     return MagicMock()
@@ -27,7 +28,7 @@ async def test_campaign_create_duplicate(cog):
     interaction.user.id = 123
     interaction.guild.id = 456
     campaign_name = "existing_campaign"
-    
+
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_response = MagicMock()
         mock_response.status_code = 400
@@ -52,13 +53,11 @@ async def test_campaign_join_nonexistent(cog):
     interaction.user.id = 123
     interaction.guild.id = 456
     campaign_name = "nonexistent_campaign"
-    
+
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_response = MagicMock()
         mock_response.status_code = 404
-        mock_response.json = AsyncMock(
-            return_value={"detail": "Campaign not found"}
-        )
+        mock_response.json = AsyncMock(return_value={"detail": "Campaign not found"})
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not Found", request=MagicMock(), response=mock_response
         )
@@ -76,7 +75,7 @@ async def test_campaign_continue_no_active(cog):
     interaction = AsyncMock()
     interaction.user.id = 123
     interaction.guild.id = 456
-    
+
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_response = MagicMock()
         mock_response.status_code = 404
@@ -101,7 +100,7 @@ async def test_campaign_delete_active(cog):
     interaction.user.guild_permissions.administrator = True
     interaction.guild.id = 456
     campaign_name = "active_campaign"
-    
+
     # Mock the button callback
     async def mock_callback(interaction: AsyncMock):
         await interaction.response.defer(ephemeral=True)
@@ -137,13 +136,11 @@ async def test_campaign_info_invalid_id(cog):
     interaction = AsyncMock()
     campaign_name = "invalid_id"
     interaction.guild.id = "server123"
-    
+
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         mock_response = MagicMock()
         mock_response.status_code = 400
-        mock_response.json = AsyncMock(
-            return_value={"detail": "Invalid campaign ID"}
-        )
+        mock_response.json = AsyncMock(return_value={"detail": "Invalid campaign ID"})
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Bad Request", request=MagicMock(), response=mock_response
         )
@@ -162,13 +159,16 @@ async def test_discord_generic_exception_fallback(cog):
     interaction.user.id = 123
     interaction.guild.id = 456
     campaign_name = "test_campaign"
-    
+
     # Test with _handle_campaign_new
     with patch("httpx.AsyncClient.post", side_effect=Exception("Generic error")):
         # Since the decorator handles the exception, we check the message sent
         await cog._handle_campaign_new(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
-        assert "An unexpected error occurred. Please contact an administrator." in interaction.response.send_message.call_args[0][0]
+        assert (
+            "An unexpected error occurred. Please contact an administrator."
+            in interaction.response.send_message.call_args[0][0]
+        )
 
 
 @pytest.mark.asyncio
@@ -178,7 +178,7 @@ async def test_campaign_join_user_already_joined(cog):
     interaction.user.id = 123
     interaction.guild.id = 456
     campaign_name = "existing_campaign"
-    
+
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
         mock_response = MagicMock()
         mock_response.status_code = 400

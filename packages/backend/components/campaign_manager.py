@@ -36,7 +36,15 @@ class CampaignManager:
         )
         result = await self.session.execute(statement)
         if result.scalars().first():
-            raise ValidationError(ErrorCode.DUPLICATE_CAMPAIGN_NAME, campaign=campaign_name)
+            raise ValidationError(
+                ErrorCode.DUPLICATE_CAMPAIGN_NAME,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "campaign_name": campaign_name,
+                    "owner_id": owner_id,
+                },
+            )
 
         new_campaign = Campaign(
             server_id=server_id, campaign_name=campaign_name, owner_id=owner_id
@@ -66,10 +74,28 @@ class CampaignManager:
         """
         campaign = await self.get_campaign(server_id, campaign_name)
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "campaign_name": campaign_name,
+                    "requester_id": requester_id,
+                    "is_admin": is_admin,
+                },
+            )
 
         if not (is_admin or requester_id == campaign.owner_id):
-            raise PermissionDeniedError(ErrorCode.PERMISSION_DENIED_ERROR)
+            raise PermissionDeniedError(
+                ErrorCode.PERMISSION_DENIED_ERROR,
+                details={
+                    "server_id": server_id,
+                    "campaign_name": campaign_name,
+                    "requester_id": requester_id,
+                    "is_admin": is_admin,
+                    "owner_id": campaign.owner_id,
+                },
+            )
 
         await self.session.delete(campaign)
         await self.session.commit()
@@ -81,7 +107,11 @@ class CampaignManager:
         """
         campaign = await self.session.get(Campaign, campaign_id)
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_id)
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_id,
+                details={"campaign_id": campaign_id},
+            )
 
         return campaign.players
 
@@ -91,8 +121,12 @@ class CampaignManager:
         """
         campaign = await self.session.get(Campaign, campaign_id)
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_id)
-        
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_id,
+                details={"campaign_id": campaign_id, "state": state},
+            )
+
         campaign.state = state
         self.session.add(campaign)
         await self.session.commit()

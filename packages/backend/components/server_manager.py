@@ -23,7 +23,7 @@ class ServerSettingsManager:
     async def store_server_config(self, config: Server) -> None:
         """Store or update the server configuration, including the encrypted API key."""
         if not config.api_key.get_secret_value():
-            raise ValidationError(ErrorCode.INVALID_INPUT)
+            raise ValidationError(ErrorCode.EMPTY_API_KEY)
 
         encrypted_key = self._encrypt(config.api_key.get_secret_value())
 

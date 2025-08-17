@@ -29,7 +29,9 @@ class CustomException(Exception):
         self.status_code: int = internal_error.status_code
         self.details: Optional[Dict[str, Any]] = kwargs.get("details") or {}
 
+
 # ===== Specific Subclasses =====
+
 
 class ValidationError(CustomException):
     def __init__(self, error_code: ErrorCode = ErrorCode.VALIDATION_ERROR, **kwargs):
@@ -45,6 +47,9 @@ class AIAPIError(CustomException):
     def __init__(self, error_code: ErrorCode = ErrorCode.AI_API_ERROR, **kwargs):
         super().__init__(error_code, **kwargs)
 
+
 class PermissionDeniedError(CustomException):
-    def __init__(self, error_code: ErrorCode = ErrorCode.PERMISSION_DENIED_ERROR, **kwargs):
+    def __init__(
+        self, error_code: ErrorCode = ErrorCode.PERMISSION_DENIED_ERROR, **kwargs
+    ):
         super().__init__(error_code, **kwargs)

@@ -6,6 +6,7 @@ from httpx import ASGITransport, AsyncClient
 
 from packages.backend.components.character_manager import CharacterManager
 from packages.backend.main import app
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Character
 
@@ -72,9 +73,8 @@ class TestCharacterAPI(BaseTestData):
         self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
-        mock_character_manager.add_character.side_effect = NotFoundError(
-            "Player does not exist"
-        )
+        error = ErrorCode.PLAYER_NOT_FOUND
+        mock_character_manager.add_character.side_effect = NotFoundError(error)
 
         # Act
         response = await client.post(
@@ -87,7 +87,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Assert
         assert response.status_code == 404
-        assert "Player does not exist" in response.text
+        assert error.message in response.text
 
     async def test_update_character(
         self, client: AsyncClient, mock_character_manager: AsyncMock
@@ -112,9 +112,8 @@ class TestCharacterAPI(BaseTestData):
         self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
-        mock_character_manager.update_character.side_effect = NotFoundError(
-            "Character does not exist"
-        )
+        error = ErrorCode.CHARACTER_NOT_FOUND
+        mock_character_manager.update_character.side_effect = NotFoundError(error)
 
         # Act
         response = await client.post(
@@ -123,25 +122,27 @@ class TestCharacterAPI(BaseTestData):
 
         # Assert
         assert response.status_code == 404
-        assert "Character does not exist" in response.text
+        assert error.message in response.text
 
     async def test_update_character_duplicate_name(
         self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
+        name = "ExistingName"
+        error = ErrorCode.DUPLICATE_CHARACTER
         mock_character_manager.update_character.side_effect = ValidationError(
-            "Name already exists"
+            error, name=name
         )
 
         # Act
         response = await client.post(
             "/characters/update",
-            json={"character_id": self.character_id, "name": "ExistingName"},
+            json={"character_id": self.character_id, "name": name},
         )
 
         # Assert
-        assert response.status_code == 400
-        assert "Name already exists" in response.text
+        assert response.status_code == error.status_code
+        assert name in response.text
 
     async def test_remove_character(
         self, client: AsyncClient, mock_character_manager: AsyncMock
@@ -165,14 +166,15 @@ class TestCharacterAPI(BaseTestData):
         self, client: AsyncClient, mock_character_manager: AsyncMock
     ):
         # Arrange
-        mock_character_manager.remove_character.return_value = False
+        error = ErrorCode.CHARACTER_NOT_FOUND
+        mock_character_manager.remove_character.side_effect = NotFoundError(error)
 
         # Act
         response = await client.post("/characters/remove", json={"character_id": 999})
 
         # Assert
         assert response.status_code == 404
-        assert "Character not found" in response.text
+        assert error.message in response.text
 
     async def test_list_characters(
         self, client: AsyncClient, mock_character_manager: AsyncMock

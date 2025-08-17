@@ -78,7 +78,7 @@ async def test_update_character_not_found(client, player_id):
     resp = await client.post(
         "/characters/update", json={"character_id": 99999, "name": "NewName"}
     )
-    error  = ErrorCode.CHARACTER_NOT_FOUND
+    error = ErrorCode.CHARACTER_NOT_FOUND
     assert resp.status_code == error.status_code
     print(error)
     assert error.error_code in resp.text
@@ -95,7 +95,7 @@ async def test_update_character_duplicate_name(client, player_id):
     resp = await client.post(
         "/characters/update", json={"character_id": char2_id, "name": "Char1"}
     )
-    error  = ErrorCode.DUPLICATE_CHARACTER
+    error = ErrorCode.DUPLICATE_CHARACTER
     assert resp.status_code == error.status_code
     assert error.error_code in resp.text
 
@@ -107,7 +107,7 @@ async def test_add_duplicate_character(client, player_id):
     resp = await client.post(
         "/characters/add", json={"player_id": player_id, "name": "DupChar"}
     )
-    error  = ErrorCode.DUPLICATE_CHARACTER
+    error = ErrorCode.DUPLICATE_CHARACTER
     assert resp.status_code == error.status_code
     assert error.error_code in resp.text
 

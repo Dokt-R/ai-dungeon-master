@@ -49,7 +49,9 @@ async def custom_exception_handler(request: Request, exc: CustomException):
         status_code=exc.status_code,
         content={
             "error": {
-                "error_code": exc.error_code.value if hasattr(exc.error_code, "value") else str(exc.error_code),
+                "error_code": exc.error_code.value
+                if hasattr(exc.error_code, "value")
+                else str(exc.error_code),
                 "message": exc.message,
                 "details": dict(exc.details),  # ensure it's JSON serializable
             }
@@ -85,4 +87,3 @@ async def generic_exception_handler(request: Request, exc: Exception):
             }
         },
     )
-

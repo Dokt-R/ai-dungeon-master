@@ -98,6 +98,7 @@ class ServerConfigModel(BaseModel):
     api_key: SecretStr = PydanticField(
         ...,
         description="LLM API key used to authenticate with the backend",
+        min_length=1,
     )
     dm_roll_visibility: Literal[
         "public",

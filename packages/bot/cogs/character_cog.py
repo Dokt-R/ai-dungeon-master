@@ -30,7 +30,7 @@ class CharacterCog(commands.Cog):
         await self._handle_character_add(interaction, name)
 
     async def _handle_character_add(
-            self, interaction: discord.Interaction, name: str, character_url: str = None
+        self, interaction: discord.Interaction, name: str, character_url: str = None
     ):
         """Add a new character for the user."""
         payload = {
@@ -75,7 +75,7 @@ class CharacterCog(commands.Cog):
         character_url: str = None,
     ):
         await self._handle_update(interaction, character_id, name, character_url)
-    
+
     async def _handle_update(
         self,
         interaction: discord.Interaction,
@@ -126,7 +126,9 @@ class CharacterCog(commands.Cog):
     async def remove(self, interaction: discord.Interaction, character_id: int):
         await self._handle_character_remove(interaction, character_id)
 
-    async def _handle_character_remove(self, interaction: discord.Interaction, character_id: int):
+    async def _handle_character_remove(
+        self, interaction: discord.Interaction, character_id: int
+    ):
         """Remove a character."""
         payload = {
             "character_id": character_id,

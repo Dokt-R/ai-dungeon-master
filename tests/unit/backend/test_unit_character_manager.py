@@ -167,11 +167,8 @@ class TestRemoveCharacter:
         # Arrange
         mock_session.get.return_value = None
 
-        # Act
-        result = await character_manager.remove_character(9999)
-
-        # Assert
-        assert result is False
+        with pytest.raises(NotFoundError):
+            await character_manager.remove_character(9999)
 
 
 @pytest.mark.asyncio

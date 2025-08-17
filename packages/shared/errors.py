@@ -95,7 +95,7 @@ ERRORS: Dict[str, ErrorDef] = {
     ErrorCode.EMPTY_API_KEY: ErrorDef(
         ErrorCode.EMPTY_API_KEY,
         "API key is required and must be a non-empty string.",
-        HTTPStatus.NOT_FOUND,
+        HTTPStatus.BAD_REQUEST,
     ),
     # Campaign
     ErrorCode.CAMPAIGN_NOT_FOUND: ErrorDef(
@@ -126,7 +126,7 @@ ERRORS: Dict[str, ErrorDef] = {
     ),
     ErrorCode.CHARACTER_NOT_FOUND: ErrorDef(
         ErrorCode.CHARACTER_NOT_FOUND,
-        "Character with id {character_id} cannot be found.",
+        "Character not found.",
         HTTPStatus.NOT_FOUND,
     ),
     ErrorCode.ACTIVE_CHARACTERS: ErrorDef(
@@ -137,7 +137,7 @@ ERRORS: Dict[str, ErrorDef] = {
     # Player
     ErrorCode.PLAYER_NOT_FOUND: ErrorDef(
         ErrorCode.PLAYER_NOT_FOUND,
-        "Player with id '{player_id}' not found.",
+        "Player not found.",
         HTTPStatus.NOT_FOUND,
     ),
     ErrorCode.PLAYER_HAS_NO_CHARACTERS: ErrorDef(
@@ -162,9 +162,9 @@ ERRORS: Dict[str, ErrorDef] = {
     ),
     ErrorCode.PLAYER_NOT_IN_CMD: ErrorDef(
         ErrorCode.PLAYER_NOT_IN_CMD,
-        """Player is already in a campaign.\n
-                    Please user /campaign end to enter command mode\n
-                    or specify a different campaign to join""",
+        "Player is already in a campaign.\n"
+        "Please use /campaign end to enter command mode\n"
+        "or specify a different campaign to join",
         HTTPStatus.BAD_REQUEST,
     ),
     ErrorCode.PLAYER_ALREADY_IN_CMD: ErrorDef(
@@ -213,7 +213,7 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     # Character
     ErrorCode.DUPLICATE_CHARACTER: PlayerErrorDef(
         ErrorCode.DUPLICATE_CHARACTER,
-        "You already have a character named '{name}' already exists for this player.",
+        "You already have a character named '{name}'.",
     ),
     ErrorCode.CHARACTER_EMPTY_FIELDS: PlayerErrorDef(
         ErrorCode.CHARACTER_EMPTY_FIELDS,
@@ -229,7 +229,7 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     ),
     # Player
     ErrorCode.PLAYER_NOT_FOUND: PlayerErrorDef(
-        ErrorCode.PLAYER_NOT_FOUND, "Player with id '{player_id}' not found."
+        ErrorCode.PLAYER_NOT_FOUND, "Player not found."
     ),
     ErrorCode.PLAYER_HAS_NO_CHARACTERS: PlayerErrorDef(
         ErrorCode.PLAYER_HAS_NO_CHARACTERS,
@@ -248,9 +248,7 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     ),
     ErrorCode.PLAYER_NOT_IN_CMD: PlayerErrorDef(
         ErrorCode.PLAYER_NOT_IN_CMD,
-        """Player is already in a campaign.\n
-                    Please user /campaign end to enter command mode\n
-                    or specify a different campaign to join""",
+        "Player is already in a campaign. Use /campaign end to enter command mode or join a different campaign.",
     ),
     ErrorCode.PLAYER_ALREADY_IN_CMD: PlayerErrorDef(
         ErrorCode.PLAYER_ALREADY_IN_CMD, "You are already in command mode"

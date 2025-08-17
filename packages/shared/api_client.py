@@ -3,18 +3,20 @@ Thin async API client for AI Dungeon Master backend.
 Uses centralized route definitions and shared models.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
 import httpx
-from packages.shared.routes import ROUTES
+
 from packages.shared.models import (
-    ServerConfigModel,
-    Server,
     AddCharacterRequest,
-    UpdateCharacterRequest,
-    RemoveCharacterRequest,
     ListCharactersRequest,
     # Add other models as needed
+    RemoveCharacterRequest,
+    ServerConfigModel,
+    UpdateCharacterRequest,
 )
+from packages.shared.routes import ROUTES
+
 
 class ApiClient:
     def __init__(self, base_url: str, timeout: float = 10.0):
@@ -26,7 +28,9 @@ class ApiClient:
         await self.client.aclose()
 
     # Server Config
-    async def set_server_config(self, server_id: str, config: ServerConfigModel) -> Dict[str, Any]:
+    async def set_server_config(
+        self, server_id: str, config: ServerConfigModel
+    ) -> Dict[str, Any]:
         url = ROUTES.server_config(server_id)
         resp = await self.client.put(url, json=config.dict())
         resp.raise_for_status()
@@ -45,7 +49,9 @@ class ApiClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def get_campaign_details(self, server_id: str, campaign_name: str) -> Dict[str, Any]:
+    async def get_campaign_details(
+        self, server_id: str, campaign_name: str
+    ) -> Dict[str, Any]:
         url = ROUTES.campaign_details(server_id, campaign_name)
         resp = await self.client.get(url)
         resp.raise_for_status()
@@ -57,13 +63,17 @@ class ApiClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def update_campaign_state(self, campaign_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_campaign_state(
+        self, campaign_id: int, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         url = ROUTES.campaign_state_update(campaign_id)
         resp = await self.client.put(url, json=data)
         resp.raise_for_status()
         return resp.json()
 
-    async def submit_campaign_action(self, campaign_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def submit_campaign_action(
+        self, campaign_id: int, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         url = ROUTES.campaign_action(campaign_id)
         resp = await self.client.post(url, json=data)
         resp.raise_for_status()
@@ -76,7 +86,9 @@ class ApiClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def add_character(self, req: AddCharacterRequest, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_character(
+        self, req: AddCharacterRequest, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         url = ROUTES.character_add()
         resp = await self.client.post(url, json=req.dict())
         resp.raise_for_status()
@@ -124,6 +136,7 @@ class ApiClient:
         resp = await self.client.get(url)
         resp.raise_for_status()
         return resp.json()
+
 
 # Example usage:
 # import asyncio

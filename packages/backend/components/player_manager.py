@@ -56,7 +56,14 @@ class PlayerManager:
 
         if not campaign_name:
             if not player.last_active_campaign:
-                raise NotFoundError(ErrorCode.NO_LAST_ACTIVE_CAMPAIGN)
+                raise NotFoundError(
+                    ErrorCode.NO_LAST_ACTIVE_CAMPAIGN,
+                    details={
+                        "server_id": server_id,
+                        "player_id": player_id,
+                        "username": username,
+                    },
+                )
             campaign_name = player.last_active_campaign
 
         statement = select(Campaign).where(
@@ -65,7 +72,16 @@ class PlayerManager:
         result = await self.session.execute(statement)
         campaign = result.scalars().first()
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "player_id": player_id,
+                    "username": username,
+                    "campaign_name": campaign_name,
+                },
+            )
 
         # Check if already joined
         statement = (
@@ -78,7 +94,15 @@ class PlayerManager:
         result = await self.session.execute(statement)
         if result.scalars().first():
             if campaign_name == player.last_active_campaign:
-                raise ValidationError(ErrorCode.PLAYER_NOT_IN_CMD)
+                raise ValidationError(
+                    ErrorCode.PLAYER_NOT_IN_CMD,
+                    details={
+                        "server_id": server_id,
+                        "player_id": player_id,
+                        "username": username,
+                        "campaign_name": campaign_name,
+                    },
+                )
 
         character = None
         if character_name:
@@ -99,9 +123,18 @@ class PlayerManager:
             result = await self.session.execute(statement)
             characters = result.scalars().all()
             if len(characters) > 1:
-                raise ValidationError(ErrorCode.PLAYER_HAS_MULTIPLE_CHARACTERS)
+                raise ValidationError(
+                    ErrorCode.PLAYER_HAS_MULTIPLE_CHARACTERS,
+                    details={
+                        "player_id": player_id,
+                        "character_count": len(characters),
+                    },
+                )
             if not characters:
-                raise NotFoundError(ErrorCode.PLAYER_HAS_NO_CHARACTERS)
+                raise NotFoundError(
+                    ErrorCode.PLAYER_HAS_NO_CHARACTERS,
+                    details={"player_id": player_id},
+                )
             character = characters[0]
 
         link = CampaignPlayerLink(
@@ -141,11 +174,20 @@ class PlayerManager:
         """
         player = await self.session.get(Player, player_id)
         if not player:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_FOUND, player_id=player_id)
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_FOUND,
+                details={
+                    "server_id": server_id,
+                    "player_id": player_id,
+                    "campaign_name": campaign_name,
+                },
+            )
 
         if not campaign_name:
             if not player.last_active_campaign:
-                raise NotFoundError(ErrorCode.PLAYER_HAS_NO_CAMPAIGNS)
+                raise NotFoundError(
+                    ErrorCode.PLAYER_HAS_NO_CAMPAIGNS, details={"player_id": player_id}
+                )
             campaign_name = player.last_active_campaign
 
         # Get the campaign
@@ -155,7 +197,15 @@ class PlayerManager:
         result = await self.session.execute(statement)
         campaign = result.scalars().first()
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "campaign_name": campaign_name,
+                    "player_id": player_id,
+                },
+            )
 
         # Get the link between player and campaign
         link_stmt = select(CampaignPlayerLink).where(
@@ -165,7 +215,10 @@ class PlayerManager:
         result = await self.session.execute(link_stmt)
         link = result.scalars().first()
         if not link:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_IN_CAMPAIGN)
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_IN_CAMPAIGN,
+                details={"player_id": player_id, "campaign_id": campaign.campaign_id},
+            )
 
         # Delete the link
         await self.session.delete(link)
@@ -190,11 +243,16 @@ class PlayerManager:
         """
         player = await self.session.get(Player, player_id)
         if not player:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_FOUND, player_id=player_id)
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_FOUND,
+                details={"server_id": server_id, "player_id": player_id},
+            )
 
         if not campaign_name:
             if not player.last_active_campaign:
-                raise NotFoundError(ErrorCode.NO_LAST_ACTIVE_CAMPAIGN)
+                raise NotFoundError(
+                    ErrorCode.NO_LAST_ACTIVE_CAMPAIGN, details={"player_id": player_id}
+                )
 
             campaign_name = player.last_active_campaign
 
@@ -205,7 +263,15 @@ class PlayerManager:
         campaign = result.scalars().first()
 
         if not campaign:
-            raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "player_id": player_id,
+                    "campaign_name": campaign_name,
+                },
+            )
 
         statement = (
             select(CampaignPlayerLink)
@@ -216,11 +282,15 @@ class PlayerManager:
         link = result.scalars().first()
 
         if not link:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_IN_CAMPAIGN
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_IN_CAMPAIGN,
+                details={"player_id": player_id, "campaign_id": campaign.campaign_id},
             )
 
         if player.player_status == "cmd":
-            raise ValidationError(ErrorCode.PLAYER_ALREADY_IN_CMD)
+            raise ValidationError(
+                ErrorCode.PLAYER_ALREADY_IN_CMD, details={"player_id": player_id}
+            )
 
         player.player_status = "cmd"
         self.session.add(player)
@@ -238,7 +308,9 @@ class PlayerManager:
         """
         player = await self.session.get(Player, player_id)
         if not player:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_FOUND, player_id=player_id)
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_FOUND, details={"player_id": player_id}
+            )
 
         return {
             "player_id": player.player_id,

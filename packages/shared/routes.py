@@ -3,6 +3,7 @@ from typing import Final
 
 API_PREFIX: Final = "/api/v1"
 
+
 class Routes:
     def __init__(self, prefix: str = API_PREFIX):
         self.prefix = prefix.rstrip("/")
@@ -67,5 +68,6 @@ class Routes:
 
     def players_status(self, player_id: str) -> str:
         return f"{self.players_base()}/status/{player_id}"
+
 
 ROUTES = Routes()

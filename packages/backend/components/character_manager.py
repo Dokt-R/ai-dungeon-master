@@ -29,17 +29,24 @@ class CharacterManager:
         """
         player = await self.session.get(Player, player_id)
         if not player:
-            raise NotFoundError(ErrorCode.PLAYER_NOT_FOUND, player_id=player_id)
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_FOUND, details={"player_id": player_id}
+            )
 
         statement = select(Character).where(
             Character.player_id == player_id, Character.name == name
         )
         result = await self.session.execute(statement)
         if result.scalars().first():
-            raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=name, details={"player": player_id,
-                                                                                     "name": name,
-                                                                                     "character_url": character_url
-                                                                                     }) #! Test and implement in all errors
+            raise ValidationError(
+                ErrorCode.DUPLICATE_CHARACTER,
+                name=name,
+                details={
+                    "player_id": player_id,
+                    "name": name,
+                    "character_url": character_url,
+                },
+            )
 
         new_character = Character(
             player_id=player_id, name=name, character_url=character_url
@@ -59,11 +66,21 @@ class CharacterManager:
         Update character data by character_id.
         """
         if name is None and character_url is None:
-            raise ValidationError(ErrorCode.CHARACTER_EMPTY_FIELDS)
+            raise ValidationError(
+                ErrorCode.CHARACTER_EMPTY_FIELDS,
+                details={
+                    "character_id": character_id,
+                    "name": name,
+                    "character_url": character_url,
+                },
+            )
 
         character = await self.session.get(Character, character_id)
         if not character:
-            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND, character_id=character_id)
+            raise NotFoundError(
+                ErrorCode.CHARACTER_NOT_FOUND,
+                details={"character_id": character_id},
+            )
 
         if name is not None:
             statement = (
@@ -74,7 +91,15 @@ class CharacterManager:
             )
             result = await self.session.execute(statement)
             if result.scalars().first():
-                raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=name)
+                raise ValidationError(
+                    ErrorCode.DUPLICATE_CHARACTER,
+                    name=name,
+                    details={
+                        "player_id": character.player_id,
+                        "name": name,
+                        "character_id": character_id,
+                    },
+                )
             character.name = name
 
         if character_url is not None:
@@ -90,12 +115,15 @@ class CharacterManager:
         Remove a character by character_id.
         """
         character = await self.session.get(Character, character_id)
-        if character:
-            await self.session.delete(character)
-            await self.session.commit()
-            return True
-        else:
-            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND, character_id=character_id)
+        if not character:
+            raise NotFoundError(
+                ErrorCode.CHARACTER_NOT_FOUND,
+                details={"character_id": character_id},
+            )
+
+        await self.session.delete(character)
+        await self.session.commit()
+        return True
 
     async def get_characters_for_player(self, player_id: str) -> List[Character]:
         """

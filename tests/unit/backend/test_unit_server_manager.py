@@ -6,6 +6,8 @@ from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.backend.components.server_manager import ServerSettingsManager
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import ValidationError
 from packages.shared.models import Server
 
 
@@ -80,7 +82,8 @@ async def test_store_empty_api_key(server_manager: ServerSettingsManager):
     )
 
     # Act & Assert
-    with pytest.raises(ValueError, match="API key must not be empty."):
+    error = ErrorCode.EMPTY_API_KEY
+    with pytest.raises(ValidationError, match=error.message):
         await server_manager.store_server_config(config)
 
 

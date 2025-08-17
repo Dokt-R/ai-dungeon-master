@@ -1,10 +1,6 @@
 from fastapi import APIRouter, Depends, Path
 
 from packages.backend.components.server_manager import ServerSettingsManager
-from packages.shared.errors import ErrorCode
-from packages.shared.exceptions import (
-    NotFoundError,
-)
 from packages.shared.models import Server, ServerConfigModel
 
 router = APIRouter()
@@ -23,12 +19,8 @@ async def set_server_config(
     The incoming data is a Pydantic `ServerConfigModel`.
     This is then used to create a `Server` SQLModel for the database.
     """
-    # The manager now handles the validation, but we can keep this for early exit
-    if not config.api_key.get_secret_value().strip():
-        raise NotFoundError(ErrorCode.EMPTY_API_KEY)
-
     # Create the database model from the API model
-    server_config_db = Server(
+    server_config = Server(
         server_id=server_id,
         api_key=config.api_key,
         dm_roll_visibility=config.dm_roll_visibility,
@@ -36,5 +28,5 @@ async def set_server_config(
         character_sheet_mode=config.character_sheet_mode,
     )
 
-    settings_manager.store_server_config(server_config_db)
+    await settings_manager.store_server_config(server_config)
     return {"message": "Server configuration updated successfully."}

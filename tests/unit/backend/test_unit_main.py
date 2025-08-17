@@ -91,7 +91,7 @@ async def test_set_server_config_validation_error(client: AsyncClient):
     response = await client.put("/servers/123/config", json=payload)
 
     # Assert
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio

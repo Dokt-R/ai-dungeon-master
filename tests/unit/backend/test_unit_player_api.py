@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from packages.backend.components.player_manager import PlayerManager
 from packages.backend.main import app
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError
 
 
@@ -88,9 +89,8 @@ class TestPlayersJoinCampaign(BaseTestData):
         self, client: TestClient, mock_player_manager: MagicMock
     ):
         # Arrange
-        mock_player_manager.join_campaign.side_effect = NotFoundError(
-            "Campaign not found"
-        )
+        error = ErrorCode.PLAYER_NOT_FOUND
+        mock_player_manager.join_campaign.side_effect = NotFoundError(error)
         payload = {
             "server_id": self.server_id,
             "campaign_name": "DoesNotExist",
@@ -102,7 +102,7 @@ class TestPlayersJoinCampaign(BaseTestData):
         resp = client.post("/players/join_campaign", json=payload)
 
         # Assert
-        assert resp.status_code == 404
+        assert resp.status_code == error.status_code
 
 
 class TestPlayersEndCampaign(BaseTestData):
@@ -188,10 +188,11 @@ class TestGetPlayer(BaseTestData):
         self, client: TestClient, mock_player_manager: MagicMock
     ):
         # Arrange
-        mock_player_manager.get_player.side_effect = NotFoundError("Player not found")
+        error = ErrorCode.PLAYER_NOT_FOUND
+        mock_player_manager.get_player.side_effect = NotFoundError(error)
 
         # Act
         resp = client.get("/players/status/nonexistent")
 
         # Assert
-        assert resp.status_code == 404
+        assert resp.status_code == error.status_code

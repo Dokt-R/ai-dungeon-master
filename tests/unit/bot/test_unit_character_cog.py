@@ -99,11 +99,15 @@ async def test_character_add_command_backend_error():
     with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 400
-        mock_response.json = AsyncMock(return_value={"message": "Failed to add character. Please try again later."})
+        mock_response.json = AsyncMock(
+            return_value={"message": "Failed to add character. Please try again later."}
+        )
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Bad Request", request=MagicMock(), response=mock_response
         )
-        mock_client.return_value.__aenter__.return_value.post.return_value = mock_response
+        mock_client.return_value.__aenter__.return_value.post.return_value = (
+            mock_response
+        )
 
         await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once_with(
@@ -142,7 +146,9 @@ async def test_character_remove_command_backend_error():
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not Found", request=MagicMock(), response=mock_response
         )
-        mock_client.return_value.__aenter__.return_value.post.return_value = mock_response
+        mock_client.return_value.__aenter__.return_value.post.return_value = (
+            mock_response
+        )
 
         await cog.remove.callback(cog, interaction, character_id=999)
         interaction.response.send_message.assert_awaited_once_with(

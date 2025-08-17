@@ -19,6 +19,7 @@ file
 todo.md
 notes.md
 htmlcov/
+*workspace*
 
 # Ignore logs and temp files
 *.log

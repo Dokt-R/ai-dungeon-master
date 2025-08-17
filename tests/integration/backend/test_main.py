@@ -62,15 +62,12 @@ async def test_set_server_config_validation_error(client):
         "character_sheet_mode": "digital_sheet",
     }
     response = await client.put("/servers/123/config", json=payload)
-    # Should now be 400 due to ValidationError
-    assert response.status_code == 404
-    assert "error" in response.json()
-    assert response.json()["error"]["error_code"] == "EMPTY_API_KEY"
+    # Should now be 422 due to Pydantic Field Validation
+    assert response.status_code == 422
 
 
 async def test_set_server_config_not_found(client, monkeypatch):
     def mock_store_server_config(server_api):
-
         raise NotFoundError(ErrorCode.EMPTY_API_KEY)
 
     monkeypatch.setattr(
@@ -84,6 +81,6 @@ async def test_set_server_config_not_found(client, monkeypatch):
         "character_sheet_mode": "digital_sheet",
     }
     response = await client.put("/servers/123/config", json=payload)
-    assert response.status_code == 404
+    assert response.status_code == 400
     assert "error" in response.json()
     assert response.json()["error"]["error_code"] == "EMPTY_API_KEY"

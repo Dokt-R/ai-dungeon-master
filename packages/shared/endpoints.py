@@ -1,7 +1,7 @@
 """
 Centralized API endpoint definitions for AI Dungeon Master backend.
 Auto-generated from docs/architecture/api-specification.md.
-! COULD BE REPLACED OR NOT USED AT ALL ! 
+! COULD BE REPLACED OR NOT USED AT ALL !
 """
 
 API_V1_PREFIX = "/api/v1"

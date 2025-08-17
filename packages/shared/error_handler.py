@@ -23,12 +23,14 @@ def _get_player_message(code: str, **kwargs) -> str:
     # Fallback — use internal message
     return ERRORS[code].message.format(**kwargs)
 
+
 # Example usage
 # try:
 #     ...
 # except GameException as e:
 #     player_msg = get_player_message(e.code, **e.details)
 #     await discord_channel.send(player_msg)
+
 
 def discord_error_handler(
     fallback_message="An unexpected error occurred. Please contact an administrator.",
@@ -43,7 +45,12 @@ def discord_error_handler(
         async def wrapper(self, interaction, *args, **kwargs):
             try:
                 await func(self, interaction, *args, **kwargs)
-            except (ValidationError, NotFoundError, AIAPIError, PermissionDeniedError) as exc:
+            except (
+                ValidationError,
+                NotFoundError,
+                AIAPIError,
+                PermissionDeniedError,
+            ) as exc:
                 # Log custom exceptions with their structured data and stack trace
                 logger.warning(
                     f"{type(exc).__name__} occurred: {exc.message} "
