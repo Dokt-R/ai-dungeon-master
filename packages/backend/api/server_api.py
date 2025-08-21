@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter, Body, Depends, Path
 
 from packages.backend.components.server_manager import ServerSettingsManager
 from packages.shared.models import Server, ServerConfigModel
@@ -11,7 +11,7 @@ router = APIRouter()
 )
 async def set_server_config(
     server_id: str = Path(..., description="The Discord server ID"),
-    config: ServerConfigModel = ...,
+    config: ServerConfigModel = Body(...),
     settings_manager: ServerSettingsManager = Depends(),
 ):
     """

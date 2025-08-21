@@ -4,9 +4,9 @@ Provides the same interface as ApiClient but with controllable responses.
 """
 
 from typing import Any, Dict, List
-from unittest.mock import AsyncMock
 
-from packages.shared.exceptions import CustomException, NotFoundError, ValidationError
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import (
     AddCharacterRequest,
     ListCharactersRequest,
@@ -91,7 +91,7 @@ class MockApiClient:
             return override
             
         if character_id not in self.characters:
-            raise NotFoundError("CHARACTER_NOT_FOUND")
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
         return self.characters[character_id]
 
     async def add_character(self, req: AddCharacterRequest) -> Dict[str, Any]:
@@ -104,7 +104,7 @@ class MockApiClient:
         # Check for duplicate names
         for char in self.characters.values():
             if char['name'] == req.name and char['player_id'] == req.player_id:
-                raise ValidationError("DUPLICATE_CHARACTER", name=req.name)
+                raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=req.name)
         
         character_id = len(self.characters) + 1
         character_data = {
@@ -125,7 +125,7 @@ class MockApiClient:
             
         character_id = str(req.character_id)
         if character_id not in self.characters:
-            raise NotFoundError("CHARACTER_NOT_FOUND")
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
             
         character = self.characters[character_id]
         if req.name is not None:
@@ -144,7 +144,7 @@ class MockApiClient:
             
         character_id = str(req.character_id)
         if character_id not in self.characters:
-            raise NotFoundError("CHARACTER_NOT_FOUND")
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
             
         del self.characters[character_id]
         return {"message": "Character removed successfully"}
@@ -200,7 +200,7 @@ class MockApiClient:
         for campaign in self.campaigns.values():
             if campaign.get('server_id') == server_id and campaign.get('campaign_name') == campaign_name:
                 return campaign
-        raise NotFoundError("CAMPAIGN_NOT_FOUND", campaign=campaign_name)
+        raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
 
     async def get_campaign_players(self, campaign_id: int) -> List[Dict[str, Any]]:
         """Mock get campaign players."""

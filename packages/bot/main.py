@@ -16,7 +16,7 @@ configure_logging()
 
 # Create logger instance
 logger = get_logger(__name__)
-        
+
 intents = discord.Intents.default()
 intents.messages = True
 intents.guilds = True
@@ -25,12 +25,15 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="/", intents=intents)
 
+
 @bot.event
 async def on_ready():
     with correlation_id_context():
         logger.info("Bot logged in", bot_user=str(bot.user))
         try:
-            synced = await bot.tree.sync() # For production global sync, commands take up to 1 hour to sync
+            synced = (
+                await bot.tree.sync()
+            )  # For production global sync, commands take up to 1 hour to sync
             logger.info("Commands synced", count=len(synced))
         except Exception as e:
             logger.error("Command sync failed", error=str(e))
@@ -53,26 +56,44 @@ async def on_ready():
                             for guild in bot.guilds:
                                 try:
                                     await guild.chunk()  # Ensure members are loaded
-                                    members = [member for member in guild.members if not member.bot]
-                                    logger.info(f"Syncing {len(members)} members from {guild.name}")
+                                    members = [
+                                        member
+                                        for member in guild.members
+                                        if not member.bot
+                                    ]
+                                    logger.info(
+                                        f"Syncing {len(members)} members from {guild.name}"
+                                    )
                                     for member in members:
                                         try:
-                                            await admin_cog._create_or_update_player(member)
+                                            await admin_cog._create_or_update_player(
+                                                member
+                                            )
                                         except Exception as e:
-                                            logger.error(f"Error syncing member {member.name}: {e}")
+                                            logger.error(
+                                                f"Error syncing member {member.name}: {e}"
+                                            )
                                 except Exception as e:
-                                    logger.error(f"Error syncing guild {guild.name}: {e}")
+                                    logger.error(
+                                        f"Error syncing guild {guild.name}: {e}"
+                                    )
 
                             # Start periodic sync
-                            admin_cog.sync_task = asyncio.create_task(admin_cog._periodic_sync())
+                            admin_cog.sync_task = asyncio.create_task(
+                                admin_cog._periodic_sync()
+                            )
                             logger.info("Started automatic periodic member sync")
                         else:
                             logger.warning("Backend not available, skipping sync start")
                     except Exception as health_error:
                         logger.error(f"Health check failed: {health_error}")
                         # Try to start periodic sync anyway, it will handle errors gracefully
-                        admin_cog.sync_task = asyncio.create_task(admin_cog._periodic_sync())
-                        logger.info("Started periodic sync despite health check failure")
+                        admin_cog.sync_task = asyncio.create_task(
+                            admin_cog._periodic_sync()
+                        )
+                        logger.info(
+                            "Started periodic sync despite health check failure"
+                        )
                 else:
                     logger.warning("AdminCog not found, cannot start sync")
             except Exception as e:
@@ -94,6 +115,7 @@ async def load_cogs():
 
 
 if __name__ == "__main__":
+
     async def main():
         await load_cogs()
         token = os.getenv("DISCORD_BOT_TOKEN")

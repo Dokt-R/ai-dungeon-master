@@ -35,7 +35,7 @@ class CustomException(Exception):
 
     def __str__(self):
         return f"{self.__class__.__name__}(error_code={self.error_code}, details={self.details})"
-        
+
 
 # ===== Specific Subclasses =====
 

@@ -28,9 +28,7 @@ class ApiClient:
         # Store limits for testing purposes
         self.limits = httpx.Limits(max_connections=10, max_keepalive_connections=5)
         self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            timeout=self.timeout,
-            limits=self.limits
+            base_url=self.base_url, timeout=self.timeout, limits=self.limits
         )
 
     # ---------------------------
@@ -38,7 +36,9 @@ class ApiClient:
     # ---------------------------
 
     def __enter__(self):
-        raise RuntimeError("ApiClient is async; use `async with ApiClient(...)` instead")
+        raise RuntimeError(
+            "ApiClient is async; use `async with ApiClient(...)` instead"
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # included to follow context manager protocol
@@ -55,7 +55,12 @@ class ApiClient:
     # ---------------------------
 
     async def _request(
-        self, method: str, path: str, *, headers: Optional[Dict[str, str]] = None, **kwargs
+        self,
+        method: str,
+        path: str,
+        *,
+        headers: Optional[Dict[str, str]] = None,
+        **kwargs,
     ) -> httpx.Response:
         """Internal request that attaches correlation id and returns httpx.Response."""
         headers = dict(headers or {})
@@ -65,7 +70,7 @@ class ApiClient:
 
         response = await self.client.request(method, path, headers=headers, **kwargs)
         return response
-    
+
     async def close(self):
         """Close the HTTP client and cleanup resources."""
         await self.client.aclose()
@@ -88,14 +93,18 @@ class ApiClient:
         # Parse error response
         try:
             data = response.json()
-            error_info = data.get('error', {})
-            error_code = error_info.get('error_code', 'UNKNOWN')  # Backend uses 'error_code', not 'code'
-            details = error_info.get('details', {})
+            error_info = data.get("error", {})
+            error_code = error_info.get(
+                "error_code", "UNKNOWN"
+            )  # Backend uses 'error_code', not 'code'
+            details = error_info.get("details", {})
         except Exception:
             # If we can't parse the error response, create a generic error
             error_code = ErrorCode.UNKNOWN
-            details = {'status_code': response.status_code, 'response_text': response.text}
-
+            details = {
+                "status_code": response.status_code,
+                "response_text": response.text,
+            }
 
         # Convert string error codes to ErrorCode enum if needed
         if isinstance(error_code, str):
@@ -104,7 +113,7 @@ class ApiClient:
             except ValueError:
                 # If the error code doesn't exist in our enum, use UNKNOWN
                 error_code = ErrorCode.UNKNOWN
-                details['original_error_code'] = error_code
+                details["original_error_code"] = error_code
 
         # Use the existing exception system which handles error code mapping
         raise CustomException(error_code, details=details)
@@ -118,7 +127,11 @@ class ApiClient:
     ) -> Dict[str, Any]:
         """Set server configuration."""
         url = f"/api/v1/servers/{server_id}/config"
-        resp = await self._request("PUT", url, json=config.model_dump() if hasattr(config, "model_dump") else config)
+        resp = await self._request(
+            "PUT",
+            url,
+            json=config.model_dump() if hasattr(config, "model_dump") else config,
+        )
         return await self._handle_response(resp)
 
     # ---------------------------
@@ -149,7 +162,8 @@ class ApiClient:
         """Get all players in a campaign."""
         url = f"/api/v1/campaigns/{campaign_id}/players"
         resp = await self._request("GET", url)
-        return await self._handle_response(resp)
+        handle_resp = await self._handle_response(resp)
+        return [handle_resp]
 
     async def update_campaign_state(
         self, campaign_id: int, data: Dict[str, Any]
@@ -248,7 +262,7 @@ class ApiClient:
 #
 # async def main():
 #     async with ApiClient(base_url="http://localhost:8000") as client:
-#         req = AddCharacterRequest(player_id="123", name="Aragorn", character_url=None)
+#         req = AddCharacterRequest(player_id="123", name="Warrior", character_url=None)
 #         result = await client.add_character(req)
 #         print(result)
 #

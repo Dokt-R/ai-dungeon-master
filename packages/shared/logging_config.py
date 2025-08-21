@@ -6,9 +6,9 @@ import structlog
 from dotenv import load_dotenv
 
 
-def configure_logging(level: str | int = "INFO",
-                      log_to_file: bool = False,
-                      path: str = "logs/app.log"):
+def configure_logging(
+    level: str | int = "INFO", log_to_file: bool = False, path: str = "logs/app.log"
+):
     """
     Centralized structlog configuration. Import and call this early in each process.
     Use LOG_FORMAT=json for production, or leave default for console-friendly output.
@@ -22,19 +22,23 @@ def configure_logging(level: str | int = "INFO",
     """
     load_dotenv()
 
-    log_level = level if isinstance(level, int) else getattr(logging, str(level).upper(), logging.INFO)
+    log_level = (
+        level
+        if isinstance(level, int)
+        else getattr(logging, str(level).upper(), logging.INFO)
+    )
 
     processors: List[Any] = [
-        structlog.processors.add_log_level,             # include log level
-        structlog.processors.TimeStamper(fmt="iso"),    # timestamp
+        structlog.processors.add_log_level,  # include log level
+        structlog.processors.TimeStamper(fmt="iso"),  # timestamp
         structlog.processors.StackInfoRenderer(),
-        structlog.contextvars.merge_contextvars,        # merge any bound contextvars into the event dict
+        structlog.contextvars.merge_contextvars,  # merge any bound contextvars into the event dict
     ]
 
     # Pretty human output in dev
     if os.getenv("LOG_FORMAT", "console") == "console":
         processors += [
-            structlog.dev.set_exc_info,              # show exception info nicely (dev)
+            structlog.dev.set_exc_info,  # show exception info nicely (dev)
             structlog.processors.ExceptionPrettyPrinter(),
             structlog.dev.ConsoleRenderer(),
         ]
@@ -58,12 +62,14 @@ def configure_logging(level: str | int = "INFO",
         processors=processors,
         wrapper_class=structlog.BoundLogger,
         context_class=dict,
-        logger_factory=structlog.stdlib.LoggerFactory(), # Use standard logger factory
+        logger_factory=structlog.stdlib.LoggerFactory(),  # Use standard logger factory
         cache_logger_on_first_use=False,
     )
 
+
 def get_logger(name: str | None = None):
     return structlog.get_logger(name)
+
 
 """
 Example usage:

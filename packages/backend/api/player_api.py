@@ -111,9 +111,8 @@ async def continue_campaign(
         NotFoundError: If the campaign or player does not exist.
     """
     result = await player_manager.continue_campaign(
-        player_id=req.player_id,
-        username=req.username
-            )
+        player_id=req.player_id, username=req.username
+    )
     return {"message": "Campaign joined successfully.", "result": result}
 
 

@@ -259,7 +259,8 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
         "You have multiple characters, please specify one to join with.",
     ),
     ErrorCode.PLAYER_HAS_NO_CAMPAIGNS: PlayerErrorDef(
-        ErrorCode.PLAYER_HAS_NO_CAMPAIGNS, "You do are not in any campaigns yet. Join one to be able to perform this action."
+        ErrorCode.PLAYER_HAS_NO_CAMPAIGNS,
+        "You do are not in any campaigns yet. Join one to be able to perform this action.",
     ),
     ErrorCode.PLAYER_NOT_IN_CAMPAIGN: PlayerErrorDef(
         ErrorCode.PLAYER_NOT_IN_CAMPAIGN,
@@ -278,10 +279,10 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
         "No non-bot members found in server. This might be due to:\n"
         "• Bot doesn't have 'Server Members Intent' enabled in Discord Developer Portal\n"
         "• Members haven't been loaded yet\n"
-        "• Server has no human members"
+        "• Server has no human members",
     ),
     ErrorCode.MEMBER_FETCH_ERROR: PlayerErrorDef(
         ErrorCode.MEMBER_FETCH_ERROR,
-        "Error fetching server members. Make sure the bot has 'Server Members Intent' enabled in Discord Developer Portal."
+        "Error fetching server members. Make sure the bot has 'Server Members Intent' enabled in Discord Developer Portal.",
     ),
 }

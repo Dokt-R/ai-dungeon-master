@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -6,18 +7,15 @@ from discord.ext import commands
 
 from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
-from packages.shared.errors import ErrorCode
-from packages.shared.exceptions import (
-    NotFoundError,
-    PermissionDeniedError,
-    ValidationError,
-)
+from packages.shared.exceptions import PermissionDeniedError
 
 
 class CampaignCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_client = ApiClient(base_url=os.getenv("FAST_API", "http://localhost:8000"))
+        self.api_client = ApiClient(
+            base_url=os.getenv("FAST_API", "http://localhost:8000")
+        )
 
     campaign = app_commands.Group(name="campaign", description="Manage campaigns")
 
@@ -34,20 +32,31 @@ class CampaignCog(commands.Cog):
         self, interaction: discord.Interaction, campaign_name: str
     ):
         # Permission check: Only allow users with Manage Server or Administrator
+        if not isinstance(interaction.user, discord.Member):
+            raise PermissionDeniedError(
+                details={"message": "This command must be used in a server."}
+            )
+
         if not (
             interaction.user.guild_permissions.administrator
             or interaction.user.guild_permissions.manage_guild
         ):
             raise PermissionDeniedError(
-                details={"message": "You do not have permission to create a campaign. (Requires Manage Server or Administrator role.)"}
+                details={
+                    "message": "You do not have permission to create a campaign. (Requires Manage Server or Administrator role.)"
+                }
             )
 
         # Call backend API to create campaign
-        await self.api_client.create_campaign({
-            "server_id": str(interaction.guild.id),
-            "campaign_name": campaign_name,
-            "owner_id": str(interaction.user.id),
-        })
+        await self.api_client.create_campaign(
+            {
+                "server_id": str(interaction.guild.id)
+                if interaction.guild
+                else "unknown",
+                "campaign_name": campaign_name,
+                "owner_id": str(interaction.user.id),
+            }
+        )
 
         await interaction.response.send_message(
             "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
@@ -69,12 +78,16 @@ class CampaignCog(commands.Cog):
         self, interaction: discord.Interaction, campaign_name: str
     ):
         # Call backend API to join campaign
-        await self.api_client.join_campaign({
-            "server_id": str(interaction.guild.id),
-            "campaign_name": campaign_name,
-            "player_id": str(interaction.user.id),
-        })
-        
+        await self.api_client.join_campaign(
+            {
+                "server_id": str(interaction.guild.id)
+                if interaction.guild
+                else "unknown",
+                "campaign_name": campaign_name,
+                "player_id": str(interaction.user.id),
+            }
+        )
+
         await interaction.response.send_message(
             "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
             f"You have joined campaign '{campaign_name}'!\n"
@@ -99,18 +112,18 @@ class CampaignCog(commands.Cog):
         await self._handle_campaign_end(interaction)
 
     async def _handle_campaign_end(
-        self, interaction: discord.Interaction, campaign_name: str = None
+        self, interaction: discord.Interaction, campaign_name: Optional[str] = None
     ):
         # Call backend API to end campaign
         payload = {
-            "server_id": str(interaction.guild.id),
+            "server_id": str(interaction.guild.id) if interaction.guild else "unknown",
             "player_id": str(interaction.user.id),
         }
         if campaign_name:
             payload["campaign_name"] = campaign_name
-            
+
         await self.api_client.end_campaign(payload)
-        
+
         await interaction.response.send_message(
             "**Exiting immersive mode. Progress has been saved. You are now in command mode.**\n",
             ephemeral=False,
@@ -127,6 +140,11 @@ class CampaignCog(commands.Cog):
     async def _handle_campaign_delete(
         self, interaction: discord.Interaction, name: str
     ):
+        if not isinstance(interaction.user, discord.Member):
+            raise PermissionDeniedError(
+                details={"message": "This command must be used in a server."}
+            )
+
         is_admin = (
             interaction.user.guild_permissions.administrator
             or interaction.user.guild_permissions.manage_guild
@@ -134,14 +152,22 @@ class CampaignCog(commands.Cog):
         button_callback = self._create_delete_confirmation_callback(name, is_admin)
 
         view = discord.ui.View()
-        confirm_button = discord.ui.Button(
+        confirm_button: discord.ui.Button = discord.ui.Button(
             label="Confirm", style=discord.ButtonStyle.danger, custom_id="confirm"
         )
-        cancel_button = discord.ui.Button(
+        cancel_button: discord.ui.Button = discord.ui.Button(
             label="Cancel", style=discord.ButtonStyle.grey, custom_id="cancel"
         )
-        confirm_button.callback = button_callback
-        cancel_button.callback = button_callback
+
+        # Create callback functions
+        async def confirm_callback(interaction: discord.Interaction):
+            await button_callback(interaction, "confirm")
+
+        async def cancel_callback(interaction: discord.Interaction):
+            await button_callback(interaction, "cancel")
+
+        confirm_button.callback = confirm_callback  # type: ignore[method-assign]
+        cancel_button.callback = cancel_callback  # type: ignore[method-assign]
         view.add_item(confirm_button)
         view.add_item(cancel_button)
 
@@ -152,20 +178,29 @@ class CampaignCog(commands.Cog):
         )
 
     def _create_delete_confirmation_callback(self, name: str, is_admin: bool):
-        async def button_callback(interaction: discord.Interaction):
+        async def button_callback(interaction: discord.Interaction, custom_id: str):
             await interaction.response.defer(ephemeral=True)
-            view = interaction.message.view
-            for item in view.children:
-                item.disabled = True
+            if (
+                interaction.message
+                and hasattr(interaction.message, "view")
+                and interaction.message.view
+            ):
+                view = interaction.message.view
+                for item in view.children:
+                    item.disabled = True
 
-            if interaction.data["custom_id"] == "confirm":
+            if custom_id == "confirm":
                 try:
-                    await self.api_client.delete_campaign({
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": name,
-                        "requester_id": str(interaction.user.id),
-                        "is_admin": is_admin,
-                    })
+                    await self.api_client.delete_campaign(
+                        {
+                            "server_id": str(interaction.guild.id)
+                            if interaction.guild
+                            else "unknown",
+                            "campaign_name": name,
+                            "requester_id": str(interaction.user.id),
+                            "is_admin": is_admin,
+                        }
+                    )
                     await interaction.followup.send(
                         f"Campaign '{name}' deleted successfully.", ephemeral=True
                     )
@@ -176,7 +211,8 @@ class CampaignCog(commands.Cog):
                     "Campaign deletion cancelled.", ephemeral=True
                 )
 
-            await interaction.edit_original_response(view=view)
+            if "view" in locals():
+                await interaction.edit_original_response(view=view)
 
         return button_callback
 
@@ -195,12 +231,12 @@ class CampaignCog(commands.Cog):
     async def _handle_campaign_info(self, interaction: discord.Interaction, name: str):
         # Fetch campaign details from the backend
         campaign_data = await self.api_client.get_campaign_details(
-            str(interaction.guild.id), name
+            str(interaction.guild.id) if interaction.guild else "unknown", name
         )
 
         # Fetch the list of players in the campaign
         players_data = await self.api_client.get_campaign_players(
-            campaign_data['campaign_id']
+            campaign_data["campaign_id"]
         )
         player_names = (
             [player["username"] for player in players_data]
@@ -213,15 +249,11 @@ class CampaignCog(commands.Cog):
             title=f"Campaign Info: {campaign_data['campaign_name']}",
             color=discord.Color.blue(),
         )
-        embed.add_field(
-            name="Owner ID", value=campaign_data["owner_id"], inline=False
-        )
+        embed.add_field(name="Owner ID", value=campaign_data["owner_id"], inline=False)
         embed.add_field(
             name="State", value=campaign_data.get("state", "N/A"), inline=False
         )
-        embed.add_field(
-            name="Players", value=", ".join(player_names), inline=False
-        )
+        embed.add_field(name="Players", value=", ".join(player_names), inline=False)
         embed.add_field(
             name="Last Save",
             value=campaign_data.get("last_save", "N/A"),
@@ -233,13 +265,13 @@ class CampaignCog(commands.Cog):
     async def _handle_campaign_continue(self, interaction: discord.Interaction):
         # Call backend API to continue campaign
         payload = {
-            "server_id": str(interaction.guild.id),
+            "server_id": str(interaction.guild.id) if interaction.guild else "unknown",
             "player_id": str(interaction.user.id),
             "username": str(interaction.user.display_name),
         }
-        
+
         data = await self.api_client.continue_campaign(payload)
-        
+
         campaign_name = data.get("campaign_name", "Unknown")
         source = data.get("source", "save")
         msg = (
@@ -249,7 +281,6 @@ class CampaignCog(commands.Cog):
             "You are now back in immersive role-playing mode."
         )
         await interaction.response.send_message(msg, ephemeral=False)
-
 
     async def cog_unload(self):
         """Called when the cog is unloaded. Clean up resources."""

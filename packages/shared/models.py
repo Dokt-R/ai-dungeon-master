@@ -1,5 +1,3 @@
-# from __future__ import annotations
-
 from datetime import datetime
 from enum import Enum
 from typing import List, Literal, Optional
@@ -29,7 +27,7 @@ class CampaignPlayerLink(SQLModel, table=True):
     __tablename__ = "campaign_players"
     campaign_id: int = SQLField(primary_key=True, foreign_key="campaigns.campaign_id")
     player_id: str = SQLField(primary_key=True, foreign_key="players.player_id")
-    
+
 
 # Player Model
 class Player(SQLModel, table=True):
@@ -47,7 +45,7 @@ class Player(SQLModel, table=True):
     campaigns: Mapped[List["Campaign"]] = Relationship(
         back_populates="players",
         link_model=CampaignPlayerLink,
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
 
@@ -174,10 +172,10 @@ class JoinCampaignRequest(BaseModel):
     player_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
-    character_name: str = PydanticField(
+    character_name: Optional[str] = PydanticField(
         None, min_length=1, max_length=32, pattern=r"^[\w\- ]+$"
     )
-    character_url: str = None
+    character_url: Optional[str] = None
 
 
 class ContinueCampaignRequest(BaseModel):
@@ -187,7 +185,6 @@ class ContinueCampaignRequest(BaseModel):
     username: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
-
 
 
 class LeaveCampaignRequest(BaseModel):
@@ -212,7 +209,9 @@ class CampaignEndRequest(BaseModel):
     server_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
-    campaign_name: Optional[str] = PydanticField(default=None, min_length=1, max_length=64)
+    campaign_name: Optional[str] = PydanticField(
+        default=None, min_length=1, max_length=64
+    )
     player_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
@@ -237,15 +236,18 @@ class CampaignStateRequest(BaseModel):
 # Enums used for as a single source of truth for field validations
 # ======================================================================================
 
+
 class DMVisibility(str, Enum):
     public = "public"
     hidden = "hidden"
+
 
 class PlayerRollMode(str, Enum):
     physical = "physical"
     digital = "digital"
     auto = "auto"
     hidden = "hidden"
+
 
 class CharacterSheetMode(str, Enum):
     digital_sheet = "digital_sheet"

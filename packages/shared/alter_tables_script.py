@@ -1,9 +1,8 @@
 # recreate_table.py
-from datetime import datetime
-
-import your_models_module as models  # import where Player is defined
 from sqlalchemy import text
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlmodel import Session, SQLModel, create_engine
+
+import packages.shared.models as models  # import where Player is defined
 
 DB_URL = "sqlite:///./db.sqlite"
 engine = create_engine(DB_URL)
@@ -11,7 +10,9 @@ engine = create_engine(DB_URL)
 # 1) read existing rows
 with engine.connect() as conn:
     rows = list(conn.execute(text("SELECT * FROM players")))
-    col_names = [c[0] for c in conn.execute(text("PRAGMA table_info(players)"))]  # sqlite; for PG use inspector
+    col_names = [
+        c[0] for c in conn.execute(text("PRAGMA table_info(players)"))
+    ]  # sqlite; for PG use inspector
 
 # convert rows to dicts
 rows_dicts = [dict(zip(col_names, r)) for r in rows]
@@ -35,7 +36,7 @@ with Session(engine) as session:
             "last_seen": r.get("last_seen", None),
             # ... add others if necessary
         }
-        session.execute(models.Player.__table__.insert().values(**new_row))
+        session.exec(models.Player.__table__.insert().values(**new_row))  # type: ignore[attr-defined]
     session.commit()
 
 print("Recreated table and reinserted rows. Old data in players_old.")

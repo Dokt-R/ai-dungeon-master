@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,9 +54,7 @@ class CampaignManager:
         await self.session.refresh(new_campaign)
         return new_campaign
 
-    async def get_campaign(
-        self, server_id: str, campaign_name: str
-    ) -> Optional[Campaign]:
+    async def get_campaign(self, server_id: str, campaign_name: str) -> Campaign:
         """
         Retrieve a campaign by server_id and campaign_name.
         """

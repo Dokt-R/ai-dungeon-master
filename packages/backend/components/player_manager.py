@@ -84,15 +84,16 @@ class PlayerManager:
             )
 
         # Check if already joined
-        statement = (
+        link_statement = (
             select(CampaignPlayerLink)
             .join(Campaign)
             .where(CampaignPlayerLink.player_id == player_id)
             .where(Campaign.server_id == server_id)
             .where(player.player_status == "joined")
         )
-        result = await self.session.execute(statement)
-        if result.scalars().first():
+        result = await self.session.execute(link_statement)
+        link_check = result.scalars().first()
+        if link_check:
             if campaign_name == player.last_active_campaign:
                 raise ValidationError(
                     ErrorCode.PLAYER_NOT_IN_CMD,
@@ -104,13 +105,12 @@ class PlayerManager:
                     },
                 )
 
-        character = None
+        character: Optional[Character] = None
         if character_name:
-            statement = select(Character).where(
+            char_statement = select(Character).where(
                 Character.player_id == player_id, Character.name == character_name
             )
-            result = await self.session.execute(statement)
-            character = result.scalars().first()
+            result = await self.session.execute(char_statement)
             if not character:
                 character = Character(
                     player_id=player_id,
@@ -119,8 +119,10 @@ class PlayerManager:
                 )
                 self.session.add(character)
         else:
-            statement = select(Character).where(Character.player_id == player_id)
-            result = await self.session.execute(statement)
+            char_all_statement = select(Character).where(
+                Character.player_id == player_id
+            )
+            result = await self.session.execute(char_all_statement)
             characters = result.scalars().all()
             if len(characters) > 1:
                 raise ValidationError(
@@ -135,12 +137,12 @@ class PlayerManager:
                     ErrorCode.PLAYER_HAS_NO_CHARACTERS,
                     details={"player_id": player_id},
                 )
-            character = characters[0]
+            character = characters[0]  # type: ignore[assignment]
 
         link = CampaignPlayerLink(
             campaign_id=campaign.campaign_id,
             player_id=player.player_id,
-            character_id=character.character_id,
+            character_id=character.character_id if character else None,
             player_status="joined",
         )
 
@@ -151,7 +153,7 @@ class PlayerManager:
         return_campaign_name = campaign.campaign_name
         return_campaign_id = campaign.campaign_id
         return_player_id = player.player_id
-        return_character_id = character.character_id
+        return_character_id = character.character_id if character else None
         return_player_status = player.player_status
         # Continue with the DB actions
         self.session.add(player)
@@ -192,8 +194,7 @@ class PlayerManager:
                 },
             )
 
-        statement = select(Campaign).where(Campaign.campaign_name == campaign_name
-        )
+        statement = select(Campaign).where(Campaign.campaign_name == campaign_name)
         result = await self.session.execute(statement)
         campaign = result.scalars().first()
         if not campaign:
@@ -207,13 +208,13 @@ class PlayerManager:
             )
 
         # Check if already joined
-        statement = (
+        continue_link_statement = (
             select(CampaignPlayerLink)
             .join(Campaign)
             .where(CampaignPlayerLink.player_id == player_id)
             .where(player.player_status == "joined")
         )
-        result = await self.session.execute(statement)
+        result = await self.session.execute(continue_link_statement)
         if result.scalars().first():
             if campaign_name == player.last_active_campaign:
                 raise ValidationError(
@@ -224,10 +225,13 @@ class PlayerManager:
                     },
                 )
 
-        character = None
-        statement = select(Character).where(Character.player_id == player_id)
-        result = await self.session.execute(statement)
+        character: Optional[Character] = None
+        continue_char_statement = select(Character).where(
+            Character.player_id == player_id
+        )
+        result = await self.session.execute(continue_char_statement)
         characters = result.scalars().all()
+
         if len(characters) > 1:
             raise ValidationError(
                 ErrorCode.PLAYER_HAS_MULTIPLE_CHARACTERS,
@@ -241,12 +245,12 @@ class PlayerManager:
                 ErrorCode.PLAYER_HAS_NO_CHARACTERS,
                 details={"player_id": player_id},
             )
-        character = characters[0]
+        character = characters[0]  # type: ignore[assignment]
 
         link = CampaignPlayerLink(
             campaign_id=campaign.campaign_id,
             player_id=player.player_id,
-            character_id=character.character_id,
+            character_id=character.character_id if character else None,
             player_status="joined",
         )
 
@@ -257,7 +261,7 @@ class PlayerManager:
         return_campaign_name = campaign.campaign_name
         return_campaign_id = campaign.campaign_id
         return_player_id = player.player_id
-        return_character_id = character.character_id
+        return_character_id = character.character_id if character else None
         return_player_status = player.player_status
         # Continue with the DB actions
         self.session.add(player)
@@ -379,12 +383,12 @@ class PlayerManager:
                 },
             )
 
-        statement = (
+        end_campaign_link_statement = (
             select(CampaignPlayerLink)
             .where(CampaignPlayerLink.player_id == player_id)
             .where(CampaignPlayerLink.campaign_id == campaign.campaign_id)
         )
-        result = await self.session.execute(statement)
+        result = await self.session.execute(end_campaign_link_statement)
         link = result.scalars().first()
 
         if not link:

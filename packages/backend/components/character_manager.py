@@ -28,7 +28,7 @@ class CharacterManager:
         Add a new character for a player.
         """
         player = await self.session.get(Player, player_id)
-        
+
         if not player:
             raise NotFoundError(
                 ErrorCode.PLAYER_NOT_FOUND, details={"player_id": player_id}
@@ -132,4 +132,4 @@ class CharacterManager:
         """
         statement = select(Character).where(Character.player_id == player_id)
         result = await self.session.execute(statement)
-        return result.scalars().all()
+        return list(result.scalars().all())

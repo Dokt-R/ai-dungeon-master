@@ -24,3 +24,10 @@ combine-as-imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.mypy]
+plugins = ["sqlalchemy.ext.mypy.plugin"]
+
+[[tool.mypy.overrides]]
+module = "sqlmodel.*"
+ignore_missing_imports = false

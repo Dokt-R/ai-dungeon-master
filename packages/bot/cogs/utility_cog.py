@@ -1,7 +1,10 @@
+from typing import Optional
+
 import discord
 from discord.ext import commands
 
 from packages.shared.error_handler import discord_error_handler
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import AIAPIError, NotFoundError, ValidationError
 
 # Message constants for maintainability
@@ -105,7 +108,7 @@ class UtilityCog(commands.Cog):
         topic="Optional: Get detailed help for a specific topic (e.g., campaign, setup)"
     )
     @discord_error_handler()
-    async def help(self, interaction: discord.Interaction, topic: str = None):
+    async def help(self, interaction: discord.Interaction, topic: Optional[str] = None):
         """List all available commands, or get detailed help for a topic."""
         if topic is None:
             # List help topics
@@ -142,7 +145,7 @@ class ErrorTestCog(commands.Cog):
     @discord_error_handler()
     async def test_validation_error(self, interaction: discord.Interaction):
         """Trigger a ValidationError"""
-        raise ValidationError("Test validation error")
+        raise ValidationError(ErrorCode.VALIDATION_ERROR)
 
     @discord.app_commands.command(
         name="test-not-found-error", description="Trigger a NotFoundError"
@@ -150,7 +153,7 @@ class ErrorTestCog(commands.Cog):
     @discord_error_handler()
     async def test_not_found_error(self, interaction: discord.Interaction):
         """Trigger a NotFoundError"""
-        raise NotFoundError("Test not found error")
+        raise NotFoundError(ErrorCode.NOT_FOUND)
 
     @discord.app_commands.command(
         name="test-ai-api-error", description="Trigger an AIAPIError"
@@ -158,7 +161,7 @@ class ErrorTestCog(commands.Cog):
     @discord_error_handler()
     async def test_ai_api_error(self, interaction: discord.Interaction):
         """Trigger an AIAPIError"""
-        raise AIAPIError("Test AI API error")
+        raise AIAPIError(ErrorCode.AI_API_ERROR)
 
     @discord.app_commands.command(
         name="test-generic-error", description="Trigger a generic Exception"
