@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -222,3 +222,202 @@ class TestErrorHandling:
                 pass  # The error handler will log and re-raise, but we want to check the response
         # Should call the error handler and send a generic error message
         # (In this patch, the error is raised before the response, so this is illustrative)
+
+
+class TestSyncCommands:
+    """Test the new sync command functionality."""
+
+    async def test_sync_members_command_permissions(self, bot_client):
+        """Test that only admins can run the /sync members command."""
+        interaction = MockInteraction(is_admin=False)
+        cmd = None
+        for command in bot_client.tree.get_commands():
+            if command.name == "sync":
+                for subcommand in command.commands:
+                    if subcommand.name == "members":
+                        cmd = subcommand
+                        break
+                if cmd:
+                    break
+
+        if cmd:
+            cog = bot_client.get_cog("AdminCog")
+            await cmd.callback(cog, interaction)
+            # The error handler returns a generic message, not the specific permission message
+            assert "You do not have permission to perform this action." in interaction.message
+            assert interaction.ephemeral is True
+
+    async def test_sync_members_command_success(self, mock_bot, mock_interaction):
+        """Test successful sync members command."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        # Mock guild with members
+        mock_member1 = MagicMock()
+        mock_member1.id = 123
+        mock_member1.display_name = "TestUser1"
+        mock_member1.bot = False
+
+        mock_member2 = MagicMock()
+        mock_member2.id = 124
+        mock_member2.display_name = "TestUser2"
+        mock_member2.bot = True  # This should be filtered out
+
+        mock_guild = MagicMock()
+        mock_guild.members = [mock_member1, mock_member2]
+        interaction.guild = mock_guild
+
+        # Mock API client
+        mock_response = {"player_id": "123", "username": "TestUser1"}
+        cog.api_client.create_player = AsyncMock(return_value=mock_response)
+
+        # Mock followup send to capture all calls
+        interaction.followup.send = AsyncMock()
+        interaction.response.defer = AsyncMock()
+
+        await cog.sync_members.callback(cog, interaction)
+
+        # Verify followup.send was called for the initial message
+        assert interaction.followup.send.call_count >= 1
+
+        # Check that the initial message is sent (the completion may happen via edit)
+        calls = interaction.followup.send.await_args_list
+        initial_call = calls[0][0][0]  # First call arguments
+        assert "Starting sync of 1 members" in initial_call
+
+        # Verify API was called for the non-bot member
+        assert cog.api_client.create_player.call_count == 1
+
+    async def test_sync_start_command(self, mock_bot, mock_interaction):
+        """Test sync start command."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        # Mock the periodic sync task
+        cog._periodic_sync = AsyncMock()
+
+        await cog.start_sync.callback(cog, interaction)
+
+        interaction.response.send_message.assert_awaited_with(
+            "Started periodic sync (every 1 hour).", ephemeral=True
+        )
+        assert cog.sync_task is not None
+
+    async def test_sync_stop_command(self, mock_bot, mock_interaction):
+        """Test sync stop command."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        # Set up a mock task
+        cog.sync_task = MagicMock()
+        cog.sync_task.done.return_value = False
+
+        await cog.stop_sync.callback(cog, interaction)
+
+        interaction.response.send_message.assert_awaited_with(
+            "Stopped periodic sync.", ephemeral=True
+        )
+        cog.sync_task.cancel.assert_called_once()
+
+    async def test_sync_status_command_running(self, mock_bot, mock_interaction):
+        """Test sync status when sync is running."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        # Set up a running mock task
+        cog.sync_task = MagicMock()
+        cog.sync_task.done.return_value = False
+
+        await cog.sync_status.callback(cog, interaction)
+
+        interaction.response.send_message.assert_awaited_with(
+            "✅ Periodic sync is running\nNext sync in ~1 hour", ephemeral=True
+        )
+
+    async def test_sync_status_command_stopped(self, mock_bot, mock_interaction):
+        """Test sync status when sync is not running."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        cog.sync_task = None
+
+        await cog.sync_status.callback(cog, interaction)
+
+        interaction.response.send_message.assert_awaited_with(
+            "❌ Periodic sync is not running\nYou can start it with `/sync start`",
+            ephemeral=True
+        )
+
+    async def test_sync_restart_command(self, mock_bot, mock_interaction):
+        """Test sync restart command."""
+        cog = AdminCog(mock_bot)
+        interaction = mock_interaction
+        interaction.user.guild_permissions.administrator = True
+
+        # Set up existing task
+        old_task = MagicMock()
+        old_task.done.return_value = False
+        cog.sync_task = old_task
+        cog._periodic_sync = AsyncMock()
+
+        await cog.restart_sync.callback(cog, interaction)
+
+        old_task.cancel.assert_called_once()
+        interaction.response.send_message.assert_awaited_with(
+            "Restarted periodic sync.", ephemeral=True
+        )
+
+    async def test_create_or_update_player_success(self, mock_bot):
+        """Test successful player creation/update."""
+        cog = AdminCog(mock_bot)
+
+        # Mock Discord member
+        mock_member = MagicMock()
+        mock_member.id = 123
+        mock_member.display_name = "TestUser"
+        mock_member.bot = False
+
+        # Mock API response
+        mock_response = {"player_id": "123", "username": "TestUser"}
+        cog.api_client.create_player = AsyncMock(return_value=mock_response)
+
+        result = await cog._create_or_update_player(mock_member)
+
+        assert not result["created"]
+        assert result["updated"]
+        cog.api_client.create_player.assert_awaited_once_with({
+            "player_id": "123",
+            "username": "TestUser"
+        })
+
+    async def test_check_backend_health_success(self, mock_bot):
+        """Test successful backend health check."""
+        cog = AdminCog(mock_bot)
+
+        # Mock successful API response
+        mock_response = {"player_id": "health_check_test", "username": "Health Check User"}
+        cog.api_client.create_player = AsyncMock(return_value=mock_response)
+
+        result = await cog._check_backend_health()
+
+        assert result is True
+        cog.api_client.create_player.assert_awaited_once_with({
+            "player_id": "health_check_test",
+            "username": "Health Check User"
+        })
+
+    async def test_check_backend_health_failure(self, mock_bot):
+        """Test failed backend health check."""
+        cog = AdminCog(mock_bot)
+
+        # Mock failed API request
+        cog.api_client._request = AsyncMock(side_effect=Exception("Connection error"))
+
+        result = await cog._check_backend_health()
+
+        assert result is False

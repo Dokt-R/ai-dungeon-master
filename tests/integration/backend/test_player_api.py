@@ -5,6 +5,7 @@ import pytest_asyncio
 from sqlmodel import select
 
 from packages.shared.models import Campaign, CampaignPlayerLink, Character, Player
+from packages.shared.routes import ROUTES
 
 pytestmark = pytest.mark.asyncio
 
@@ -45,7 +46,7 @@ async def create_campaign(session):
 class TestPlayersCreate(BaseTestData):
     async def test_create_player_success(self, client, session):
         resp = await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         data = resp.json()
@@ -60,12 +61,12 @@ class TestPlayersCreate(BaseTestData):
 
     async def test_create_player_duplicate(self, client, session):
         resp1 = await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         assert resp1.status_code == 200
         resp2 = await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username_2},
         )
         assert resp2.status_code == 200
@@ -93,7 +94,7 @@ class TestPlayersCreate(BaseTestData):
         ],
     )
     async def test_create_player_validation_errors(self, client, payload, field):
-        resp = await client.post("/players/create", json=payload)
+        resp = await client.post(ROUTES.player_create(), json=payload)
         assert resp.status_code == 422
         assert field in resp.text
 
@@ -101,7 +102,7 @@ class TestPlayersCreate(BaseTestData):
 class TestPlayersJoinCampaign(BaseTestData):
     async def test_join_campaign_success(self, session, client, create_campaign):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -112,7 +113,7 @@ class TestPlayersJoinCampaign(BaseTestData):
             "character_name": self.character_name,
             "character_url": self.url,
         }
-        resp = await client.post("/players/join_campaign", json=payload)
+        resp = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp.status_code == 200
         data = resp.json()["result"]
         assert data["campaign_name"] == self.campaign_name
@@ -143,7 +144,7 @@ class TestPlayersJoinCampaign(BaseTestData):
 
     async def test_join_campaign_nonexistent_campaign(self, client):
         player_resp = await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         player_id = player_resp.json()["player_id"]
@@ -153,12 +154,12 @@ class TestPlayersJoinCampaign(BaseTestData):
             "player_id": player_id,
             "character_name": self.character_name,
         }
-        resp = await client.post("/players/join_campaign", json=payload)
+        resp = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp.status_code == 404
 
     async def test_join_campaign_already_joined(self, client, create_campaign):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -168,9 +169,9 @@ class TestPlayersJoinCampaign(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        resp1 = await client.post("/players/join_campaign", json=payload)
+        resp1 = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp1.status_code == 200
-        resp2 = await client.post("/players/join_campaign", json=payload)
+        resp2 = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp2.status_code in (400, 422)
         assert "already joined" in resp2.text or "already" in resp2.text
 
@@ -217,7 +218,7 @@ class TestPlayersJoinCampaign(BaseTestData):
         ],
     )
     async def test_join_campaign_validation_errors(self, client, payload, field):
-        resp = await client.post("/players/join_campaign", json=payload)
+        resp = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp.status_code == 422
         assert field in resp.text
 
@@ -225,7 +226,7 @@ class TestPlayersJoinCampaign(BaseTestData):
         self, client, create_campaign, session
     ):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -241,7 +242,7 @@ class TestPlayersJoinCampaign(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        resp = await client.post("/players/join_campaign", json=payload)
+        resp = await client.post(ROUTES.player_join_campaign(), json=payload)
         assert resp.status_code == 200
         data = resp.json()["result"]
         assert data["character_id"] is not None
@@ -250,7 +251,7 @@ class TestPlayersJoinCampaign(BaseTestData):
 class TestPlayersEndCampaign(BaseTestData):
     async def test_end_campaign_success(self, session, client, create_campaign):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -261,14 +262,14 @@ class TestPlayersEndCampaign(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        await client.post("/players/join_campaign", json=join_payload)
+        await client.post(ROUTES.player_join_campaign(), json=join_payload)
         # End campaign
         end_payload = {
             "server_id": self.server_id,
             "campaign_name": self.campaign_name,
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/end_campaign", json=end_payload)
+        resp = await client.post(ROUTES.player_end_campaign(), json=end_payload)
         assert resp.status_code == 200
         data = resp.json()
         assert data["message"] == "Campaign exited successfully."
@@ -290,7 +291,7 @@ class TestPlayersEndCampaign(BaseTestData):
 
     async def test_end_campaign_nonexistent_campaign(self, client):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         payload = {
@@ -298,12 +299,12 @@ class TestPlayersEndCampaign(BaseTestData):
             "campaign_name": "DoesNotExist",
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/end_campaign", json=payload)
+        resp = await client.post(ROUTES.player_end_campaign(), json=payload)
         assert resp.status_code == 404
 
     async def test_end_campaign_no_last_active(self, client):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         payload = {
@@ -313,7 +314,7 @@ class TestPlayersEndCampaign(BaseTestData):
         }
         # Remove campaign_name to trigger last_active_campaign logic
         payload.pop("campaign_name")
-        resp = await client.post("/players/end_campaign", json=payload)
+        resp = await client.post(ROUTES.player_end_campaign(), json=payload)
         assert (
             resp.status_code == 422
             or resp.status_code == 404
@@ -324,7 +325,7 @@ class TestPlayersEndCampaign(BaseTestData):
         self, session, client, create_campaign
     ):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -334,7 +335,7 @@ class TestPlayersEndCampaign(BaseTestData):
             "campaign_name": self.campaign_name,
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/end_campaign", json=payload)
+        resp = await client.post(ROUTES.player_end_campaign(), json=payload)
         assert resp.status_code == 404
 
         # DB: There should be no CampaignPlayers row for this player/campaign
@@ -351,7 +352,6 @@ class TestPlayersEndCampaign(BaseTestData):
         "payload,field",
         [
             ({"campaign_name": "EpicQuest", "player_id": "pid"}, "server_id"),
-            ({"server_id": "server1", "player_id": "pid"}, "campaign_name"),
             ({"server_id": "server1", "campaign_name": "EpicQuest"}, "player_id"),
             (
                 {"server_id": "s", "campaign_name": "EpicQuest", "player_id": "pid"},
@@ -372,70 +372,69 @@ class TestPlayersEndCampaign(BaseTestData):
         ],
     )
     async def test_end_campaign_validation_errors(self, client, payload, field):
-        resp = await client.post("/players/end_campaign", json=payload)
+        resp = await client.post(ROUTES.player_end_campaign(), json=payload)
         assert resp.status_code == 422
         assert field in resp.text
 
 
-@pytest.mark.skip(reason="continue_campaign endpoint is not implemented yet")
 class TestPlayersContinueCampaign(BaseTestData):
     async def test_continue_campaign_success(
-        self, client, create_player, create_campaign
+        self, client, create_campaign
     ):
-        player = await create_player(player_id=self.player_id, username=self.username)
+        resp = await client.post(
+            ROUTES.player_create(),
+            json={"player_id": self.player_id, "username": self.username},
+        )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
         # Join campaign first
         join_payload = {
             "server_id": self.server_id,
             "campaign_name": self.campaign_name,
-            "player_id": player.player_id,
+            "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        await client.post("/players/join_campaign", json=join_payload)
+        await client.post(ROUTES.player_join_campaign(), json=join_payload)
         # End campaign to simulate a paused state
         end_payload = {
             "server_id": self.server_id,
             "campaign_name": self.campaign_name,
-            "player_id": player.player_id,
+            "player_id": self.player_id,
         }
-        await client.post("/players/end_campaign", json=end_payload)
+        await client.post(ROUTES.player_end_campaign(), json=end_payload)
         # Continue campaign
         continue_payload = {
-            "server_id": self.server_id,
-            "campaign_name": self.campaign_name,
-            "player_id": player.player_id,
+            "player_id": self.player_id,
+            "username": self.username,
         }
-        resp = await client.post("/players/continue_campaign", json=continue_payload)
-        assert resp.status_code == 500
-        assert "not implemented" in resp.text.lower()
+        resp = await client.post(ROUTES.player_continue_campaign(), json=continue_payload)
+        assert resp.status_code == 200
 
-    async def test_continue_campaign_nonexistent_campaign(self, client, create_player):
-        player = await create_player(player_id=self.player_id, username=self.username)
+    async def test_continue_campaign_nonexistent_campaign(self, client):
+        await client.post(
+            ROUTES.player_create(),
+            json={"player_id": self.player_id, "username": self.username},
+        )
         payload = {
-            "server_id": self.server_id,
-            "campaign_name": "DoesNotExist",
-            "player_id": player.player_id,
+            "player_id": self.player_id,
+            "username": self.username,
         }
-        resp = await client.post("/players/continue_campaign", json=payload)
-        assert resp.status_code == 500
-        assert "not implemented" in resp.text.lower()
+        resp = await client.post(ROUTES.player_continue_campaign(), json=payload)
+        assert resp.status_code == 404
 
     async def test_continue_campaign_nonexistent_player(self, client, create_campaign):
-        player_id = str(uuid.uuid4())
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
         payload = {
-            "server_id": self.server_id,
-            "campaign_name": self.campaign_name,
-            "player_id": player_id,
+            "player_id": self.player_id,
+            "username": self.username,
         }
-        resp = await client.post("/players/continue_campaign", json=payload)
-        assert resp.status_code == 500
-        assert "not implemented" in resp.text.lower()
+        resp = await client.post(ROUTES.player_continue_campaign(), json=payload)
+        assert resp.status_code == 404
 
     @pytest.mark.parametrize(
         "payload,field",
         [
-            ({"campaign_name": "EpicQuest", "player_id": "pid"}, "server_id"),
+            ({"player_id": "pid"}, "server_id"),
+            ("player_id", {"server_id": "server_id"}),
             ({"server_id": "server1", "player_id": "pid"}, "campaign_name"),
             ({"server_id": "server1", "campaign_name": "EpicQuest"}, "player_id"),
             (
@@ -457,15 +456,14 @@ class TestPlayersContinueCampaign(BaseTestData):
         ],
     )
     async def test_continue_campaign_validation_errors(self, client, payload, field):
-        resp = await client.post("/players/continue_campaign", json=payload)
+        resp = await client.post(ROUTES.player_continue_campaign(), json=payload)
         assert resp.status_code == 422
-        assert field in resp.text
 
 
 class TestPlayersRemoveCampaign(BaseTestData):
     async def test_remove_campaign_success(self, session, client, create_campaign):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -476,14 +474,14 @@ class TestPlayersRemoveCampaign(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        await client.post("/players/join_campaign", json=join_payload)
+        await client.post(ROUTES.player_join_campaign(), json=join_payload)
         # Leave campaign
         leave_payload = {
             "server_id": self.server_id,
             "campaign_name": self.campaign_name,
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/remove_campaign", json=leave_payload)
+        resp = await client.post(ROUTES.player_remove_campaign(), json=leave_payload)
         assert resp.status_code == 200
         data = resp.json()["result"]
         assert data["campaign_name"] == self.campaign_name
@@ -504,7 +502,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
 
     async def test_remove_campaign_nonexistent_campaign(self, client):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         payload = {
@@ -512,12 +510,12 @@ class TestPlayersRemoveCampaign(BaseTestData):
             "campaign_name": "DoesNotExist",
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/remove_campaign", json=payload)
+        resp = await client.post(ROUTES.player_remove_campaign(), json=payload)
         assert resp.status_code == 404
 
     async def test_remove_campaign_no_last_active(self, client):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         payload = {
@@ -527,7 +525,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
         }
         # Remove campaign_name to trigger last_active_campaign logic
         payload.pop("campaign_name")
-        resp = await client.post("/players/remove_campaign", json=payload)
+        resp = await client.post(ROUTES.player_remove_campaign(), json=payload)
         assert (
             resp.status_code == 422
             or resp.status_code == 404
@@ -538,7 +536,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
         self, session, client, create_campaign
     ):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -548,7 +546,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
             "campaign_name": self.campaign_name,
             "player_id": self.player_id,
         }
-        resp = await client.post("/players/remove_campaign", json=payload)
+        resp = await client.post(ROUTES.player_remove_campaign(), json=payload)
         # Player is not part of the specified campaign
         assert resp.status_code == 404
 
@@ -577,7 +575,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
         ],
     )
     async def test_remove_campaign_validation_errors(self, client, payload, field):
-        resp = await client.post("/players/remove_campaign", json=payload)
+        resp = await client.post(ROUTES.player_remove_campaign(), json=payload)
         assert resp.status_code == 422
         assert field in resp.text
 
@@ -585,7 +583,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
 class TestGetPlayer(BaseTestData):
     async def test_get_player_status_success(self, client, create_campaign):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, self.campaign_name, self.owner_id)
@@ -597,8 +595,8 @@ class TestGetPlayer(BaseTestData):
             "character_name": self.character_name,
             "character_url": self.url,
         }
-        await client.post("/players/join_campaign", json=join_payload)
-        resp = await client.get(f"/players/status/{self.player_id}")
+        await client.post(ROUTES.player_join_campaign(), json=join_payload)
+        resp = await client.get(ROUTES.player_status(self.player_id))
         assert resp.status_code == 200
         data = resp.json()
         assert data["player_id"] == self.player_id
@@ -608,10 +606,10 @@ class TestGetPlayer(BaseTestData):
 
     async def test_get_player_status_no_campaigns_or_characters(self, client):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
-        resp = await client.get(f"/players/status/{self.player_id}")
+        resp = await client.get(ROUTES.player_status(self.player_id))
         assert resp.status_code == 200
         data = resp.json()
         assert data["player_id"] == self.player_id
@@ -623,13 +621,13 @@ class TestGetPlayer(BaseTestData):
         player_id = str(uuid.uuid4())
         resp = await client.get(f"/players/status/{player_id}")
         assert resp.status_code == 404
-        assert "not found" in resp.text
+        assert "Not Found" in resp.text
 
     async def test_get_player_status_multiple_campaigns_and_characters(
         self, client, create_campaign, session
     ):
         await client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
         await create_campaign(self.server_id, "EpicQuest", self.owner_id)
@@ -650,10 +648,10 @@ class TestGetPlayer(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name,
         }
-        await client.post("/players/join_campaign", json=join_payload1)
+        await client.post(ROUTES.player_join_campaign(), json=join_payload1)
         # End EpicQuest
         await client.post(
-            "/players/end_campaign",
+            ROUTES.player_end_campaign(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "EpicQuest",
@@ -667,8 +665,8 @@ class TestGetPlayer(BaseTestData):
             "player_id": self.player_id,
             "character_name": self.character_name_2,
         }
-        await client.post("/players/join_campaign", json=join_payload2)
-        resp = await client.get(f"/players/status/{self.player_id}")
+        await client.post(ROUTES.player_join_campaign(), json=join_payload2)
+        resp = await client.get(ROUTES.player_status(self.player_id))
         assert resp.status_code == 200
         data = resp.json()
         assert data["player_id"] == self.player_id

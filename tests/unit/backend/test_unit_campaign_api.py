@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from packages.backend.components.campaign_manager import CampaignManager
 from packages.backend.main import app
 from packages.shared.models import Campaign
+from packages.shared.routes import ROUTES
 
 
 # Mock the CampaignManager dependency
@@ -49,7 +50,7 @@ class TestCampaignAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": self.campaign_name,
@@ -82,7 +83,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.get_campaign.return_value = mock_campaign
 
         # Act
-        response = await client.get(f"/campaigns/{self.server_id}/{self.campaign_name}")
+        response = await client.get(ROUTES.campaign_details(self.server_id, self.campaign_name))
 
         # Assert
         assert response.status_code == 200
@@ -101,7 +102,7 @@ class TestCampaignAPI(BaseTestData):
         # Act
         response = await client.request(
             "DELETE",
-            "/campaigns/delete",
+            ROUTES.campaign_delete(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": self.campaign_name,
@@ -131,7 +132,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.get_campaign_players.return_value = mock_players
 
         # Act
-        response = await client.get(f"/campaigns/{self.campaign_id}/players")
+        response = await client.get(ROUTES.campaign_players(self.campaign_id))
 
         # Assert
         assert response.status_code == 200
@@ -158,8 +159,7 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.update_campaign_state.return_value = mock_campaign
 
         # Act
-        response = await client.put(
-            f"/campaigns/{self.campaign_id}/state", json={"state": new_state}
+        response = await client.put(ROUTES.campaign_state_update(self.campaign_id), json={"state": new_state}
         )
 
         # Assert

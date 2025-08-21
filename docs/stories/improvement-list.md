@@ -3,4 +3,4 @@
 - [ ] Implement or clean up `packages/backend/api/campaign_api.py` commented-out placeholder code.
 - [ ] Consider adding a linter rule to catch unused imports in CI
 - [ ] Enable AIAPIError test in `tests/integration/backend/test_error_handler.py` once implemented.
-- [ ] 
+- [ ] Consider adding integration tests for real Discord interactions (from 2.3 review)

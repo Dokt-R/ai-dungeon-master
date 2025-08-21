@@ -36,6 +36,7 @@ class ServerSettingsManager:
         db_config.character_sheet_mode = config.character_sheet_mode
         db_config.api_key = encrypted_key
 
+
         self.session.add(db_config)
         await self.session.commit()
         await self.session.refresh(db_config)

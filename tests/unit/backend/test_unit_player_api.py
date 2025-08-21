@@ -7,6 +7,7 @@ from packages.backend.components.player_manager import PlayerManager
 from packages.backend.main import app
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError
+from packages.shared.routes import ROUTES
 
 
 @pytest.fixture
@@ -43,7 +44,7 @@ class TestPlayersCreate(BaseTestData):
 
         # Act
         resp = client.post(
-            "/players/create",
+            ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
         )
 
@@ -76,7 +77,7 @@ class TestPlayersJoinCampaign(BaseTestData):
         }
 
         # Act
-        resp = client.post("/players/join_campaign", json=payload)
+        resp = client.post(ROUTES.player_join_campaign(), json=payload)
 
         # Assert
         assert resp.status_code == 200
@@ -99,7 +100,7 @@ class TestPlayersJoinCampaign(BaseTestData):
         }
 
         # Act
-        resp = client.post("/players/join_campaign", json=payload)
+        resp = client.post(ROUTES.player_join_campaign(), json=payload)
 
         # Assert
         assert resp.status_code == error.status_code
@@ -118,7 +119,7 @@ class TestPlayersEndCampaign(BaseTestData):
         }
 
         # Act
-        resp = client.post("/players/end_campaign", json=payload)
+        resp = client.post(ROUTES.player_end_campaign(), json=payload)
 
         # Assert
         assert resp.status_code == 200
@@ -149,7 +150,7 @@ class TestPlayersRemoveCampaign(BaseTestData):
         }
 
         # Act
-        resp = client.post("/players/remove_campaign", json=payload)
+        resp = client.post(ROUTES.player_remove_campaign(), json=payload)
 
         # Assert
         assert resp.status_code == 200
@@ -176,7 +177,7 @@ class TestGetPlayer(BaseTestData):
         }
 
         # Act
-        resp = client.get(f"/players/status/{self.player_id}")
+        resp = client.get(ROUTES.player_status(self.player_id))
 
         # Assert
         assert resp.status_code == 200
@@ -192,7 +193,7 @@ class TestGetPlayer(BaseTestData):
         mock_player_manager.get_player.side_effect = NotFoundError(error)
 
         # Act
-        resp = client.get("/players/status/nonexistent")
+        resp = client.get(ROUTES.player_status("NonExistentPlayer"))
 
         # Assert
         assert resp.status_code == error.status_code

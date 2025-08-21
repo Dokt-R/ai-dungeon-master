@@ -20,6 +20,8 @@ todo.md
 notes.md
 htmlcov/
 *workspace*
+.roomodes
+.kiro
 
 # Ignore logs and temp files
 *.log

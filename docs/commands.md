@@ -16,11 +16,30 @@ This document lists all available bot commands, their descriptions, and advanced
 - **/server-setup**  
   Explains the shared API key model and how to submit a key. Only users with "Administrator" or "Manage Server" permissions can run this command.
 
-- **/server-setkey [API_KEY]**  
+- **/server-setkey [API_KEY]**
   Allows an admin to submit the server's shared API key. Only users with "Administrator" or "Manage Server" permissions can run this command. The key is securely sent to the backend and never shown to other users.
 
-- **/ping**  
+- **/ping**
   Check if the bot is alive.
+
+## Sync Commands (Admin Only)
+
+These commands manage automatic synchronization of Discord server members to the database as players. **These commands are only visible and available to users with "Administrator" or "Manage Server" permissions.**
+
+- **/sync members**
+  Sync all current server members to the database as players. Shows progress and reports how many members were created/updated.
+
+- **/sync start**
+  Start automatic periodic member sync that runs every hour to check for new members and username changes.
+
+- **/sync stop**
+  Stop the periodic member sync task.
+
+- **/sync status**
+  Check if the periodic sync is currently running and when the next sync is scheduled.
+
+- **/sync restart**
+  Restart the periodic member sync task.
 
 ## Advanced Usage
 
@@ -32,6 +51,12 @@ This document lists all available bot commands, their descriptions, and advanced
   - `end`: End your current campaign session.
   - `delete`: Delete a campaign (owner or admin only).
   - `info`: Get information about a campaign.
+- For player synchronization, use the `/sync` command with its subcommands:
+  - `members`: Sync current server members to database.
+  - `start`: Start periodic member sync.
+  - `stop`: Stop periodic member sync.
+  - `status`: Check sync status.
+  - `restart`: Restart periodic sync.
 - For character management, use `/sheet` to view your character sheet.
 
 For the latest updates and detailed guides, see the [README](../README.MD) or project documentation.

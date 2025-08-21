@@ -63,8 +63,19 @@ class CampaignManager:
         statement = select(Campaign).where(
             Campaign.server_id == server_id, Campaign.campaign_name == campaign_name
         )
-        result = await self.session.execute(statement)
-        return result.scalars().first()
+        results = await self.session.execute(statement)
+        result = results.scalars().first()
+
+        if not result:
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "server_id": server_id,
+                    "campaign_name": campaign_name,
+                },
+            )
+        return result
 
     async def delete_campaign(
         self, server_id: str, campaign_name: str, requester_id: str, is_admin: bool

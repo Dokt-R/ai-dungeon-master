@@ -55,6 +55,23 @@ def make_discord_interaction(
     return interaction
 
 
+def make_discord_member(user_id=None, display_name=None, bot=False, **overrides):
+    """Factory for Discord member objects (not persisted)."""
+    import uuid
+    from unittest.mock import MagicMock
+
+    member = MagicMock()
+    member.id = user_id or str(uuid.uuid4())
+    member.display_name = display_name or f"user_{uuid.uuid4().hex[:6]}"
+    member.bot = bot
+
+    # Add any overrides
+    for key, value in overrides.items():
+        setattr(member, key, value)
+
+    return member
+
+
 def make_discord_cog(bot=None, **overrides):
     """Factory for Discord cog objects (not persisted)."""
     import uuid

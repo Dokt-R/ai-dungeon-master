@@ -1,9 +1,9 @@
-import logging
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from structlog.testing import capture_logs
 
-from packages.shared.error_handler import discord_error_handler
+from packages.shared.error_handler import _safe_send_message, discord_error_handler
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import (
     AIAPIError,
@@ -58,7 +58,7 @@ def test_ai_api_error_creation():
 
 
 @pytest.mark.asyncio
-async def test_discord_error_handler_decorator(caplog):
+async def test_discord_error_handler_decorator():
     """Test the discord_error_handler decorator with new exception classes."""
     mock_interaction = MagicMock()
     mock_interaction.response.send_message = AsyncMock()
@@ -80,54 +80,108 @@ async def test_discord_error_handler_decorator(caplog):
         raise Exception("Generic error")
 
     # Test ValidationError
-    with caplog.at_level(logging.WARNING):
+    with capture_logs() as cap_logs:
         await command_that_raises_validation_error(None, mock_interaction)
         mock_interaction.response.send_message.assert_awaited_with(
             ErrorCode.VALIDATION_ERROR.message, ephemeral=True
         )
         # Verify warning log with stack trace
-        assert ErrorCode.VALIDATION_ERROR.message in caplog.text
-        assert "Traceback" in caplog.text
-        assert "ValidationError" in caplog.text
+        assert any(log["event"] == "ValidationError occurred: Validation error (Code: VALIDATION_ERROR, Details: {'field': 'required'})" for log in cap_logs)
+        assert any("stack" in log for log in cap_logs)
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test NotFoundError
-    with caplog.at_level(logging.WARNING):
+    with capture_logs() as cap_logs:
         await command_that_raises_not_found_error(None, mock_interaction)
         mock_interaction.response.send_message.assert_awaited_with(
             ErrorCode.NOT_FOUND.message, ephemeral=True
         )
         # Verify warning log with stack trace
-        assert ErrorCode.NOT_FOUND.message in caplog.text
-        assert "Traceback" in caplog.text
-        assert "NotFoundError" in caplog.text
+        assert any(log["event"] == "NotFoundError occurred: Resource not found (Code: NOT_FOUND, Details: {'resource': 'campaign'})" for log in cap_logs)
+        assert any("stack" in log for log in cap_logs)
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test AIAPIError
-    with caplog.at_level(logging.WARNING):
+    with capture_logs() as cap_logs:
         await command_that_raises_ai_api_error(None, mock_interaction)
         mock_interaction.response.send_message.assert_awaited_with(
             ErrorCode.AI_API_ERROR.message, ephemeral=True
         )
         # Verify warning log with stack trace
-        assert ErrorCode.AI_API_ERROR.message in caplog.text
-        assert "Traceback" in caplog.text
-        assert "AIAPIError" in caplog.text
+        assert any(log["event"] == "AIAPIError occurred: AI API error (Code: AI_API_ERROR, Details: {'status': 500})" for log in cap_logs)
+        assert any("stack" in log for log in cap_logs)
 
     # Reset mock for next test
     mock_interaction.response.send_message.reset_mock()
 
     # Test generic Exception
-    with caplog.at_level(logging.ERROR):
+    with capture_logs() as cap_logs:
         await command_that_raises_generic_error(None, mock_interaction)
         mock_interaction.response.send_message.assert_awaited_with(
             "An unexpected error occurred. Please contact an administrator.",
             ephemeral=True,
         )
-        # Verify error log with stack trace
-        assert "Generic error" in caplog.text
-        assert "Traceback" in caplog.text
+        # Verify error log
+        assert any(log["event"] == "An unexpected error occurred in command command_that_raises_generic_error: Generic error" for log in cap_logs)
+        assert any("stack" in log for log in cap_logs)
+
+
+@pytest.mark.asyncio
+async def test_safe_send_message_normal_case():
+    """Test _safe_send_message with normal case where response.send_message succeeds."""
+    mock_interaction = MagicMock()
+    mock_interaction.response.send_message = AsyncMock()
+    mock_interaction.followup.send = AsyncMock()
+    
+    await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
+    
+    # Verify that send_message was called
+    mock_interaction.response.send_message.assert_awaited_with("Test message", ephemeral=True)
+    # Verify that followup.send was not called
+    mock_interaction.followup.send.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_safe_send_message_fallback_to_followup():
+    """Test _safe_send_message falls back to followup.send when response.send_message fails."""
+    mock_interaction = MagicMock()
+    mock_interaction.response.send_message = AsyncMock(side_effect=Exception("Response failed"))
+    mock_interaction.followup.send = AsyncMock()
+    
+    with capture_logs() as cap_logs:
+        await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
+        
+        # Verify that both methods were called
+        mock_interaction.response.send_message.assert_awaited_with("Test message", ephemeral=True)
+        mock_interaction.followup.send.assert_awaited_with("Test message", ephemeral=True)
+        
+        # Verify warning log for the first failure
+        assert any("Failed to send message via interaction.response.send_message: Response failed" in log["event"] for log in cap_logs)
+
+
+@pytest.mark.asyncio
+async def test_safe_send_message_both_fail_logs_and_raises_runtimeerror():
+    """
+    Test _safe_send_message logs warnings for each failure and a final error,
+    and raises RuntimeError when both response.send_message and followup.send fail.
+    """
+    mock_interaction = MagicMock()
+    mock_interaction.response.send_message = AsyncMock(side_effect=Exception("Response failed"))
+    mock_interaction.followup = MagicMock()
+    mock_interaction.followup.send = AsyncMock(side_effect=Exception("Followup failed"))
+
+
+    with capture_logs() as cap_logs:
+        with pytest.raises(RuntimeError, match="Failed to send error message to Discord interaction"):
+            await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
+
+        # Verify warning logs for each attempt
+        assert any("Failed to send message via interaction.response.send_message: Response failed" in log["event"] for log in cap_logs)
+        assert any("Failed to send message via interaction.followup.send: Followup failed" in log["event"] for log in cap_logs)
+        
+        # Verify the final error log
+        assert any("Failed to send message via both response.send_message and followup.send" in log["event"] for log in cap_logs)

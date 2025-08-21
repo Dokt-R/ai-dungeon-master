@@ -10,22 +10,20 @@ from packages.bot.cogs.character_cog import CharacterCog
 def bot():
     return MagicMock()
 
-
 @pytest.fixture
 def cog(bot):
     return CharacterCog(bot)
 
-
 @pytest.mark.asyncio
-async def test_character_add_command_validation_error(cog):
+async def test_character_add_command_validation_error(bot):
     """Test character add command when backend returns validation error."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
     interaction.followup.send = AsyncMock()
-    interaction.response.send_message = AsyncMock()
+    # interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.json = AsyncMock(
@@ -39,22 +37,24 @@ async def test_character_add_command_validation_error(cog):
         mock_client.return_value.__aenter__.return_value.post.return_value = (
             mock_response
         )
-
-        await cog.add.callback(cog, interaction, name="Hero", character_url=None)
+        cog = CharacterCog(bot)
+        await cog.add.callback(
+            cog, interaction, name="Hero", character_url=None
+            )
         interaction.response.send_message.assert_awaited_once_with(
             "Failed to add character. Please try again later.", ephemeral=True
         )
 
 
 @pytest.mark.asyncio
-async def test_character_update_command_validation_error(cog):
+async def test_character_update_command_validation_error(bot):
     """Test character update command when backend returns validation error."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
     interaction.followup.send = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.json = AsyncMock(
@@ -71,6 +71,8 @@ async def test_character_update_command_validation_error(cog):
             mock_response
         )
 
+        cog = CharacterCog(bot)
+
         await cog.update.callback(
             cog, interaction, character_id=1, name="NewName", character_url=None
         )
@@ -84,11 +86,11 @@ async def test_character_update_command_validation_error(cog):
 async def test_character_remove_command_not_found_error(cog):
     """Test character remove command when character is not found."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
     interaction.followup.send = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 404
         mock_response.json = AsyncMock(return_value={"detail": "Character not found"})
@@ -109,10 +111,10 @@ async def test_character_remove_command_not_found_error(cog):
 async def test_character_list_command_validation_error(cog):
     """Test character list command when backend returns validation error."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 400
         mock_response.json = AsyncMock(
@@ -137,10 +139,10 @@ async def test_character_list_command_validation_error(cog):
 async def test_character_add_command_http_error(cog):
     """Test character add command when HTTP request fails."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post.side_effect = Exception(
             "Network error"
         )
@@ -155,10 +157,10 @@ async def test_character_add_command_http_error(cog):
 async def test_character_update_command_http_error(cog):
     """Test character update command when HTTP request fails."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post.side_effect = Exception(
             "Network error"
         )
@@ -175,10 +177,10 @@ async def test_character_update_command_http_error(cog):
 async def test_character_remove_command_http_error(cog):
     """Test character remove command when HTTP request fails."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post.side_effect = Exception(
             "Network error"
         )
@@ -193,10 +195,10 @@ async def test_character_remove_command_http_error(cog):
 async def test_character_list_command_http_error(cog):
     """Test character list command when HTTP request fails."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_client.return_value.__aenter__.return_value.post.side_effect = Exception(
             "Network error"
         )
@@ -211,11 +213,11 @@ async def test_character_list_command_http_error(cog):
 async def test_character_add_command_internal_server_error(cog):
     """Test character add command when backend returns a 500 error."""
     interaction = AsyncMock()
-    interaction.user.id = 42
+    interaction.user.id = "12345"
     interaction.response.send_message = AsyncMock()
     interaction.followup.send = AsyncMock()
 
-    with patch("packages.bot.cogs.character_cog.httpx.AsyncClient") as mock_client:
+    with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 500
         mock_response.json = AsyncMock(

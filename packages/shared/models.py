@@ -1,8 +1,12 @@
+# from __future__ import annotations
+
 from datetime import datetime
+from enum import Enum
 from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field as PydanticField, SecretStr
 from sqlalchemy import Column, String
+from sqlalchemy.orm import Mapped
 from sqlmodel import Field as SQLField, Relationship, SQLModel
 
 
@@ -11,51 +15,12 @@ class Server(SQLModel, table=True):
     __tablename__ = "keys"
     server_id: str = SQLField(primary_key=True)
     api_key: SecretStr = SQLField(sa_column=Column(String), default=None)
-    dm_roll_visibility: str = "public"
-    player_roll_mode: str = "digital"
-    character_sheet_mode: str = "digital_sheet"
+    dm_roll_visibility: str = SQLField(default="public")
+    player_roll_mode: str = SQLField(default="digital")
+    character_sheet_mode: str = SQLField(default="digital_sheet")
 
-    campaigns: List["Campaign"] = Relationship(
+    campaigns: Mapped[List["Campaign"]] = Relationship(
         back_populates="server_api", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-
-
-# Player Model
-class Player(SQLModel, table=True):
-    __tablename__ = "players"
-    player_id: str = SQLField(primary_key=True)
-    username: Optional[str] = None
-    player_status: Optional[str] = "cmd"
-    last_active_campaign: Optional[str] = SQLField(
-        default=None, foreign_key="campaigns.campaign_name"
-    )
-
-    characters: List["Character"] = Relationship(
-        back_populates="player", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-    campaigns: List["Campaign"] = Relationship(
-        back_populates="players",
-        sa_relationship_kwargs={"secondary": "campaign_players", "lazy": "selectin"},
-    )
-
-
-# Character Model
-class Character(SQLModel, table=True):
-    __tablename__ = "characters"
-    character_id: Optional[int] = SQLField(default=None, primary_key=True)
-    name: str
-    character_url: Optional[str] = None
-
-    player_id: str = SQLField(foreign_key="players.player_id")
-    player: Player = Relationship(
-        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
-    )
-
-    campaign_id: Optional[int] = SQLField(
-        default=None, foreign_key="campaigns.campaign_id"
-    )
-    campaign: Optional["Campaign"] = Relationship(
-        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
     )
 
 
@@ -64,27 +29,68 @@ class CampaignPlayerLink(SQLModel, table=True):
     __tablename__ = "campaign_players"
     campaign_id: int = SQLField(primary_key=True, foreign_key="campaigns.campaign_id")
     player_id: str = SQLField(primary_key=True, foreign_key="players.player_id")
+    
+
+# Player Model
+class Player(SQLModel, table=True):
+    __tablename__ = "players"
+    player_id: str = SQLField(primary_key=True)
+    username: Optional[str] = SQLField(default=None)
+    player_status: str = SQLField(default="cmd")
+    last_active_campaign: Optional[str] = SQLField(
+        default=None, foreign_key="campaigns.campaign_name"
+    )
+
+    characters: Mapped[List["Character"]] = Relationship(
+        back_populates="player", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+    campaigns: Mapped[List["Campaign"]] = Relationship(
+        back_populates="players",
+        link_model=CampaignPlayerLink,
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+
+# Character Model
+class Character(SQLModel, table=True):
+    __tablename__ = "characters"
+    character_id: Optional[int] = SQLField(default=None, primary_key=True)
+    name: str = SQLField(...)
+    character_url: Optional[str] = SQLField(default=None)
+
+    player_id: str = SQLField(foreign_key="players.player_id")
+    player: Mapped["Player"] = Relationship(
+        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    campaign_id: Optional[int] = SQLField(
+        default=None, foreign_key="campaigns.campaign_id"
+    )
+    campaign: Mapped["Campaign"] = Relationship(
+        back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
 
 # Campaign Model
 class Campaign(SQLModel, table=True):
     __tablename__ = "campaigns"
     campaign_id: Optional[int] = SQLField(default=None, primary_key=True)
-    campaign_name: str
-    owner_id: str
-    state: Optional[str] = None
+    campaign_name: str = SQLField(...)
+    owner_id: str = SQLField(...)
+    state: Optional[str] = SQLField(default=None)
     last_save: datetime = SQLField(default_factory=datetime.utcnow)
 
     server_id: str = SQLField(foreign_key="keys.server_id")
-    server_api: Server = Relationship(
+    server_api: Mapped["Server"] = Relationship(
         back_populates="campaigns", sa_relationship_kwargs={"lazy": "selectin"}
     )
 
-    players: List[Player] = Relationship(
+    players: Mapped[List["Player"]] = Relationship(
         back_populates="campaigns",
-        sa_relationship_kwargs={"secondary": "campaign_players", "lazy": "selectin"},
+        link_model=CampaignPlayerLink,
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
-    characters: List[Character] = Relationship(
+    characters: Mapped[List["Character"]] = Relationship(
         back_populates="campaign", sa_relationship_kwargs={"lazy": "selectin"}
     )
 
@@ -178,6 +184,10 @@ class ContinueCampaignRequest(BaseModel):
     player_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
+    username: str = PydanticField(
+        ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
+    )
+
 
 
 class LeaveCampaignRequest(BaseModel):
@@ -202,7 +212,7 @@ class CampaignEndRequest(BaseModel):
     server_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
-    campaign_name: str = PydanticField(..., min_length=1, max_length=64)
+    campaign_name: Optional[str] = PydanticField(default=None, min_length=1, max_length=64)
     player_id: str = PydanticField(
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
@@ -221,3 +231,22 @@ class CampaignDeleteRequest(BaseModel):
 
 class CampaignStateRequest(BaseModel):
     state: str
+
+
+# ======================================================================================
+# Enums used for as a single source of truth for field validations
+# ======================================================================================
+
+class DMVisibility(str, Enum):
+    public = "public"
+    hidden = "hidden"
+
+class PlayerRollMode(str, Enum):
+    physical = "physical"
+    digital = "digital"
+    auto = "auto"
+    hidden = "hidden"
+
+class CharacterSheetMode(str, Enum):
+    digital_sheet = "digital_sheet"
+    physical_sheet = "physical_sheet"

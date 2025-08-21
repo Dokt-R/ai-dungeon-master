@@ -165,6 +165,112 @@ class PlayerManager:
             "status": return_player_status,
         }
 
+    async def continue_campaign(
+        self,
+        player_id: str,
+        username: str,
+    ) -> dict:
+        """
+        Continue playing in your last active campaign
+        """
+        #! TODO: Fix Characters to be Associated with the Campaign so that it auto joins with the character involved
+        #! TODO: Define player creation somewhere reusable
+        player = await self.session.get(Player, player_id)
+        if not player:
+            player = Player(player_id=player_id, username=username)
+            self.session.add(player)
+            await self.session.commit()
+            await self.session.refresh(player)
+
+        campaign_name = player.last_active_campaign
+
+        if not campaign_name:
+            raise NotFoundError(
+                ErrorCode.NO_LAST_ACTIVE_CAMPAIGN,
+                details={
+                    "player_id": player_id,
+                },
+            )
+
+        statement = select(Campaign).where(Campaign.campaign_name == campaign_name
+        )
+        result = await self.session.execute(statement)
+        campaign = result.scalars().first()
+        if not campaign:
+            raise NotFoundError(
+                ErrorCode.CAMPAIGN_NOT_FOUND,
+                campaign=campaign_name,
+                details={
+                    "player_id": player_id,
+                    "campaign_name": campaign_name,
+                },
+            )
+
+        # Check if already joined
+        statement = (
+            select(CampaignPlayerLink)
+            .join(Campaign)
+            .where(CampaignPlayerLink.player_id == player_id)
+            .where(player.player_status == "joined")
+        )
+        result = await self.session.execute(statement)
+        if result.scalars().first():
+            if campaign_name == player.last_active_campaign:
+                raise ValidationError(
+                    ErrorCode.PLAYER_NOT_IN_CMD,
+                    details={
+                        "player_id": player_id,
+                        "campaign_name": campaign_name,
+                    },
+                )
+
+        character = None
+        statement = select(Character).where(Character.player_id == player_id)
+        result = await self.session.execute(statement)
+        characters = result.scalars().all()
+        if len(characters) > 1:
+            raise ValidationError(
+                ErrorCode.PLAYER_HAS_MULTIPLE_CHARACTERS,
+                details={
+                    "player_id": player_id,
+                    "character_count": len(characters),
+                },
+            )
+        if not characters:
+            raise NotFoundError(
+                ErrorCode.PLAYER_HAS_NO_CHARACTERS,
+                details={"player_id": player_id},
+            )
+        character = characters[0]
+
+        link = CampaignPlayerLink(
+            campaign_id=campaign.campaign_id,
+            player_id=player.player_id,
+            character_id=character.character_id,
+            player_status="joined",
+        )
+
+        merge_link = await self.session.merge(link)
+        player.last_active_campaign = campaign.campaign_name
+        player.player_status = "joined"
+        # Pre commit attributes to avoid SQLAlchemy lazy load
+        return_campaign_name = campaign.campaign_name
+        return_campaign_id = campaign.campaign_id
+        return_player_id = player.player_id
+        return_character_id = character.character_id
+        return_player_status = player.player_status
+        # Continue with the DB actions
+        self.session.add(player)
+        await self.session.commit()
+        await self.session.refresh(merge_link)
+        return {
+            "campaign_name": return_campaign_name,
+            "campaign_id": return_campaign_id,
+            "player_id": return_player_id,
+            "character_id": return_character_id,
+            "status": return_player_status,
+        }
+
     async def remove_campaign(
         self, player_id: str, server_id: str, campaign_name: str
     ) -> dict:
@@ -244,7 +350,7 @@ class PlayerManager:
         player = await self.session.get(Player, player_id)
         if not player:
             raise NotFoundError(
-                ErrorCode.PLAYER_NOT_FOUND,
+                ErrorCode.PLAYER_HAS_NO_CAMPAIGNS,
                 details={"server_id": server_id, "player_id": player_id},
             )
 

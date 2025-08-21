@@ -1,5 +1,7 @@
 import pytest
 
+from packages.shared.routes import ROUTES
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -13,7 +15,7 @@ class BaseTestData:
 class TestCampaignAPI(BaseTestData):
     async def test_create_campaign(self, client):
         response = await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": self.campaign_name,
@@ -28,23 +30,23 @@ class TestCampaignAPI(BaseTestData):
     async def test_get_campaign(self, client):
         # First, create a campaign to retrieve
         await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
-                "campaign_name": "get_test",
+                "campaign_name": self.campaign_name,
                 "owner_id": self.owner_id,
             },
         )
 
-        response = await client.get(f"/campaigns/{self.server_id}/get_test")
+        response = await client.get(ROUTES.campaign_details(self.server_id, self.campaign_name))
         assert response.status_code == 200
         data = response.json()
-        assert data["campaign_name"] == "get_test"
+        assert data["campaign_name"] == self.campaign_name
 
     async def test_delete_campaign(self, client):
         # First, create a campaign to delete
         await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "delete_test",
@@ -54,7 +56,7 @@ class TestCampaignAPI(BaseTestData):
 
         response = await client.request(
             "DELETE",
-            "/campaigns/delete",
+            ROUTES.campaign_delete(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "delete_test",
@@ -68,7 +70,7 @@ class TestCampaignAPI(BaseTestData):
     async def test_get_campaign_players(self, client, insert_player):
         # Create campaign
         create_response = await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "players_test",
@@ -80,7 +82,7 @@ class TestCampaignAPI(BaseTestData):
         # Create player and have them join the campaign
         await insert_player(self.player_id)
         await client.post(
-            "/players/join_campaign",
+            ROUTES.player_join_campaign(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "players_test",
@@ -89,7 +91,7 @@ class TestCampaignAPI(BaseTestData):
             },
         )
 
-        response = await client.get(f"/campaigns/{campaign_id}/players")
+        response = await client.get(ROUTES.campaign_players(campaign_id))
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 1
@@ -98,7 +100,7 @@ class TestCampaignAPI(BaseTestData):
     async def test_update_campaign_state(self, client):
         # Create campaign
         create_response = await client.post(
-            "/campaigns/create",
+            ROUTES.campaign_create(),
             json={
                 "server_id": self.server_id,
                 "campaign_name": "state_test",
@@ -108,7 +110,7 @@ class TestCampaignAPI(BaseTestData):
         campaign_id = create_response.json()["campaign_id"]
 
         response = await client.put(
-            f"/campaigns/{campaign_id}/state", json={"state": "paused"}
+            ROUTES.campaign_state_update(campaign_id), json={"state": "paused"}
         )
         assert response.status_code == 200
         data = response.json()

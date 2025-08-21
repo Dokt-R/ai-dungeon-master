@@ -1,6 +1,6 @@
 import pytest
 
-from packages.shared.exceptions import PermissionDeniedError
+from packages.shared.exceptions import NotFoundError, PermissionDeniedError
 
 pytestmark = pytest.mark.asyncio
 
@@ -34,10 +34,10 @@ class TestCampaignManager(BaseTestData):
             self.server_id, self.campaign_name, self.owner_id, is_admin=False
         )
         assert result is True
-        retrieved = await managers.campaign.get_campaign(
-            self.server_id, self.campaign_name
-        )
-        assert retrieved is None
+        with pytest.raises(NotFoundError):
+            await managers.campaign.get_campaign(
+                self.server_id, self.campaign_name
+            )
 
     async def test_delete_campaign_by_admin(self, managers, session):
         await managers.campaign.create_campaign(
@@ -47,10 +47,10 @@ class TestCampaignManager(BaseTestData):
             self.server_id, self.campaign_name, "not_the_owner", is_admin=True
         )
         assert result is True
-        retrieved = await managers.campaign.get_campaign(
-            self.server_id, self.campaign_name
-        )
-        assert retrieved is None
+        with pytest.raises(NotFoundError):
+            await managers.campaign.get_campaign(
+                self.server_id, self.campaign_name
+            )
 
     async def test_delete_campaign_permission_denied(self, managers, session):
         await managers.campaign.create_campaign(

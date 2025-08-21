@@ -60,3 +60,5 @@ uuid==1.30
 uvicorn==0.35.0
 watchdog==6.0.0
 yarl==1.20.1
+
+structlog>=24.1.0

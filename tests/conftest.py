@@ -19,6 +19,8 @@ from packages.backend.main import app
 from packages.shared.db import get_async_engine, get_async_session, initialize_schema
 from packages.shared.models import Character, Player
 
+asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+
 Managers = namedtuple("Managers", ["settings", "character", "player", "campaign"])
 
 

@@ -9,7 +9,7 @@ description = "AI Dungeon Master build with BMAD v4"
 authors = [
     { name = "Nikolaos Papadopoulos", email = "nikolaospap94@gmail.com" }
 ]
-dependencies = []
+dependencies = ["structlog>=24.1.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -21,3 +21,6 @@ lint.extend-select = ["I"]
 [tool.ruff.lint.isort]
 known-first-party = ["packages"]  # Your local modules
 combine-as-imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

@@ -1,15 +1,18 @@
-import functools
-import logging
+from functools import wraps
 
+from packages.shared.correlation import correlation_id_context, get_correlation_id
 from packages.shared.errors import ERRORS, PLAYER_ERRORS
 from packages.shared.exceptions import (
     AIAPIError,
+    CustomException,
     NotFoundError,
     PermissionDeniedError,
     ValidationError,
 )
+from packages.shared.logging_config import configure_logging, get_logger
 
-logger = logging.getLogger(__name__)
+configure_logging()
+logger = get_logger(__name__)
 
 
 def _get_player_message(code: str, **kwargs) -> str:
@@ -41,31 +44,77 @@ def discord_error_handler(
     """
 
     def decorator(func):
-        @functools.wraps(func)
+        @wraps(func)
         async def wrapper(self, interaction, *args, **kwargs):
-            try:
-                await func(self, interaction, *args, **kwargs)
-            except (
-                ValidationError,
-                NotFoundError,
-                AIAPIError,
-                PermissionDeniedError,
-            ) as exc:
-                # Log custom exceptions with their structured data and stack trace
-                logger.warning(
-                    f"{type(exc).__name__} occurred: {exc.message} "
-                    f"(Code: {exc.error_code}, Details: {exc.details})",
-                    exc_info=True,
-                )
-                player_message = _get_player_message(exc.error_code, **exc.details)
-                await _safe_send_message(interaction, player_message, ephemeral=True)
-            except Exception as e:
-                # Log generic exceptions with full stack trace
-                logger.error(
-                    f"An unexpected error occurred in command {func.__name__}: {e}",
-                    exc_info=True,
-                )
-                await _safe_send_message(interaction, fallback_message, ephemeral=True)
+            # Ensure a correlation id is present for the duration of this command
+            current_cid = get_correlation_id()
+
+            if current_cid:
+                # Get bound logger with current context
+                bound_logger = logger.bind()
+                try:
+                    await func(self, interaction, *args, **kwargs)
+                except (
+                    CustomException,
+                    ValidationError,
+                    NotFoundError,
+                    AIAPIError,
+                    PermissionDeniedError,
+                ) as exc:
+                    # Log with structured context
+                    bound_logger.warning(
+                        "Custom exception occurred",
+                        exception_type=type(exc).__name__,
+                        message=exc.message,
+                        error_code=exc.error_code,
+                        details=exc.details,
+                        exc_info=True
+                    )
+                    player_message = _get_player_message(exc.error_code, **exc.details)
+
+                    await _safe_send_message(interaction, player_message, ephemeral=True)
+                except Exception as e:
+                    # Log generic exceptions with full stack trace
+                    bound_logger.error(
+                        "Unexpected error in command",
+                        command=func.__name__,
+                        error=str(e),
+                        exc_info=True
+                    )
+                    await _safe_send_message(interaction, fallback_message, ephemeral=True)
+                return
+            
+            # No CID currently present -> create one for this command scope
+            with correlation_id_context():
+                bound_logger = logger.bind()
+                try:
+                    await func(self, interaction, *args, **kwargs)
+                except (
+                    CustomException,
+                    ValidationError,
+                    NotFoundError,
+                    AIAPIError,
+                    PermissionDeniedError,
+                ) as exc:
+                    bound_logger.warning(
+                        "Custom exception occurred",
+                        exception_type=type(exc).__name__,
+                        message=exc.message,
+                        error_code=exc.error_code,
+                        details=exc.details,
+                        exc_info=True,
+                    )
+                    player_message = _get_player_message(exc.error_code, **exc.details)
+
+                    await _safe_send_message(interaction, player_message, ephemeral=True)
+                except Exception as e:
+                    bound_logger.error(
+                        "Unexpected error in command",
+                        command=func.__name__,
+                        error=str(e),
+                        exc_info=True,
+                    )
+                    await _safe_send_message(interaction, fallback_message, ephemeral=True)
 
         return wrapper
 
@@ -75,19 +124,23 @@ def discord_error_handler(
 async def _safe_send_message(interaction, message, ephemeral=True):
     """
     Safely send a message to the interaction, handling already-responded errors.
-    Tries to send a new message, or a followup if a response already exists.
+    Always attempts response.send_message first for test compatibility.
     """
     try:
-        # The preferred way to respond, especially for the first response
         await interaction.response.send_message(message, ephemeral=ephemeral)
-    except Exception:
+        return
+    except Exception as e:
+        logger.warning(f"Failed to send message via interaction.response.send_message: {e}")
+        # If response.send_message fails, try followup.send if available
         try:
-            # If the initial response fails, it might be because we already responded.
-            # In this case, we use a followup message.
-            await interaction.followup.send(message, ephemeral=ephemeral)
+            if hasattr(interaction, "followup") and hasattr(
+                interaction.followup, "send"
+            ):
+                await interaction.followup.send(message, ephemeral=ephemeral)
+                return
         except Exception as e:
-            # If both attempts fail, log the error for debugging.
-            logger.error(
-                f"Failed to send error message to Discord interaction for command. "
-                f"Interaction responded: {interaction.response.is_done()}. Error: {e}"
-            )
+            logger.warning(f"Failed to send message via interaction.followup.send: {e}")
+            pass
+    # If both fail, log error and raise for test visibility
+    logger.error("Failed to send message via both response.send_message and followup.send")
+    raise RuntimeError("Failed to send error message to Discord interaction.")

@@ -28,6 +28,7 @@ class CharacterManager:
         Add a new character for a player.
         """
         player = await self.session.get(Player, player_id)
+        
         if not player:
             raise NotFoundError(
                 ErrorCode.PLAYER_NOT_FOUND, details={"player_id": player_id}

@@ -5,8 +5,11 @@ services:
       dockerfile: packages/backend/Dockerfile
     environment:
       - PYTHONPATH=/
+      - LOG_FORMAT=json
     ports:
       - "8000:8000"
+    depends_on:
+      - bot
     restart: unless-stopped
   bot:
     build:
@@ -16,5 +19,8 @@ services:
       - ./.env:/.env:ro
     environment:
       - PYTHONPATH=/
+      - LOG_FORMAT=json
       - FAST_API=http://backend:8000
+    depends_on:
+      - backend
     restart: unless-stopped

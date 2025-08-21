@@ -9,6 +9,7 @@ from packages.backend.main import app
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Character
+from packages.shared.routes import ROUTES
 
 
 # Mock the CharacterManager dependency
@@ -49,8 +50,7 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.add_character.return_value = mock_character
 
         # Act
-        response = await client.post(
-            "/characters/add",
+        response = await client.post(ROUTES.character_add(),
             json={
                 "player_id": self.player_id,
                 "name": self.character_name,
@@ -78,7 +78,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/add",
+            ROUTES.character_add(),
             json={
                 "player_id": "nonexistent",
                 "name": "Hero",
@@ -97,7 +97,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/update",
+            ROUTES.character_update(),
             json={"character_id": self.character_id, "name": "NewName"},
         )
 
@@ -117,7 +117,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/update", json={"character_id": 99999, "name": "NewName"}
+            ROUTES.character_update(), json={"character_id": 99999, "name": "NewName"}
         )
 
         # Assert
@@ -136,7 +136,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/update",
+            ROUTES.character_update(),
             json={"character_id": self.character_id, "name": name},
         )
 
@@ -152,7 +152,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/remove", json={"character_id": self.character_id}
+            ROUTES.character_remove(), json={"character_id": self.character_id}
         )
 
         # Assert
@@ -170,7 +170,7 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.remove_character.side_effect = NotFoundError(error)
 
         # Act
-        response = await client.post("/characters/remove", json={"character_id": 999})
+        response = await client.post(ROUTES.character_remove(), json={"character_id": 999})
 
         # Assert
         assert response.status_code == 404
@@ -191,7 +191,7 @@ class TestCharacterAPI(BaseTestData):
 
         # Act
         response = await client.post(
-            "/characters/list", json={"player_id": self.player_id}
+            ROUTES.character_list(), json={"player_id": self.player_id}
         )
 
         # Assert

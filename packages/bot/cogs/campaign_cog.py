@@ -1,18 +1,23 @@
 import os
 
 import discord
-import httpx
 from discord import app_commands
 from discord.ext import commands
 
+from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
-from packages.shared.exceptions import NotFoundError, ValidationError
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import (
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 
 
 class CampaignCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.api_base_url = os.getenv("FAST_API", "http://localhost:8000")
+        self.api_client = ApiClient(base_url=os.getenv("FAST_API", "http://localhost:8000"))
 
     campaign = app_commands.Group(name="campaign", description="Manage campaigns")
 
@@ -33,46 +38,23 @@ class CampaignCog(commands.Cog):
             interaction.user.guild_permissions.administrator
             or interaction.user.guild_permissions.manage_guild
         ):
-            await interaction.response.send_message(
-                "You do not have permission to create a campaign. (Requires Manage Server or Administrator role.)",
-                ephemeral=True,
+            raise PermissionDeniedError(
+                details={"message": "You do not have permission to create a campaign. (Requires Manage Server or Administrator role.)"}
             )
-            return
 
         # Call backend API to create campaign
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/campaigns/create",
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": campaign_name,
-                        "owner_id": str(interaction.user.id),
-                    },
-                )
-                response.raise_for_status()
+        await self.api_client.create_campaign({
+            "server_id": str(interaction.guild.id),
+            "campaign_name": campaign_name,
+            "owner_id": str(interaction.user.id),
+        })
 
-                data = await response.json()
-
-                await interaction.response.send_message(
-                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                    f"Campaign '{campaign_name}' created successfully!\n"
-                    "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
-                    ephemeral=False,
-                )
-            except httpx.HTTPStatusError as e:
-                message = "Failed to create campaign. Please try again later."
-                if e.response:
-                    try:
-                        data = await e.response.json()
-                        message = data.get("error", {}).get("message", message)
-                    except (ValueError, httpx.HTTPError):
-                        pass
-                raise ValidationError(message)
-            except Exception:
-                raise ValidationError(
-                    "An unexpected error occurred while creating the campaign. Please try again later."
-                )
+        await interaction.response.send_message(
+            "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+            f"Campaign '{campaign_name}' created successfully!\n"
+            "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
+            ephemeral=False,
+        )
 
     @campaign.command(
         name="join",
@@ -87,38 +69,18 @@ class CampaignCog(commands.Cog):
         self, interaction: discord.Interaction, campaign_name: str
     ):
         # Call backend API to join campaign
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/players/join_campaign",
-                    json={
-                        "server_id": str(interaction.guild.id),
-                        "campaign_name": campaign_name,
-                        "player_id": str(interaction.user.id),
-                    },
-                )
-                response.raise_for_status()
-                await interaction.response.send_message(
-                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                    f"You have joined campaign '{campaign_name}'!\n"
-                    "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
-                    ephemeral=False,
-                )
-            except httpx.HTTPStatusError as e:
-                message = "Failed to join campaign. Please try again later."
-                if e.response:
-                    try:
-                        data = await e.response.json()
-                        message = data.get("error", {}).get("message", message)
-                    except ValueError:
-                        pass
-                if e.response and e.response.status_code == 404:
-                    raise NotFoundError(message)
-                raise ValidationError(message)
-            except Exception:
-                raise ValidationError(
-                    "An unexpected error occurred while joining the campaign. Please try again later."
-                )
+        await self.api_client.join_campaign({
+            "server_id": str(interaction.guild.id),
+            "campaign_name": campaign_name,
+            "player_id": str(interaction.user.id),
+        })
+        
+        await interaction.response.send_message(
+            "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+            f"You have joined campaign '{campaign_name}'!\n"
+            "Please proceed to character setup. Would you like to use a digital or physical character sheet?",
+            ephemeral=False,
+        )
 
     @campaign.command(
         name="continue",
@@ -146,30 +108,13 @@ class CampaignCog(commands.Cog):
         }
         if campaign_name:
             payload["campaign_name"] = campaign_name
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/players/end_campaign",
-                    json=payload,
-                )
-                response.raise_for_status()
-                await interaction.response.send_message(
-                    "**Exiting immersive mode. Progress has been saved. You are now in command mode.**\n",
-                    ephemeral=False,
-                )
-            except httpx.HTTPStatusError as e:
-                message = "Failed to exit campaign. Please try again later."
-                if e.response:
-                    try:
-                        data = await e.response.json()
-                        message = data.get("error", {}).get("message", message)
-                    except ValueError:
-                        pass
-                raise ValidationError(message)
-            except Exception:
-                raise ValidationError(
-                    "An unexpected error occurred while exiting the campaign. Please try again later."
-                )
+            
+        await self.api_client.end_campaign(payload)
+        
+        await interaction.response.send_message(
+            "**Exiting immersive mode. Progress has been saved. You are now in command mode.**\n",
+            ephemeral=False,
+        )
 
     @campaign.command(
         name="delete", description="Delete a campaign (only owner or server admin)."
@@ -215,21 +160,15 @@ class CampaignCog(commands.Cog):
 
             if interaction.data["custom_id"] == "confirm":
                 try:
-                    async with httpx.AsyncClient() as client:
-                        response = await client.request(
-                            "DELETE",
-                            f"{self.api_base_url}/campaigns/delete",
-                            json={
-                                "server_id": str(interaction.guild.id),
-                                "campaign_name": name,
-                                "requester_id": str(interaction.user.id),
-                                "is_admin": is_admin,
-                            },
-                        )
-                        response.raise_for_status()
-                        await interaction.followup.send(
-                            f"Campaign '{name}' deleted successfully.", ephemeral=True
-                        )
+                    await self.api_client.delete_campaign({
+                        "server_id": str(interaction.guild.id),
+                        "campaign_name": name,
+                        "requester_id": str(interaction.user.id),
+                        "is_admin": is_admin,
+                    })
+                    await interaction.followup.send(
+                        f"Campaign '{name}' deleted successfully.", ephemeral=True
+                    )
                 except Exception as e:
                     await self._handle_delete_error(interaction, e)
             else:
@@ -244,19 +183,8 @@ class CampaignCog(commands.Cog):
     async def _handle_delete_error(
         self, interaction: discord.Interaction, e: Exception
     ):
-        if isinstance(e, httpx.HTTPStatusError):
-            message = "Failed to delete campaign. Please try again later."
-            if e.response:
-                try:
-                    data = await e.response.json()
-                    message = data.get("error", {}).get("message", message)
-                except ValueError:
-                    pass
-            raise ValidationError(message)
-        else:
-            raise ValidationError(
-                "An unexpected error occurred while deleting the campaign. Please try again later."
-            )
+        # Re-raise the exception since the API client already handles error mapping
+        raise e
 
     @campaign.command(name="info", description="Display information about a campaign.")
     @app_commands.describe(name="The name of the campaign to get info for.")
@@ -265,104 +193,67 @@ class CampaignCog(commands.Cog):
         await self._handle_campaign_info(interaction, name)
 
     async def _handle_campaign_info(self, interaction: discord.Interaction, name: str):
-        try:
-            async with httpx.AsyncClient() as client:
-                # Fetch campaign details from the backend.
-                response = await client.get(
-                    f"{self.api_base_url}/campaigns/{interaction.guild.id}/{name}"
-                )
-                response.raise_for_status()
-                campaign_data = response.json()
+        # Fetch campaign details from the backend
+        campaign_data = await self.api_client.get_campaign_details(
+            str(interaction.guild.id), name
+        )
 
-                # Fetch the list of players in the campaign.
-                players_response = await client.get(
-                    f"{self.api_base_url}/campaigns/{campaign_data['campaign_id']}/players"
-                )
-                players_response.raise_for_status()
-                players_data = players_response.json()
-                player_names = (
-                    [player["username"] for player in players_data]
-                    if players_data
-                    else ["No players yet."]
-                )
+        # Fetch the list of players in the campaign
+        players_data = await self.api_client.get_campaign_players(
+            campaign_data['campaign_id']
+        )
+        player_names = (
+            [player["username"] for player in players_data]
+            if players_data
+            else ["No players yet."]
+        )
 
-                # Create an embed to display the campaign information.
-                embed = discord.Embed(
-                    title=f"Campaign Info: {campaign_data['campaign_name']}",
-                    color=discord.Color.blue(),
-                )
-                embed.add_field(
-                    name="Owner ID", value=campaign_data["owner_id"], inline=False
-                )
-                embed.add_field(
-                    name="State", value=campaign_data.get("state", "N/A"), inline=False
-                )
-                embed.add_field(
-                    name="Players", value=", ".join(player_names), inline=False
-                )
-                embed.add_field(
-                    name="Last Save",
-                    value=campaign_data.get("last_save", "N/A"),
-                    inline=False,
-                )
+        # Create an embed to display the campaign information
+        embed = discord.Embed(
+            title=f"Campaign Info: {campaign_data['campaign_name']}",
+            color=discord.Color.blue(),
+        )
+        embed.add_field(
+            name="Owner ID", value=campaign_data["owner_id"], inline=False
+        )
+        embed.add_field(
+            name="State", value=campaign_data.get("state", "N/A"), inline=False
+        )
+        embed.add_field(
+            name="Players", value=", ".join(player_names), inline=False
+        )
+        embed.add_field(
+            name="Last Save",
+            value=campaign_data.get("last_save", "N/A"),
+            inline=False,
+        )
 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except httpx.HTTPStatusError as e:
-            if e.response and e.response.status_code == 404:
-                await interaction.response.send_message(
-                    "Campaign not found.", ephemeral=True
-                )
-            else:
-                message = "Failed to get campaign information. Please try again later."
-                if e.response:
-                    try:
-                        data = await e.response.json()
-                        message = data.get("error", {}).get("message", message)
-                    except ValueError:
-                        pass
-                raise ValidationError(message)
-        except Exception:
-            raise ValidationError(
-                "An unexpected error occurred while getting campaign information. Please try again later."
-            )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     async def _handle_campaign_continue(self, interaction: discord.Interaction):
         # Call backend API to continue campaign
         payload = {
             "server_id": str(interaction.guild.id),
             "player_id": str(interaction.user.id),
+            "username": str(interaction.user.display_name),
         }
-        async with httpx.AsyncClient() as client:
-            try:
-                response = await client.post(
-                    f"{self.api_base_url}/players/continue_campaign",
-                    json=payload,
-                )
-                response.raise_for_status()
-                data = response.json()
-                campaign_name = data.get("campaign_name", "Unknown")
-                source = data.get("source", "save")
-                msg = (
-                    "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
-                    f"**Resuming campaign '{campaign_name}'.**\n"
-                    f"Restored from {'autosave' if source == 'autosave' else 'last clean save'}.\n"
-                    "You are now back in immersive role-playing mode."
-                )
-                await interaction.response.send_message(msg, ephemeral=False)
-            except httpx.HTTPStatusError as e:
-                message = "Failed to continue campaign. Please try again later."
-                if e.response:
-                    try:
-                        data = await e.response.json()
-                        message = data.get("error", {}).get("message", message)
-                    except ValueError:
-                        pass
-                raise ValidationError(message)
-            except Exception:
-                raise ValidationError(
-                    "An unexpected error occurred while continuing the campaign. Please try again later."
-                )
+        
+        data = await self.api_client.continue_campaign(payload)
+        
+        campaign_name = data.get("campaign_name", "Unknown")
+        source = data.get("source", "save")
+        msg = (
+            "**Entering immersive role-playing mode. All messages from now on will be processed by the AI.**\n"
+            f"**Resuming campaign '{campaign_name}'.**\n"
+            f"Restored from {'autosave' if source == 'autosave' else 'last clean save'}.\n"
+            "You are now back in immersive role-playing mode."
+        )
+        await interaction.response.send_message(msg, ephemeral=False)
+
+
+    async def cog_unload(self):
+        """Called when the cog is unloaded. Clean up resources."""
+        await self.api_client.close()
 
 
 async def setup(bot):

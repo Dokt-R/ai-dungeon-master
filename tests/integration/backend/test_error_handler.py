@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from packages.shared.errors import ErrorCode
+from packages.shared.routes import ROUTES
 
 pytestmark = pytest.mark.asyncio
 
@@ -15,10 +16,10 @@ async def test_validation_error_400(client):
         "campaign_name": "Test Campaign",
         "owner_id": "owner123",
     }
-    response = await client.post("/campaigns/create", json=create_payload)
+    response = await client.post(ROUTES.campaign_create(), json=create_payload)
 
     # Try to create the same campaign again to trigger ValidationError
-    response = await client.post("/campaigns/create", json=create_payload)
+    response = await client.post(ROUTES.campaign_create(), json=create_payload)
 
     # Since we are triggering ValidationError by using a duplicate campaign we use error below
     error = ErrorCode.DUPLICATE_CAMPAIGN_NAME
@@ -34,14 +35,13 @@ async def test_validation_error_400(client):
     assert data["error_code"] == error.value
 
     # Message check
-    # assert "already exists" in error["message"]
-    assert "Test Campaign" in data["message"]  # ensure campaign name is inserted
+    assert "already exists" in data["message"]
 
 
 async def test_not_found_error_404(client):
     """Test NotFoundError (404 status code) by requesting a non-existent campaign."""
     # Request a non-existent campaign to trigger NotFoundError
-    response = await client.get("/campaigns/999999/players")
+    response = await client.get(ROUTES.campaign_details(1, "NonExistentCampaign"))
 
     error = ErrorCode.CAMPAIGN_NOT_FOUND
     data = response.json()
@@ -59,8 +59,7 @@ async def test_not_found_error_404(client):
 async def test_pydantic_validation_error_422(client):
     """Test Pydantic ValidationError (422 status code) by sending invalid data."""
     # Send invalid data to trigger Pydantic ValidationError
-    response = await client.put(
-        "/servers/1234567890/config",
+    response = await client.put(ROUTES.server_config(1234567890),
         json={
             "api_key": "test-key",
             "dm_roll_visibility": "invalid-value",
@@ -70,11 +69,12 @@ async def test_pydantic_validation_error_422(client):
     )
 
     error = ErrorCode.INVALID_INPUT
+    data = response.json()["error"]
 
     assert response.status_code == error.status_code
-    assert "detail" in response.json()
+    assert "details" in data
     # Check that the response contains validation error details
-    assert len(response.json()["detail"]) > 0
+    assert len(data["details"]) > 0
 
 
 @pytest.mark.skip("AI API is not implemented yet")

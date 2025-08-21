@@ -41,6 +41,10 @@ class ErrorCode(str, Enum):
         return ERRORS[self].message
 
     @property
+    def player_message(self):
+        return PLAYER_ERRORS[self].message
+
+    @property
     def status_code(self):
         return ERRORS[self].status_code
 
@@ -105,7 +109,7 @@ ERRORS: Dict[str, ErrorDef] = {
     ),
     ErrorCode.DUPLICATE_CAMPAIGN_NAME: ErrorDef(
         ErrorCode.DUPLICATE_CAMPAIGN_NAME,
-        "A campaign named **{campaign}** already exists. Please use a different name",
+        "A campaign with that name already exists",
         HTTPStatus.CONFLICT,
     ),
     ErrorCode.NO_LAST_ACTIVE_CAMPAIGN: ErrorDef(
@@ -152,7 +156,7 @@ ERRORS: Dict[str, ErrorDef] = {
     ),
     ErrorCode.PLAYER_HAS_NO_CAMPAIGNS: ErrorDef(
         ErrorCode.PLAYER_HAS_NO_CAMPAIGNS,
-        "There is no campaign to remove.",
+        "The player does not have any associated campaigns.",
         HTTPStatus.NOT_FOUND,
     ),
     ErrorCode.PLAYER_NOT_IN_CAMPAIGN: ErrorDef(
@@ -200,11 +204,11 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     ),
     # Campaign
     ErrorCode.CAMPAIGN_NOT_FOUND: PlayerErrorDef(
-        ErrorCode.CAMPAIGN_NOT_FOUND, "Campaign named **{campaign}** not found."
+        ErrorCode.CAMPAIGN_NOT_FOUND, "Campaign named **{campaign_name}** not found."
     ),
     ErrorCode.DUPLICATE_CAMPAIGN_NAME: PlayerErrorDef(
         ErrorCode.DUPLICATE_CAMPAIGN_NAME,
-        "A campaign named **{campaign}** already exists. Please use a different name",
+        "A campaign named **{campaign_name}** already exists. Please use a different name to create the campaign.",
     ),
     ErrorCode.NO_LAST_ACTIVE_CAMPAIGN: PlayerErrorDef(
         ErrorCode.NO_LAST_ACTIVE_CAMPAIGN,
@@ -240,7 +244,7 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
         "You have multiple characters, please specify one to join with.",
     ),
     ErrorCode.PLAYER_HAS_NO_CAMPAIGNS: PlayerErrorDef(
-        ErrorCode.PLAYER_HAS_NO_CAMPAIGNS, "There is no campaign to remove."
+        ErrorCode.PLAYER_HAS_NO_CAMPAIGNS, "You do are not in any campaigns yet. Join one to be able to perform this action."
     ),
     ErrorCode.PLAYER_NOT_IN_CAMPAIGN: PlayerErrorDef(
         ErrorCode.PLAYER_NOT_IN_CAMPAIGN,

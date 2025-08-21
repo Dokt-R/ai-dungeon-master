@@ -27,6 +27,5 @@ async def set_server_config(
         player_roll_mode=config.player_roll_mode,
         character_sheet_mode=config.character_sheet_mode,
     )
-
     await settings_manager.store_server_config(server_config)
     return {"message": "Server configuration updated successfully."}
