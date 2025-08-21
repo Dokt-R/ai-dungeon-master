@@ -138,6 +138,7 @@ class TestApiClient:
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
 
+
     async def test_add_character_success(self, api_client):
         """Test successful character addition."""
         mock_response = AsyncMock(spec=httpx.Response)

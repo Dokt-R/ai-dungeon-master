@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from packages.bot.cogs import campaign_cog
 from packages.bot.cogs.campaign_cog import CampaignCog
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 
 sys.modules["packages.backend.components.campaign_manager"] = mock.MagicMock()
@@ -99,7 +100,7 @@ async def test_campaign_new_backend_error(cog, mock_interaction):
         mock_post.side_effect = httpx.RequestError("backend error", request=MagicMock())
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_new(interaction, campaign_name)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 async def test_campaign_join_success(cog):
@@ -414,7 +415,7 @@ async def test_campaign_continue_backend_error(cog):
         mock_post.side_effect = httpx.RequestError("backend error", request=MagicMock())
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_continue(interaction)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 async def test_campaign_delete_with_active_characters(cog):
@@ -502,7 +503,7 @@ async def test_campaign_end_backend_error(cog):
         mock_post.side_effect = httpx.RequestError("backend error", request=MagicMock())
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_end(interaction)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 async def test_campaign_end_failure(cog):

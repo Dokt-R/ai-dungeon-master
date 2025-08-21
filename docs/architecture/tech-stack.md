@@ -9,3 +9,4 @@
 | **Data Persistence** | Polyglot | N/A | Flexible data storage. | Uses the best tool for each job: SQLite for rules, and YAML/JSON for campaign files. |
 | **Containerization** | Docker / Docker Compose | Latest | Packages the application for portability. | Simplifies local self-hosting and ensures consistent deployment environments. |
 | **Testing Framework**| Pytest | 8.2.2 | For all unit and integration tests. | The standard for Python testing; powerful, flexible, and has a rich plugin ecosystem. |
+| **Logging Framework**| Structlog | Latest | Structured logging with correlation IDs for observability. | Provides JSON output for production and human-readable output for development, with built-in correlation ID support for request tracing. |

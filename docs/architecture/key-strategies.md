@@ -1,6 +1,6 @@
 # Key Strategies
 
-* **Error Handling:** A centralized handler, custom exceptions, and traceable logging will be used.
+* **Error Handling:** A centralized `@discord_error_handler` decorator for Discord commands, custom exceptions with standardized error codes, and traceable logging with correlation IDs will be used. See [Error Handling Strategy](error-handling.md) for detailed implementation.
 * **Coding Standards:** **Black** for formatting and **Ruff** for linting will be enforced. All code must adhere to the PEP 8 style guide.
 * **Test Strategy:** **Pytest** will be used for both unit and integration tests.
 * **Security:** Secrets will be managed via environment variables, and all inputs will be validated by Pydantic models.

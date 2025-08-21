@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from packages.bot.cogs import campaign_cog
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import ValidationError
 
 
@@ -30,7 +31,7 @@ async def test_campaign_new_http_error(cog):
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_new(interaction, campaign_name)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -44,7 +45,7 @@ async def test_campaign_join_http_error(cog):
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_join(interaction, campaign_name)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -58,7 +59,7 @@ async def test_campaign_continue_http_error(cog):
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_continue(interaction)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -72,7 +73,7 @@ async def test_campaign_end_http_error(cog):
     with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_end(interaction)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -85,7 +86,7 @@ async def test_campaign_info_http_error(cog):
     with patch("httpx.AsyncClient.get", side_effect=Exception("Network error")):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_info(interaction, campaign_name)
-        assert "An unexpected error occurred" in str(excinfo.value)
+        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio

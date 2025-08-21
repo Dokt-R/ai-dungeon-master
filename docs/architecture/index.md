@@ -10,6 +10,7 @@
   - [Persistence Strategy](#persistence-strategy)
   - [API Specification](#api-specification)
   - [Components](#components)
+  - [Error Handling Strategy](#error-handling-strategy)
   - [External APIs](#external-apis)
   - [Core Workflows](#core-workflows)
   - [Database Schema](#database-schema)

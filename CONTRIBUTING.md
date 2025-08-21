@@ -46,6 +46,7 @@ pytest packages/backend/tests/test_backend_managers.py
 - Use Google-style docstrings for all public classes and methods.
 - Validate all API inputs using Pydantic models with strict field constraints.
 - Route all errors through the shared error handler for consistent responses.
+- When adding new exceptions, follow the guide in `docs/architecture/error-handling.md` under "Contributing New Exceptions" to ensure proper error code definitions and user-facing messages.
 
 ## Documentation
 

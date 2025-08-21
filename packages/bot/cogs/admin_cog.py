@@ -7,7 +7,8 @@ from discord.ext import commands
 
 from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
-from packages.shared.exceptions import PermissionDeniedError
+from packages.shared.errors import ErrorCode
+from packages.shared.exceptions import PermissionDeniedError, ValidationError
 from packages.shared.models import ServerConfigModel
 
 
@@ -60,7 +61,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -81,7 +82,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -109,7 +110,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -124,21 +125,14 @@ class AdminCog(commands.Cog):
             members = [member for member in interaction.guild.members if not member.bot]
 
             if not members:
-                await interaction.followup.send(
-                    "No non-bot members found in server. This might be due to:\n"
-                    "• Bot doesn't have 'Server Members Intent' enabled in Discord Developer Portal\n"
-                    "• Members haven't been loaded yet\n"
-                    "• Server has no human members",
-                    ephemeral=True
+                raise ValidationError(
+                    ErrorCode.NO_MEMBERS_FOUND
                 )
-                return
         except Exception as e:
-            await interaction.followup.send(
-                f"Error fetching members: {str(e)}\n"
-                "Make sure the bot has 'Server Members Intent' enabled in Discord Developer Portal.",
-                ephemeral=True
+            raise ValidationError(
+                ErrorCode.MEMBER_FETCH_ERROR,
+                details={"original_error": str(e)}
             )
-            return
 
         # Create progress message
         progress_msg = await interaction.followup.send(
@@ -165,6 +159,7 @@ class AdminCog(commands.Cog):
 
             except Exception as e:
                 error_count += 1
+                # Log the error but continue processing other members
                 print(f"Error syncing member {member.name} ({member.id}): {e}")
 
         # Final status
@@ -185,7 +180,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -211,7 +206,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -231,7 +226,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 
@@ -258,7 +253,7 @@ class AdminCog(commands.Cog):
         perms = interaction.user.guild_permissions
         if not (perms.administrator or perms.manage_guild):
             raise PermissionDeniedError(
-                "PERMISSION_DENIED_ERROR",
+                ErrorCode.PERMISSION_DENIED_ERROR,
                 details={"message": "You need Administrator or Manage Server permissions to use this command."}
             )
 

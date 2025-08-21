@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from packages.bot.cogs.campaign_cog import CampaignCog
+from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 
 pytestmark = pytest.mark.skip(reason="Edge cases that need fixing to run properly")
@@ -166,7 +167,7 @@ async def test_discord_generic_exception_fallback(cog):
         await cog._handle_campaign_new(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
         assert (
-            "An unexpected error occurred. Please contact an administrator."
+            ErrorCode.UNKNOWN.player_message
             in interaction.response.send_message.call_args[0][0]
         )
 

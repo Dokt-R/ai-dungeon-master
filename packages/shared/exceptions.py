@@ -2,7 +2,13 @@ from packages.shared.errors import ERRORS, PLAYER_ERRORS, ErrorCode
 
 
 class CustomException(Exception):
-    """Base class for custom exceptions."""
+    """Base class for custom exceptions.
+
+    Attributes:
+        message (str): Human-readable error message
+        error_code (str): Machine-readable error code
+        details (dict, optional): Additional structured error details
+    """
 
     def __init__(self, error_code: ErrorCode, *, details: dict | None = None, **kwargs):
         if error_code not in ERRORS:
@@ -35,16 +41,55 @@ class CustomException(Exception):
 
 
 class ValidationError(CustomException):
+    """Exception raised for validation errors.
+
+    Example:
+        from packages.shared.errors import ErrorCode
+
+        raise ValidationError(
+            error_code=ErrorCode.VALIDATION_ERROR,
+            field="name",
+            constraint="must be alphanumeric"
+        )
+    """
+
     def __init__(self, error_code: ErrorCode = ErrorCode.VALIDATION_ERROR, **kwargs):
         super().__init__(error_code, **kwargs)
 
 
 class NotFoundError(CustomException):
+    """Exception raised for not found errors.
+
+    Example:
+        from packages.shared.errors import ErrorCode
+
+        raise NotFoundError(
+            error_code=ErrorCode.CHARACTER_NOT_FOUND,
+            name="missing_character"
+        )
+    """
+
     def __init__(self, error_code: ErrorCode = ErrorCode.NOT_FOUND, **kwargs):
         super().__init__(error_code, **kwargs)
 
 
 class AIAPIError(CustomException):
+    """Raised when an external AI API call fails.
+
+    Example:
+        from packages.shared.errors import ErrorCode
+
+        try:
+            # AI API call
+            pass
+        except Exception as e:
+            raise AIAPIError(
+                error_code=ErrorCode.AI_API_ERROR,
+                service="OpenAI",
+                error=str(e)
+            ) from e
+    """
+
     def __init__(self, error_code: ErrorCode = ErrorCode.AI_API_ERROR, **kwargs):
         super().__init__(error_code, **kwargs)
 

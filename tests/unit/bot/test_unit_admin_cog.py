@@ -3,13 +3,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from packages.bot.cogs.admin_cog import AdminCog
+from packages.shared.errors import ErrorCode
 from tests.utils.factories import MockInteraction
+from tests.utils.mock_api_client import MockApiClient
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestGeneralCommands:
     """Test the generic bot commands."""
+
+    async def test_cog_exists(self, bot_client):
+        cog = bot_client.get_cog("AdminCog")
+        assert cog is not None
 
     async def test_ping_command(self, bot_client):
         """Test the /ping command response."""
@@ -35,7 +41,7 @@ class TestGeneralCommands:
         assert cmd is not None
         await cmd.callback(cmd, interaction)
         assert (
-            "You need Administrator or Manage Server permissions" in interaction.message
+            ErrorCode.PERMISSION_DENIED_ERROR.message in interaction.message
         )
         assert interaction.ephemeral is True
 
@@ -43,7 +49,7 @@ class TestGeneralCommands:
 class TestOnServerSetkey:
     """Test the /server-setkey command."""
 
-    async def test_server_setkey_permissions(self, bot_client):
+    async def test_server_setkey_permissions(self, bot_client, mock_admin_cog):
         interaction = MockInteraction(is_admin=False)
         cmd = None
         for command in bot_client.tree.get_commands():
@@ -51,16 +57,15 @@ class TestOnServerSetkey:
                 cmd = command
                 break
         assert cmd is not None
-        cog = bot_client.get_cog("AdminCog")
-        assert cog is not None
+        cog = mock_admin_cog
         await cog.server_setkey.callback(cog, interaction, "dummy_key")
         assert (
-            "You need Administrator or Manage Server permissions" in interaction.message
+            ErrorCode.PERMISSION_DENIED_ERROR.message in interaction.message
         )
         assert interaction.ephemeral is True
 
-    async def test_server_setkey_success(self, mock_bot, mock_interaction):
-        cog = AdminCog(mock_bot)
+    async def test_server_setkey_success(self, mock_admin_cog, mock_interaction):
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
         interaction.user.guild_permissions.manage_guild = False
@@ -73,15 +78,14 @@ class TestOnServerSetkey:
         async def mock_put(*args, **kwargs):
             return MockResponse()
 
-        with patch("httpx.AsyncClient.put", new=mock_put):
-            await cog.server_setkey.callback(cog, interaction, "testkey")
-            interaction.response.send_message.assert_awaited_with(
-                "API key securely stored for this server.", ephemeral=True
-            )
+        await cog.server_setkey.callback(cog, interaction, "testkey")
+        interaction.response.send_message.assert_awaited_with(
+            "API key securely stored for this server.", ephemeral=True
+        )
 
-    # Add parametrize for guild master
-    async def test_server_setkey_failure(self, mock_bot, mock_interaction):
-        cog = AdminCog(mock_bot)
+    async def test_server_setkey_failure(self, mock_admin_cog, mock_interaction):
+        cog = mock_admin_cog
+        cog.api_client = MockApiClient()
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
         interaction.user.guild_permissions.manage_guild = False
@@ -93,11 +97,10 @@ class TestOnServerSetkey:
         async def mock_put(*args, **kwargs):
             return MockResponse()
 
-        with patch("httpx.AsyncClient.put", new=mock_put):
-            await cog.server_setkey.callback(cog, interaction, "testkey")
-            interaction.response.send_message.assert_called_with(
-                "Failed to store API key due to an invalid request.", ephemeral=True
-            )
+        await cog.server_setkey.callback(cog, interaction, "testkey")
+        interaction.response.send_message.assert_called_with(
+            ErrorCode.AI_API_ERROR.player_message, ephemeral=True
+        )
 
 
 class TestOnMemberJoin:
@@ -176,7 +179,7 @@ class TestErrorHandling:
         cog = AdminCog(mock_bot)
         await cog.server_setup.callback(cog, interaction)
         interaction.response.send_message.assert_awaited_with(
-            "You need Administrator or Manage Server permissions to use this command.",
+            ErrorCode.PERMISSION_DENIED_ERROR.player_message,
             ephemeral=True,
         )
 
@@ -188,7 +191,7 @@ class TestErrorHandling:
         cog = AdminCog(mock_bot)
         await cog.server_setkey.callback(cog, interaction, "testkey")
         interaction.response.send_message.assert_awaited_with(
-            "You need Administrator or Manage Server permissions to use this command.",
+            ErrorCode.PERMISSION_DENIED_ERROR.player_message,
             ephemeral=True,
         )
 
@@ -202,7 +205,7 @@ class TestErrorHandling:
             await cog.server_setkey.callback(cog, interaction, "testkey")
         # Should call the error handler and send a generic error message
         assert any(
-            "unexpected error" in str(call.args[0]).lower()
+            ErrorCode.UNKNOWN.player_message.lower() == str(call.args[0]).lower()
             for call in interaction.response.send_message.await_args_list
         )
 
@@ -244,12 +247,12 @@ class TestSyncCommands:
             cog = bot_client.get_cog("AdminCog")
             await cmd.callback(cog, interaction)
             # The error handler returns a generic message, not the specific permission message
-            assert "You do not have permission to perform this action." in interaction.message
+            assert ErrorCode.PERMISSION_DENIED_ERROR.player_message in interaction.message
             assert interaction.ephemeral is True
 
-    async def test_sync_members_command_success(self, mock_bot, mock_interaction):
+    async def test_sync_members_command_success(self, mock_interaction, mock_admin_cog):
         """Test successful sync members command."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -289,9 +292,9 @@ class TestSyncCommands:
         # Verify API was called for the non-bot member
         assert cog.api_client.create_player.call_count == 1
 
-    async def test_sync_start_command(self, mock_bot, mock_interaction):
+    async def test_sync_start_command(self, mock_admin_cog, mock_interaction):
         """Test sync start command."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -305,9 +308,9 @@ class TestSyncCommands:
         )
         assert cog.sync_task is not None
 
-    async def test_sync_stop_command(self, mock_bot, mock_interaction):
+    async def test_sync_stop_command(self, mock_admin_cog, mock_interaction):
         """Test sync stop command."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -322,9 +325,9 @@ class TestSyncCommands:
         )
         cog.sync_task.cancel.assert_called_once()
 
-    async def test_sync_status_command_running(self, mock_bot, mock_interaction):
+    async def test_sync_status_command_running(self, mock_admin_cog, mock_interaction):
         """Test sync status when sync is running."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -338,9 +341,9 @@ class TestSyncCommands:
             "✅ Periodic sync is running\nNext sync in ~1 hour", ephemeral=True
         )
 
-    async def test_sync_status_command_stopped(self, mock_bot, mock_interaction):
+    async def test_sync_status_command_stopped(self, mock_admin_cog, mock_interaction):
         """Test sync status when sync is not running."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -353,9 +356,9 @@ class TestSyncCommands:
             ephemeral=True
         )
 
-    async def test_sync_restart_command(self, mock_bot, mock_interaction):
+    async def test_sync_restart_command(self, mock_admin_cog, mock_interaction):
         """Test sync restart command."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
         interaction = mock_interaction
         interaction.user.guild_permissions.administrator = True
 
@@ -372,9 +375,9 @@ class TestSyncCommands:
             "Restarted periodic sync.", ephemeral=True
         )
 
-    async def test_create_or_update_player_success(self, mock_bot):
+    async def test_create_or_update_player_success(self, mock_admin_cog):
         """Test successful player creation/update."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
 
         # Mock Discord member
         mock_member = MagicMock()
@@ -395,9 +398,9 @@ class TestSyncCommands:
             "username": "TestUser"
         })
 
-    async def test_check_backend_health_success(self, mock_bot):
+    async def test_check_backend_health_success(self, mock_admin_cog):
         """Test successful backend health check."""
-        cog = AdminCog(mock_bot)
+        cog = mock_admin_cog
 
         # Mock successful API response
         mock_response = {"player_id": "health_check_test", "username": "Health Check User"}

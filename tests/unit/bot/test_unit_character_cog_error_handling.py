@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from packages.bot.cogs.character_cog import CharacterCog
+from packages.shared.errors import ErrorCode
 
 
 @pytest.fixture
@@ -28,7 +29,7 @@ async def test_character_add_command_validation_error(bot):
         mock_response.status_code = 400
         mock_response.json = AsyncMock(
             return_value={
-                "error": {"message": "Failed to add character. Please try again later."}
+                "error": {"message": ErrorCode.VALIDATION_ERROR.player_message}
             }
         )
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -42,7 +43,7 @@ async def test_character_add_command_validation_error(bot):
             cog, interaction, name="Hero", character_url=None
             )
         interaction.response.send_message.assert_awaited_once_with(
-            "Failed to add character. Please try again later.", ephemeral=True
+            ErrorCode.VALIDATION_ERROR.player_message, ephemeral=True
         )
 
 
@@ -60,7 +61,7 @@ async def test_character_update_command_validation_error(bot):
         mock_response.json = AsyncMock(
             return_value={
                 "error": {
-                    "message": "An unexpected error occurred. Please contact an administrator."
+                    "message": ErrorCode.UNKNOWN.player_message
                 }
             }
         )
@@ -77,7 +78,7 @@ async def test_character_update_command_validation_error(bot):
             cog, interaction, character_id=1, name="NewName", character_url=None
         )
         interaction.response.send_message.assert_awaited_once_with(
-            "An unexpected error occurred. Please contact an administrator.",
+            ErrorCode.UNKNOWN.player_message,
             ephemeral=True,
         )
 
@@ -93,7 +94,7 @@ async def test_character_remove_command_not_found_error(cog):
     with patch("packages.bot.cogs.character_cog.ApiClient") as mock_client:
         mock_response = MagicMock()
         mock_response.status_code = 404
-        mock_response.json = AsyncMock(return_value={"detail": "Character not found"})
+        mock_response.json = AsyncMock(return_value={"detail": ErrorCode.CHARACTER_NOT_FOUND.player_message})
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
             "Not Found", request=MagicMock(), response=mock_response
         )
@@ -103,7 +104,7 @@ async def test_character_remove_command_not_found_error(cog):
 
         await cog.remove.callback(cog, interaction, character_id=999)
         interaction.response.send_message.assert_awaited_once_with(
-            "Character not found", ephemeral=True
+            ErrorCode.CHARACTER_NOT_FOUND.player_message, ephemeral=True
         )
 
 
@@ -119,7 +120,7 @@ async def test_character_list_command_validation_error(cog):
         mock_response.status_code = 400
         mock_response.json = AsyncMock(
             return_value={
-                "message": "Failed to list characters. Please try again later."
+                "message": ErrorCode.VALIDATION_ERROR.player_message
             }
         )
         mock_response.raise_for_status.side_effect = httpx.HTTPStatusError(
@@ -131,7 +132,7 @@ async def test_character_list_command_validation_error(cog):
 
         await cog.list.callback(cog, interaction)
         interaction.response.send_message.assert_awaited_once_with(
-            "Failed to list characters. Please try again later.", ephemeral=True
+            ErrorCode.VALIDATION_ERROR.player_message, ephemeral=True
         )
 
 
@@ -149,7 +150,7 @@ async def test_character_add_command_http_error(cog):
         await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "an unexpected error occurred" in args[0].lower()
+        assert ErrorCode.UNKNOWN.player_message.lower() == args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -169,7 +170,7 @@ async def test_character_update_command_http_error(cog):
         )
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "an unexpected error occurred" in args[0].lower()
+        assert ErrorCode.UNKNOWN.player_message.lower() == args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -187,7 +188,7 @@ async def test_character_remove_command_http_error(cog):
         await cog.remove.callback(cog, interaction, character_id=1)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "an unexpected error occurred" in args[0].lower()
+        assert ErrorCode.UNKNOWN.player_message.lower() == args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -205,7 +206,7 @@ async def test_character_list_command_http_error(cog):
         await cog.list.callback(cog, interaction)
         interaction.response.send_message.assert_awaited_once()
         args, kwargs = interaction.response.send_message.call_args
-        assert "an unexpected error occurred" in args[0].lower()
+        assert ErrorCode.UNKNOWN.player_message.lower() == args[0].lower()
         assert kwargs.get("ephemeral") is True
 
 
@@ -223,7 +224,7 @@ async def test_character_add_command_internal_server_error(cog):
         mock_response.json = AsyncMock(
             return_value={
                 "error": {
-                    "message": "An unexpected error occurred. Please contact an administrator."
+                    "message": ErrorCode.UNKNOWN.player_message
                 }
             }
         )
@@ -236,6 +237,6 @@ async def test_character_add_command_internal_server_error(cog):
 
         await cog.add.callback(cog, interaction, name="Hero", character_url=None)
         interaction.response.send_message.assert_awaited_once_with(
-            "An unexpected error occurred. Please contact an administrator.",
+            ErrorCode.UNKNOWN.player_message,
             ephemeral=True,
         )

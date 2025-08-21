@@ -32,6 +32,10 @@ class ErrorCode(str, Enum):
     PLAYER_NOT_IN_CMD = "PLAYER_NOT_IN_CMD"
     PLAYER_ALREADY_IN_CMD = "PLAYER_ALREADY_IN_CMD"
     PLAYER_HAS_NO_CHARACTERS = "PLAYER_HAS_NO_CHARACTERS"
+
+    # Admin/Member Sync
+    NO_MEMBERS_FOUND = "NO_MEMBERS_FOUND"
+    MEMBER_FETCH_ERROR = "MEMBER_FETCH_ERROR"
     PLAYER_HAS_MULTIPLE_CHARACTERS = "PLAYER_HAS_MULTIPLE_CHARACTERS"
     PLAYER_HAS_NO_CAMPAIGNS = "PLAYER_HAS_NO_CAMPAIGNS"
     PLAYER_NOT_IN_CAMPAIGN = "PLAYER_NOT_IN_CAMPAIGN"
@@ -176,6 +180,17 @@ ERRORS: Dict[str, ErrorDef] = {
         "You are already in command mode",
         HTTPStatus.BAD_REQUEST,
     ),
+    # Admin/Member Sync
+    ErrorCode.NO_MEMBERS_FOUND: ErrorDef(
+        ErrorCode.NO_MEMBERS_FOUND,
+        "No non-bot members found in server",
+        HTTPStatus.NOT_FOUND,
+    ),
+    ErrorCode.MEMBER_FETCH_ERROR: ErrorDef(
+        ErrorCode.MEMBER_FETCH_ERROR,
+        "Failed to fetch server members",
+        HTTPStatus.INTERNAL_SERVER_ERROR,
+    ),
 }
 
 
@@ -256,5 +271,17 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     ),
     ErrorCode.PLAYER_ALREADY_IN_CMD: PlayerErrorDef(
         ErrorCode.PLAYER_ALREADY_IN_CMD, "You are already in command mode"
+    ),
+    # Admin/Member Sync
+    ErrorCode.NO_MEMBERS_FOUND: PlayerErrorDef(
+        ErrorCode.NO_MEMBERS_FOUND,
+        "No non-bot members found in server. This might be due to:\n"
+        "• Bot doesn't have 'Server Members Intent' enabled in Discord Developer Portal\n"
+        "• Members haven't been loaded yet\n"
+        "• Server has no human members"
+    ),
+    ErrorCode.MEMBER_FETCH_ERROR: PlayerErrorDef(
+        ErrorCode.MEMBER_FETCH_ERROR,
+        "Error fetching server members. Make sure the bot has 'Server Members Intent' enabled in Discord Developer Portal."
     ),
 }

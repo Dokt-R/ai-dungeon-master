@@ -1,4 +1,5 @@
 from functools import wraps
+from typing import Any, Callable, Dict, Optional, Union
 
 from packages.shared.correlation import correlation_id_context, get_correlation_id
 from packages.shared.errors import ERRORS, PLAYER_ERRORS
@@ -15,7 +16,7 @@ configure_logging()
 logger = get_logger(__name__)
 
 
-def _get_player_message(code: str, **kwargs) -> str:
+def _get_player_message(code: str, **kwargs: Any) -> str:
     """
     Returns a player-facing message based on error code and optional formatting args.
     Falls back to the internal error message if no mapping exists.
@@ -36,16 +37,26 @@ def _get_player_message(code: str, **kwargs) -> str:
 
 
 def discord_error_handler(
-    fallback_message="An unexpected error occurred. Please contact an administrator.",
-):
-    """
-    Decorator for Discord command methods to centralize error handling and user messaging.
-    Sends player-facing messages to the user, logs internal details for debugging.
+    fallback_message: str = "An unexpected error occurred. Please contact an administrator.",
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorator for Discord command methods to centralize error handling and user messaging.
+
+    This decorator handles exceptions in Discord commands and sends appropriate messages
+    to users while logging errors for developers.
+
+    Args:
+        fallback_message (str): Message sent to user for unexpected exceptions
+
+    Example:
+        @discord_error_handler(fallback_message="Sorry, something went wrong!")
+        async def my_command(self, interaction):
+            # Command implementation
+            pass
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        async def wrapper(self, interaction, *args, **kwargs):
+        async def wrapper(self: Any, interaction: Any, *args: Any, **kwargs: Any) -> Any:
             # Ensure a correlation id is present for the duration of this command
             current_cid = get_correlation_id()
 
@@ -121,10 +132,16 @@ def discord_error_handler(
     return decorator
 
 
-async def _safe_send_message(interaction, message, ephemeral=True):
-    """
-    Safely send a message to the interaction, handling already-responded errors.
+async def _safe_send_message(interaction: Any, message: str, ephemeral: bool = True) -> None:
+    """Safely send a message to the interaction, handling already-responded errors.
+
     Always attempts response.send_message first for test compatibility.
+    Logs warnings when falling back to followup.send and errors when both fail.
+
+    Args:
+        interaction: Discord interaction object
+        message (str): Message to send
+        ephemeral (bool): Whether message should be ephemeral
     """
     try:
         await interaction.response.send_message(message, ephemeral=ephemeral)

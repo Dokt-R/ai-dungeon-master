@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Any, List
 
 import structlog
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ def configure_logging(level: str | int = "INFO",
 
     log_level = level if isinstance(level, int) else getattr(logging, str(level).upper(), logging.INFO)
 
-    processors = [
+    processors: List[Any] = [
         structlog.processors.add_log_level,             # include log level
         structlog.processors.TimeStamper(fmt="iso"),    # timestamp
         structlog.processors.StackInfoRenderer(),
@@ -44,7 +45,7 @@ def configure_logging(level: str | int = "INFO",
             structlog.processors.JSONRenderer(),
         ]
 
-    handlers = [logging.StreamHandler()]  # always log to console
+    handlers: List[logging.Handler] = [logging.StreamHandler()]  # always log to console
 
     if log_to_file:
         os.makedirs(os.path.dirname(path), exist_ok=True)
