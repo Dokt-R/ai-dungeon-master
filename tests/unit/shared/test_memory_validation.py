@@ -10,21 +10,19 @@ Tests cover:
 - Validation result structure
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 from packages.shared.memory_validation import (
     MemoryValidator,
     ValidationResult,
-    memory_validator
+    memory_validator,
 )
 from packages.shared.models import (
-    MemoryEvent,
-    MemoryFact,
     CreateMemoryEventRequest,
     CreateMemoryFactRequest,
-    MemoryQueryRequest
+    MemoryEvent,
+    MemoryFact,
+    MemoryQueryRequest,
 )
 
 
@@ -63,7 +61,7 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="The party discovers an ancient artifact",
-            participants=["Eldrin", "Lyra", "Throg"]
+            participants=["Eldrin", "Lyra", "Throg"],
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -79,7 +77,7 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="invalid_type",
             description="Test description",
-            participants=["Test"]
+            participants=["Test"],
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -95,7 +93,7 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test description",
-            participants=[]
+            participants=[],
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -110,13 +108,16 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="combat",
             description="A solo fight",
-            participants=["SoloHero"]
+            participants=["SoloHero"],
         )
 
         result = memory_validator.validate_memory_event(event)
 
         assert result.is_valid is False
-        assert any("combat events should have at least 2 participants" in error for error in result.errors)
+        assert any(
+            "combat events should have at least 2 participants" in error
+            for error in result.errors
+        )
 
     def test_exploration_event_without_location(self):
         """Test business rule: exploration events should have location."""
@@ -125,13 +126,16 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="exploration",
             description="Exploring somewhere",
-            participants=["Explorer"]
+            participants=["Explorer"],
         )
 
         result = memory_validator.validate_memory_event(event)
 
         assert result.is_valid is False
-        assert any("exploration events should specify a location" in error for error in result.errors)
+        assert any(
+            "exploration events should specify a location" in error
+            for error in result.errors
+        )
 
     def test_event_description_too_short(self):
         """Test business rule: event descriptions should be descriptive."""
@@ -140,7 +144,7 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Hi",  # Too short
-            participants=["Test"]
+            participants=["Test"],
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -156,7 +160,7 @@ class TestMemoryEventValidation:
             timestamp=future_time,
             event_type="narrative",
             description="Future event",
-            participants=["Test"]
+            participants=["Test"],
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -172,7 +176,7 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test description",
-            participants=["System", "Admin"]  # Reserved words
+            participants=["System", "Admin"],  # Reserved words
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -192,7 +196,7 @@ class TestMemoryFactValidation:
             subject="Eldrin the Warrior",
             description="A skilled fighter with a mysterious past",
             confidence=0.85,
-            source="player_background"
+            source="player_background",
         )
 
         result = memory_validator.validate_memory_fact(fact)
@@ -208,7 +212,7 @@ class TestMemoryFactValidation:
             subject="Test Subject",
             description="Test description",
             confidence=0.5,
-            source="test"
+            source="test",
         )
 
         result = memory_validator.validate_memory_fact(fact)
@@ -224,7 +228,7 @@ class TestMemoryFactValidation:
             subject="Unknown Person",
             description="Maybe this person exists",
             confidence=0.05,  # Below threshold
-            source="rumor"
+            source="rumor",
         )
 
         result = memory_validator.validate_memory_fact(fact)
@@ -241,7 +245,7 @@ class TestMemoryFactValidation:
             subject="Random Merchant",
             description="Sells goods in the market",  # No relationship info
             confidence=0.7,
-            source="observation"
+            source="observation",
         )
 
         result = memory_validator.validate_memory_fact(fact)
@@ -257,7 +261,7 @@ class TestMemoryFactValidation:
             subject="Mysterious Quest",
             description="Something mysterious happened",  # No objective info
             confidence=0.8,
-            source="rumor"
+            source="rumor",
         )
 
         result = memory_validator.validate_memory_fact(fact)
@@ -273,13 +277,16 @@ class TestMemoryFactValidation:
             subject="Ancient Temple",
             description="A temple with detailed historical records",
             confidence=0.95,  # High confidence
-            source=""  # Empty source
+            source="",  # Empty source
         )
 
         result = memory_validator.validate_memory_fact(fact)
 
         assert result.is_valid is False
-        assert any("high confidence facts must have a source" in error for error in result.errors)
+        assert any(
+            "high confidence facts must have a source" in error
+            for error in result.errors
+        )
 
 
 class TestCRUDRequestValidation:
@@ -290,7 +297,7 @@ class TestCRUDRequestValidation:
         request = CreateMemoryEventRequest(
             event_type="narrative",
             description="The party rests at the inn",
-            participants=["Eldrin", "Lyra"]
+            participants=["Eldrin", "Lyra"],
         )
 
         result = memory_validator.validate_create_event_request(request)
@@ -303,7 +310,7 @@ class TestCRUDRequestValidation:
         request = CreateMemoryEventRequest(
             event_type="narrative",
             description="",  # Empty
-            participants=["Test"]
+            participants=["Test"],
         )
 
         result = memory_validator.validate_create_event_request(request)
@@ -318,7 +325,7 @@ class TestCRUDRequestValidation:
             subject="Tavern Owner",
             description="Friendly tavern owner who knows local gossip",
             confidence=0.75,
-            source="conversation"
+            source="conversation",
         )
 
         result = memory_validator.validate_create_fact_request(request)
@@ -333,7 +340,7 @@ class TestCRUDRequestValidation:
             subject="Test NPC",
             description="Test description",
             confidence=0.05,  # Below minimum
-            source="test"
+            source="test",
         )
 
         result = memory_validator.validate_create_fact_request(request)
@@ -348,9 +355,7 @@ class TestQueryRequestValidation:
     def test_valid_query_request(self):
         """Test validation of valid query request."""
         request = MemoryQueryRequest(
-            query_type="events",
-            filters={"event_type": "combat"},
-            limit=50
+            query_type="events", filters={"event_type": "combat"}, limit=50
         )
 
         result = memory_validator.validate_query_request(request)
@@ -360,9 +365,7 @@ class TestQueryRequestValidation:
 
     def test_invalid_query_type(self):
         """Test validation with invalid query type."""
-        request = MemoryQueryRequest(
-            query_type="invalid_type"
-        )
+        request = MemoryQueryRequest(query_type="invalid_type")
 
         result = memory_validator.validate_query_request(request)
 
@@ -372,10 +375,7 @@ class TestQueryRequestValidation:
     def test_invalid_limit_values(self):
         """Test validation with invalid limit values."""
         # Test negative limit
-        request = MemoryQueryRequest(
-            query_type="events",
-            limit=-1
-        )
+        request = MemoryQueryRequest(query_type="events", limit=-1)
 
         result = memory_validator.validate_query_request(request)
         assert result.is_valid is False
@@ -383,7 +383,7 @@ class TestQueryRequestValidation:
         # Test limit too high
         request = MemoryQueryRequest(
             query_type="events",
-            limit=2000  # Above maximum
+            limit=2000,  # Above maximum
         )
 
         result = memory_validator.validate_query_request(request)
@@ -392,8 +392,7 @@ class TestQueryRequestValidation:
     def test_invalid_filter_keys(self):
         """Test validation with invalid filter keys."""
         request = MemoryQueryRequest(
-            query_type="events",
-            filters={"invalid_filter": "value"}
+            query_type="events", filters={"invalid_filter": "value"}
         )
 
         result = memory_validator.validate_query_request(request)
@@ -411,7 +410,7 @@ class TestValidationResult:
             is_valid=True,
             errors=[],
             warnings=["Minor issue"],
-            suggestions=["Consider improvement"]
+            suggestions=["Consider improvement"],
         )
 
         assert result.is_valid is True
@@ -425,7 +424,7 @@ class TestValidationResult:
             is_valid=False,
             errors=["Critical error", "Another error"],
             warnings=[],
-            suggestions=[]
+            suggestions=[],
         )
 
         assert result.is_valid is False
@@ -470,7 +469,12 @@ class TestParticipantValidation:
 
     def test_duplicate_participants(self):
         """Test validation with duplicate participant names."""
-        participants = ["Eldrin", "eldrin", "Lyra", "ELDRIN"]  # Case-insensitive duplicates
+        participants = [
+            "Eldrin",
+            "eldrin",
+            "Lyra",
+            "ELDRIN",
+        ]  # Case-insensitive duplicates
         errors = memory_validator._validate_participants(participants)
 
         assert len(errors) > 0
@@ -518,7 +522,10 @@ class TestTagValidation:
 
     def test_long_tags(self):
         """Test validation with tags that are too long."""
-        tags = [f"this_is_a_very_long_tag_name_that_exceeds_the_fifty_character_limit_{i}" for i in range(3)]
+        tags = [
+            f"this_is_a_very_long_tag_name_that_exceeds_the_fifty_character_limit_{i}"
+            for i in range(3)
+        ]
         errors = memory_validator._validate_tags(tags)
 
         assert len(errors) > 0
@@ -533,7 +540,7 @@ class TestMetadataValidation:
             "weather": "stormy",
             "difficulty": "hard",
             "rounds": 5,
-            "participants": ["hero1", "villain1"]
+            "participants": ["hero1", "villain1"],
         }
         errors = memory_validator._validate_metadata(metadata)
 
@@ -570,7 +577,7 @@ class TestBusinessRuleValidation:
                 timestamp=datetime.utcnow(),
                 event_type="combat",
                 description="Epic battle",
-                participants=["Hero"]
+                participants=["Hero"],
             )
         )
 
@@ -586,7 +593,7 @@ class TestBusinessRuleValidation:
                 subject="Test NPC",
                 description="Just a person selling goods",  # No relationship info
                 confidence=0.7,
-                source="observation"
+                source="observation",
             )
         )
 
@@ -603,7 +610,7 @@ class TestIDFormatValidation:
             "fact_abc_def",
             "memory_123_456",
             "test-123",
-            "my_memory_1"
+            "my_memory_1",
         ]
 
         for valid_id in valid_ids:
@@ -619,7 +626,7 @@ class TestIDFormatValidation:
             "event#123",  # Hash
             "event$123",  # Dollar sign
             "event%123",  # Percent
-            "123event",   # Starts with number (technically valid but unusual)
+            "123event",  # Starts with number (technically valid but unusual)
         ]
 
         for invalid_id in invalid_ids:

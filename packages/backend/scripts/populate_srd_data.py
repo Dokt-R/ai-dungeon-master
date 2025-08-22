@@ -15,7 +15,6 @@ Usage:
     python populate_srd_data.py --validate-data
 """
 
-import json
 import argparse
 import sys
 from datetime import datetime
@@ -25,11 +24,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
-from packages.backend.components.srd_database_manager import srd_database_manager
 from packages.backend.components.srd_compliance_service import srd_compliance_service
-from packages.backend.components.srd_data_verification_service import srd_data_verification_service
+from packages.backend.components.srd_data_verification_service import (
+    srd_data_verification_service,
+)
+from packages.backend.components.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 logger = get_logger(__name__)
 
@@ -43,7 +44,7 @@ def create_sample_monsters() -> list[Monster]:
         version="5.1",
         checksum="sample_checksum_123",
         is_official=True,
-        attribution_required=True
+        attribution_required=True,
     )
 
     compliance = SRDCompliance(
@@ -51,12 +52,12 @@ def create_sample_monsters() -> list[Monster]:
         license_version="5.1",
         usage_restrictions=[
             "Must include Wizards of the Coast attribution",
-            "Cannot be used in commercial products"
+            "Cannot be used in commercial products",
         ],
         last_verified=datetime.utcnow(),
         verification_hash="sample_hash_123",
         compliance_officer="Data Population Script",
-        audit_trail=["Sample data creation"]
+        audit_trail=["Sample data creation"],
     )
 
     return [
@@ -78,7 +79,7 @@ def create_sample_monsters() -> list[Monster]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Monster(
             monster_name="Orc",
@@ -98,7 +99,7 @@ def create_sample_monsters() -> list[Monster]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Monster(
             monster_name="Giant Rat",
@@ -118,8 +119,8 @@ def create_sample_monsters() -> list[Monster]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
-        )
+            is_active=True,
+        ),
     ]
 
 
@@ -132,7 +133,7 @@ def create_sample_spells() -> list[Spell]:
         version="5.1",
         checksum="sample_checksum_456",
         is_official=True,
-        attribution_required=True
+        attribution_required=True,
     )
 
     compliance = SRDCompliance(
@@ -140,12 +141,12 @@ def create_sample_spells() -> list[Spell]:
         license_version="5.1",
         usage_restrictions=[
             "Must include Wizards of the Coast attribution",
-            "Cannot be used in commercial products"
+            "Cannot be used in commercial products",
         ],
         last_verified=datetime.utcnow(),
         verification_hash="sample_hash_456",
         compliance_officer="Data Population Script",
-        audit_trail=["Sample data creation"]
+        audit_trail=["Sample data creation"],
     )
 
     return [
@@ -164,7 +165,7 @@ def create_sample_spells() -> list[Spell]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Spell(
             spell_name="Magic Missile",
@@ -181,7 +182,7 @@ def create_sample_spells() -> list[Spell]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Spell(
             spell_name="Cure Wounds",
@@ -198,8 +199,8 @@ def create_sample_spells() -> list[Spell]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
-        )
+            is_active=True,
+        ),
     ]
 
 
@@ -212,7 +213,7 @@ def create_sample_weapons() -> list[Weapon]:
         version="5.1",
         checksum="sample_checksum_789",
         is_official=True,
-        attribution_required=True
+        attribution_required=True,
     )
 
     compliance = SRDCompliance(
@@ -220,12 +221,12 @@ def create_sample_weapons() -> list[Weapon]:
         license_version="5.1",
         usage_restrictions=[
             "Must include Wizards of the Coast attribution",
-            "Cannot be used in commercial products"
+            "Cannot be used in commercial products",
         ],
         last_verified=datetime.utcnow(),
         verification_hash="sample_hash_789",
         compliance_officer="Data Population Script",
-        audit_trail=["Sample data creation"]
+        audit_trail=["Sample data creation"],
     )
 
     return [
@@ -241,7 +242,7 @@ def create_sample_weapons() -> list[Weapon]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Weapon(
             weapon_name="Shortbow",
@@ -255,7 +256,7 @@ def create_sample_weapons() -> list[Weapon]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         ),
         Weapon(
             weapon_name="Quarterstaff",
@@ -269,8 +270,8 @@ def create_sample_weapons() -> list[Weapon]:
             data_source=data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
-        )
+            is_active=True,
+        ),
     ]
 
 
@@ -287,15 +288,23 @@ def populate_sample_data():
         # Insert monsters
         for monster in monsters:
             try:
-                monster_id = srd_database_manager.create_monster(monster, "data_population_script")
-                logger.info(f"Created monster: {monster.monster_name} (ID: {monster_id})")
+                monster_id = srd_database_manager.create_monster(
+                    monster, "data_population_script"
+                )
+                logger.info(
+                    f"Created monster: {monster.monster_name} (ID: {monster_id})"
+                )
             except Exception as e:
-                logger.error(f"Failed to create monster {monster.monster_name}: {str(e)}")
+                logger.error(
+                    f"Failed to create monster {monster.monster_name}: {str(e)}"
+                )
 
         # Insert spells
         for spell in spells:
             try:
-                spell_id = srd_database_manager.create_spell(spell, "data_population_script")
+                spell_id = srd_database_manager.create_spell(
+                    spell, "data_population_script"
+                )
                 logger.info(f"Created spell: {spell.spell_name} (ID: {spell_id})")
             except Exception as e:
                 logger.error(f"Failed to create spell {spell.spell_name}: {str(e)}")
@@ -303,7 +312,9 @@ def populate_sample_data():
         # Insert weapons
         for weapon in weapons:
             try:
-                weapon_id = srd_database_manager.create_weapon(weapon, "data_population_script")
+                weapon_id = srd_database_manager.create_weapon(
+                    weapon, "data_population_script"
+                )
                 logger.info(f"Created weapon: {weapon.weapon_name} (ID: {weapon_id})")
             except Exception as e:
                 logger.error(f"Failed to create weapon {weapon.weapon_name}: {str(e)}")
@@ -323,7 +334,9 @@ def check_data_consistency():
         # Get database stats
         stats = srd_database_manager.get_database_stats()
 
-        logger.info(f"Database contains: {stats.total_monsters} monsters, {stats.total_spells} spells, {stats.total_weapons} weapons")
+        logger.info(
+            f"Database contains: {stats.total_monsters} monsters, {stats.total_spells} spells, {stats.total_weapons} weapons"
+        )
 
         # Check for data integrity issues
         issues = []
@@ -336,25 +349,35 @@ def check_data_consistency():
                 monster, "monster", "consistency_check"
             )
             if not compliance_result.is_compliant:
-                issues.append(f"Monster {monster.monster_name}: {', '.join(compliance_result.issues)}")
+                issues.append(
+                    f"Monster {monster.monster_name}: {', '.join(compliance_result.issues)}"
+                )
 
             # Verify data integrity
             verification = srd_data_verification_service.verify_monster_data(monster)
             if verification.status.value == "invalid":
-                issues.append(f"Monster {monster.monster_name} data integrity issues: {', '.join(verification.issues)}")
+                issues.append(
+                    f"Monster {monster.monster_name} data integrity issues: {', '.join(verification.issues)}"
+                )
 
         # Check spells
-        spells = srd_database_manager.get_spells_by_level(0)  # Get all cantrips as sample
+        spells = srd_database_manager.get_spells_by_level(
+            0
+        )  # Get all cantrips as sample
         for spell in spells:
             compliance_result = srd_compliance_service.verify_data_compliance(
                 spell, "spell", "consistency_check"
             )
             if not compliance_result.is_compliant:
-                issues.append(f"Spell {spell.spell_name}: {', '.join(compliance_result.issues)}")
+                issues.append(
+                    f"Spell {spell.spell_name}: {', '.join(compliance_result.issues)}"
+                )
 
             verification = srd_data_verification_service.verify_spell_data(spell)
             if verification.status.value == "invalid":
-                issues.append(f"Spell {spell.spell_name} data integrity issues: {', '.join(verification.issues)}")
+                issues.append(
+                    f"Spell {spell.spell_name} data integrity issues: {', '.join(verification.issues)}"
+                )
 
         # Check weapons
         weapons = srd_database_manager.get_weapons_by_category("Simple Melee Weapons")
@@ -363,11 +386,15 @@ def check_data_consistency():
                 weapon, "weapon", "consistency_check"
             )
             if not compliance_result.is_compliant:
-                issues.append(f"Weapon {weapon.weapon_name}: {', '.join(compliance_result.issues)}")
+                issues.append(
+                    f"Weapon {weapon.weapon_name}: {', '.join(compliance_result.issues)}"
+                )
 
             verification = srd_data_verification_service.verify_weapon_data(weapon)
             if verification.status.value == "invalid":
-                issues.append(f"Weapon {weapon.weapon_name} data integrity issues: {', '.join(verification.issues)}")
+                issues.append(
+                    f"Weapon {weapon.weapon_name} data integrity issues: {', '.join(verification.issues)}"
+                )
 
         if issues:
             logger.warning(f"Found {len(issues)} data consistency issues:")
@@ -390,7 +417,9 @@ def cleanup_data():
     try:
         # Get initial stats
         initial_stats = srd_database_manager.get_database_stats()
-        logger.info(f"Initial state: {initial_stats.total_monsters} monsters, {initial_stats.total_spells} spells, {initial_stats.total_weapons} weapons")
+        logger.info(
+            f"Initial state: {initial_stats.total_monsters} monsters, {initial_stats.total_spells} spells, {initial_stats.total_weapons} weapons"
+        )
 
         # Create backup before cleanup
         backup_path = srd_database_manager.create_backup("pre_cleanup_backup")
@@ -401,7 +430,9 @@ def cleanup_data():
 
         # Get final stats
         final_stats = srd_database_manager.get_database_stats()
-        logger.info(f"Final state: {final_stats.total_monsters} monsters, {final_stats.total_spells} spells, {final_stats.total_weapons} weapons")
+        logger.info(
+            f"Final state: {final_stats.total_monsters} monsters, {final_stats.total_spells} spells, {final_stats.total_weapons} weapons"
+        )
 
         logger.info("Data cleanup completed successfully")
 
@@ -418,7 +449,9 @@ def validate_data():
         # Get all data for validation
         all_monsters = srd_database_manager.get_monsters_by_challenge_rating(0, 30)
         all_spells = srd_database_manager.get_spells_by_level(0)  # Sample
-        all_weapons = srd_database_manager.get_weapons_by_category("Simple Melee Weapons")  # Sample
+        all_weapons = srd_database_manager.get_weapons_by_category(
+            "Simple Melee Weapons"
+        )  # Sample
 
         total_entities = len(all_monsters) + len(all_spells) + len(all_weapons)
         logger.info(f"Validating {total_entities} total entities...")
@@ -447,14 +480,16 @@ def validate_data():
         total_valid = valid_monsters + valid_spells + valid_weapons
         validation_rate = (total_valid / total_entities) if total_entities > 0 else 1.0
 
-        logger.info(f"Validation results:")
+        logger.info("Validation results:")
         logger.info(f"  Monsters: {valid_monsters}/{len(all_monsters)} valid")
         logger.info(f"  Spells: {valid_spells}/{len(all_spells)} valid")
         logger.info(f"  Weapons: {valid_weapons}/{len(all_weapons)} valid")
         logger.info(".2%")
 
         if validation_rate < 0.95:
-            logger.warning("Low validation rate detected. Review data sources and integrity.")
+            logger.warning(
+                "Low validation rate detected. Review data sources and integrity."
+            )
         else:
             logger.info("Data validation completed successfully")
 
@@ -466,18 +501,33 @@ def validate_data():
 def main():
     """Main function to handle command line arguments."""
     parser = argparse.ArgumentParser(description="SRD Data Population Script")
-    parser.add_argument("--populate-sample", action="store_true",
-                       help="Populate database with sample data")
-    parser.add_argument("--check-consistency", action="store_true",
-                       help="Check data consistency and integrity")
-    parser.add_argument("--cleanup-data", action="store_true",
-                       help="Clean up and optimize database")
-    parser.add_argument("--validate-data", action="store_true",
-                       help="Validate all data in the database")
+    parser.add_argument(
+        "--populate-sample",
+        action="store_true",
+        help="Populate database with sample data",
+    )
+    parser.add_argument(
+        "--check-consistency",
+        action="store_true",
+        help="Check data consistency and integrity",
+    )
+    parser.add_argument(
+        "--cleanup-data", action="store_true", help="Clean up and optimize database"
+    )
+    parser.add_argument(
+        "--validate-data", action="store_true", help="Validate all data in the database"
+    )
 
     args = parser.parse_args()
 
-    if not any([args.populate_sample, args.check_consistency, args.cleanup_data, args.validate_data]):
+    if not any(
+        [
+            args.populate_sample,
+            args.check_consistency,
+            args.cleanup_data,
+            args.validate_data,
+        ]
+    ):
         parser.print_help()
         return
 

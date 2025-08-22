@@ -20,23 +20,23 @@ Architecture:
 """
 
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Any
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Set
 
+from packages.shared.logging_config import get_logger
+from packages.shared.memory_validation import ValidationResult, memory_validator
 from packages.shared.models import (
-    MemoryEvent,
-    MemoryFact,
-    MemoryContext,
-    MemoryOperation,
     CreateMemoryEventRequest,
     CreateMemoryFactRequest,
+    MemoryContext,
+    MemoryEvent,
+    MemoryFact,
+    MemoryOperation,
+    MemoryQueryRequest,
     UpdateMemoryEventRequest,
     UpdateMemoryFactRequest,
-    MemoryQueryRequest
 )
-from packages.shared.memory_validation import memory_validator, ValidationResult
-from packages.shared.logging_config import get_logger
 
 
 @dataclass
@@ -46,7 +46,7 @@ class MemoryStorage:
     events: Dict[str, MemoryEvent] = field(default_factory=dict)
     facts: Dict[str, MemoryFact] = field(default_factory=dict)
     event_index: Dict[str, Set[str]] = field(default_factory=dict)  # For quick lookups
-    fact_index: Dict[str, Set[str]] = field(default_factory=dict)   # For quick lookups
+    fact_index: Dict[str, Set[str]] = field(default_factory=dict)  # For quick lookups
 
 
 class CampaignMemoryService:
@@ -71,7 +71,9 @@ class CampaignMemoryService:
             campaign_id: Optional campaign identifier for multi-campaign support
         """
         self.campaign_id = campaign_id or "default"
-        self.logger = get_logger(f"{__name__}.CampaignMemoryService[{self.campaign_id}]")
+        self.logger = get_logger(
+            f"{__name__}.CampaignMemoryService[{self.campaign_id}]"
+        )
 
         # Initialize in-memory storage
         self._storage = MemoryStorage()
@@ -80,8 +82,7 @@ class CampaignMemoryService:
         self._initialize_indexes()
 
         self.logger.info(
-            "CampaignMemoryService initialized",
-            campaign_id=self.campaign_id
+            "CampaignMemoryService initialized", campaign_id=self.campaign_id
         )
 
     def _initialize_indexes(self) -> None:
@@ -104,7 +105,9 @@ class CampaignMemoryService:
         """Generate a unique fact ID."""
         return f"fact_{uuid.uuid4().hex[:16]}"
 
-    def _update_indexes_for_event(self, event: MemoryEvent, operation: str = "add") -> None:
+    def _update_indexes_for_event(
+        self, event: MemoryEvent, operation: str = "add"
+    ) -> None:
         """Update search indexes for a memory event."""
         if operation == "add":
             # Add to indexes
@@ -126,7 +129,9 @@ class CampaignMemoryService:
             # Remove from indexes (simplified - would need cleanup in production)
             pass
 
-    def _update_indexes_for_fact(self, fact: MemoryFact, operation: str = "add") -> None:
+    def _update_indexes_for_fact(
+        self, fact: MemoryFact, operation: str = "add"
+    ) -> None:
         """Update search indexes for a memory fact."""
         if operation == "add":
             # Add to indexes
@@ -161,7 +166,7 @@ class CampaignMemoryService:
         success: bool,
         memory_id: str,
         memory_type: str,
-        error: Optional[str] = None
+        error: Optional[str] = None,
     ) -> MemoryOperation:
         """Create a memory operation result."""
         return MemoryOperation(
@@ -169,14 +174,12 @@ class CampaignMemoryService:
             success=success,
             memory_id=memory_id,
             memory_type=memory_type,
-            error=error
+            error=error,
         )
 
     # Memory Event CRUD Operations
     def create_memory_event_from_request(
-        self,
-        request: CreateMemoryEventRequest,
-        user: str = "system"
+        self, request: CreateMemoryEventRequest, user: str = "system"
     ) -> MemoryOperation:
         """
         Create a new memory event from a request.
@@ -197,7 +200,7 @@ class CampaignMemoryService:
                     False,
                     "",
                     "event",
-                    f"Validation failed: {', '.join(validation_result.errors)}"
+                    f"Validation failed: {', '.join(validation_result.errors)}",
                 )
 
             # Generate event ID
@@ -211,7 +214,7 @@ class CampaignMemoryService:
                 description=request.description,
                 participants=request.participants,
                 location=request.location,
-                metadata=request.metadata or {}
+                metadata=request.metadata or {},
             )
 
             # Validate the created event
@@ -222,7 +225,7 @@ class CampaignMemoryService:
                     False,
                     event_id,
                     "event",
-                    f"Event validation failed: {', '.join(event_validation.errors)}"
+                    f"Event validation failed: {', '.join(event_validation.errors)}",
                 )
 
             # Store the event
@@ -234,7 +237,7 @@ class CampaignMemoryService:
                 event_id=event_id,
                 event_type=request.event_type,
                 participant_count=len(request.participants),
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("create", True, event_id, "event")
@@ -244,14 +247,10 @@ class CampaignMemoryService:
                 "Failed to create memory event",
                 error=str(e),
                 error_type=type(e).__name__,
-                user=user
+                user=user,
             )
             return self._create_memory_operation(
-                "create",
-                False,
-                "",
-                "event",
-                f"Internal error: {str(e)}"
+                "create", False, "", "event", f"Internal error: {str(e)}"
             )
 
     def get_memory_event(self, event_id: str) -> Optional[MemoryEvent]:
@@ -262,7 +261,7 @@ class CampaignMemoryService:
         self,
         event_type: Optional[str] = None,
         participant: Optional[str] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[MemoryEvent]:
         """Get memory events with optional filtering."""
         events = list(self._storage.events.values())
@@ -279,10 +278,7 @@ class CampaignMemoryService:
         return events[:limit]
 
     def update_memory_event(
-        self,
-        event_id: str,
-        updates: UpdateMemoryEventRequest,
-        user: str = "system"
+        self, event_id: str, updates: UpdateMemoryEventRequest, user: str = "system"
     ) -> MemoryOperation:
         """Update an existing memory event."""
         try:
@@ -290,11 +286,7 @@ class CampaignMemoryService:
             existing_event = self._storage.events.get(event_id)
             if not existing_event:
                 return self._create_memory_operation(
-                    "update",
-                    False,
-                    event_id,
-                    "event",
-                    "Event not found"
+                    "update", False, event_id, "event", "Event not found"
                 )
 
             # Create updated event
@@ -322,7 +314,7 @@ class CampaignMemoryService:
                     False,
                     event_id,
                     "event",
-                    f"Validation failed: {', '.join(validation_result.errors)}"
+                    f"Validation failed: {', '.join(validation_result.errors)}",
                 )
 
             # Store updated event
@@ -332,7 +324,7 @@ class CampaignMemoryService:
                 "Memory event updated",
                 event_id=event_id,
                 version=updated_event.version,
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("update", True, event_id, "event")
@@ -342,26 +334,20 @@ class CampaignMemoryService:
                 "Failed to update memory event",
                 event_id=event_id,
                 error=str(e),
-                user=user
+                user=user,
             )
             return self._create_memory_operation(
-                "update",
-                False,
-                event_id,
-                "event",
-                f"Internal error: {str(e)}"
+                "update", False, event_id, "event", f"Internal error: {str(e)}"
             )
 
-    def delete_memory_event(self, event_id: str, user: str = "system") -> MemoryOperation:
+    def delete_memory_event(
+        self, event_id: str, user: str = "system"
+    ) -> MemoryOperation:
         """Delete a memory event."""
         try:
             if event_id not in self._storage.events:
                 return self._create_memory_operation(
-                    "delete",
-                    False,
-                    event_id,
-                    "event",
-                    "Event not found"
+                    "delete", False, event_id, "event", "Event not found"
                 )
 
             # Remove event
@@ -372,7 +358,7 @@ class CampaignMemoryService:
                 "Memory event deleted",
                 event_id=event_id,
                 event_type=deleted_event.event_type,
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("delete", True, event_id, "event")
@@ -382,21 +368,15 @@ class CampaignMemoryService:
                 "Failed to delete memory event",
                 event_id=event_id,
                 error=str(e),
-                user=user
+                user=user,
             )
             return self._create_memory_operation(
-                "delete",
-                False,
-                event_id,
-                "event",
-                f"Internal error: {str(e)}"
+                "delete", False, event_id, "event", f"Internal error: {str(e)}"
             )
 
     # Memory Fact CRUD Operations
     def create_memory_fact_from_request(
-        self,
-        request: CreateMemoryFactRequest,
-        user: str = "system"
+        self, request: CreateMemoryFactRequest, user: str = "system"
     ) -> MemoryOperation:
         """Create a new memory fact from a request."""
         try:
@@ -408,7 +388,7 @@ class CampaignMemoryService:
                     False,
                     "",
                     "fact",
-                    f"Validation failed: {', '.join(validation_result.errors)}"
+                    f"Validation failed: {', '.join(validation_result.errors)}",
                 )
 
             # Generate fact ID
@@ -423,7 +403,7 @@ class CampaignMemoryService:
                 confidence=request.confidence,
                 source=request.source,
                 tags=request.tags or [],
-                related_events=request.related_events or []
+                related_events=request.related_events or [],
             )
 
             # Validate the created fact
@@ -434,7 +414,7 @@ class CampaignMemoryService:
                     False,
                     fact_id,
                     "fact",
-                    f"Fact validation failed: {', '.join(fact_validation.errors)}"
+                    f"Fact validation failed: {', '.join(fact_validation.errors)}",
                 )
 
             # Store the fact
@@ -447,7 +427,7 @@ class CampaignMemoryService:
                 fact_type=request.fact_type,
                 confidence=request.confidence,
                 tag_count=len(request.tags or []),
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("create", True, fact_id, "fact")
@@ -457,14 +437,10 @@ class CampaignMemoryService:
                 "Failed to create memory fact",
                 error=str(e),
                 error_type=type(e).__name__,
-                user=user
+                user=user,
             )
             return self._create_memory_operation(
-                "create",
-                False,
-                "",
-                "fact",
-                f"Internal error: {str(e)}"
+                "create", False, "", "fact", f"Internal error: {str(e)}"
             )
 
     def get_memory_fact(self, fact_id: str) -> Optional[MemoryFact]:
@@ -477,7 +453,7 @@ class CampaignMemoryService:
         subject: Optional[str] = None,
         tag: Optional[str] = None,
         min_confidence: float = 0.0,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[MemoryFact]:
         """Get memory facts with optional filtering."""
         facts = list(self._storage.facts.values())
@@ -500,10 +476,7 @@ class CampaignMemoryService:
         return facts[:limit]
 
     def update_memory_fact(
-        self,
-        fact_id: str,
-        updates: UpdateMemoryFactRequest,
-        user: str = "system"
+        self, fact_id: str, updates: UpdateMemoryFactRequest, user: str = "system"
     ) -> MemoryOperation:
         """Update an existing memory fact."""
         try:
@@ -511,11 +484,7 @@ class CampaignMemoryService:
             existing_fact = self._storage.facts.get(fact_id)
             if not existing_fact:
                 return self._create_memory_operation(
-                    "update",
-                    False,
-                    fact_id,
-                    "fact",
-                    "Fact not found"
+                    "update", False, fact_id, "fact", "Fact not found"
                 )
 
             # Create updated fact
@@ -542,7 +511,7 @@ class CampaignMemoryService:
                     False,
                     fact_id,
                     "fact",
-                    f"Validation failed: {', '.join(validation_result.errors)}"
+                    f"Validation failed: {', '.join(validation_result.errors)}",
                 )
 
             # Store updated fact
@@ -553,24 +522,17 @@ class CampaignMemoryService:
                 fact_id=fact_id,
                 new_confidence=updates.confidence,
                 tag_count=len(updates.tags or []),
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("update", True, fact_id, "fact")
 
         except Exception as e:
             self.logger.error(
-                "Failed to update memory fact",
-                fact_id=fact_id,
-                error=str(e),
-                user=user
+                "Failed to update memory fact", fact_id=fact_id, error=str(e), user=user
             )
             return self._create_memory_operation(
-                "update",
-                False,
-                fact_id,
-                "fact",
-                f"Internal error: {str(e)}"
+                "update", False, fact_id, "fact", f"Internal error: {str(e)}"
             )
 
     def delete_memory_fact(self, fact_id: str, user: str = "system") -> MemoryOperation:
@@ -578,11 +540,7 @@ class CampaignMemoryService:
         try:
             if fact_id not in self._storage.facts:
                 return self._create_memory_operation(
-                    "delete",
-                    False,
-                    fact_id,
-                    "fact",
-                    "Fact not found"
+                    "delete", False, fact_id, "fact", "Fact not found"
                 )
 
             # Remove fact
@@ -593,24 +551,17 @@ class CampaignMemoryService:
                 "Memory fact deleted",
                 fact_id=fact_id,
                 fact_type=deleted_fact.fact_type,
-                user=user
+                user=user,
             )
 
             return self._create_memory_operation("delete", True, fact_id, "fact")
 
         except Exception as e:
             self.logger.error(
-                "Failed to delete memory fact",
-                fact_id=fact_id,
-                error=str(e),
-                user=user
+                "Failed to delete memory fact", fact_id=fact_id, error=str(e), user=user
             )
             return self._create_memory_operation(
-                "delete",
-                False,
-                fact_id,
-                "fact",
-                f"Internal error: {str(e)}"
+                "delete", False, fact_id, "fact", f"Internal error: {str(e)}"
             )
 
     # Query and Context Generation
@@ -623,68 +574,77 @@ class CampaignMemoryService:
                 return {
                     "success": False,
                     "error": f"Query validation failed: {', '.join(validation_result.errors)}",
-                    "data": []
+                    "data": [],
                 }
 
             # Execute query based on type
             if request.query_type == "events":
                 events = self.get_memory_events(
-                    event_type=request.filters.get("event_type") if request.filters else None,
-                    participant=request.filters.get("participant") if request.filters else None,
-                    limit=request.limit or 100
+                    event_type=request.filters.get("event_type")
+                    if request.filters
+                    else None,
+                    participant=request.filters.get("participant")
+                    if request.filters
+                    else None,
+                    limit=request.limit or 100,
                 )
                 return {
                     "success": True,
                     "query_type": "events",
                     "count": len(events),
-                    "data": events
+                    "data": events,
                 }
 
             elif request.query_type == "facts":
                 facts = self.get_memory_facts(
-                    fact_type=request.filters.get("fact_type") if request.filters else None,
+                    fact_type=request.filters.get("fact_type")
+                    if request.filters
+                    else None,
                     subject=request.filters.get("subject") if request.filters else None,
                     tag=request.filters.get("tag") if request.filters else None,
-                    min_confidence=request.filters.get("confidence_min", 0.0) if request.filters else 0.0,
-                    limit=request.limit or 100
+                    min_confidence=request.filters.get("confidence_min", 0.0)
+                    if request.filters
+                    else 0.0,
+                    limit=request.limit or 100,
                 )
                 return {
                     "success": True,
                     "query_type": "facts",
                     "count": len(facts),
-                    "data": facts
+                    "data": facts,
                 }
 
             elif request.query_type == "context":
                 context = self.generate_ai_context()
-                return {
-                    "success": True,
-                    "query_type": "context",
-                    "data": context
-                }
+                return {"success": True, "query_type": "context", "data": context}
 
             else:
                 return {
                     "success": False,
                     "error": f"Unsupported query type: {request.query_type}",
-                    "data": []
+                    "data": [],
                 }
 
         except Exception as e:
-            self.logger.error("Memory query failed", error=str(e), query_type=request.query_type)
+            self.logger.error(
+                "Memory query failed", error=str(e), query_type=request.query_type
+            )
             return {
                 "success": False,
                 "error": f"Query execution failed: {str(e)}",
-                "data": []
+                "data": [],
             }
 
-    def generate_ai_context(self, max_events: int = 10, max_facts: int = 20) -> MemoryContext:
+    def generate_ai_context(
+        self, max_events: int = 10, max_facts: int = 20
+    ) -> MemoryContext:
         """Generate AI context from memory data."""
         try:
             # Get recent events (last 24 hours by default)
             recent_cutoff = datetime.utcnow() - timedelta(hours=24)
             recent_events = [
-                event for event in self._storage.events.values()
+                event
+                for event in self._storage.events.values()
                 if event.timestamp >= recent_cutoff
             ]
             recent_events.sort(key=lambda e: e.timestamp, reverse=True)
@@ -692,8 +652,7 @@ class CampaignMemoryService:
 
             # Get high-confidence facts
             high_confidence_facts = [
-                fact for fact in self._storage.facts.values()
-                if fact.confidence >= 0.7
+                fact for fact in self._storage.facts.values() if fact.confidence >= 0.7
             ]
             high_confidence_facts.sort(key=lambda f: f.confidence, reverse=True)
             high_confidence_facts = high_confidence_facts[:max_facts]
@@ -711,7 +670,7 @@ class CampaignMemoryService:
                 "total_events": len(self._storage.events),
                 "total_facts": len(self._storage.facts),
                 "last_activity": datetime.utcnow().isoformat(),
-                "campaign_id": self.campaign_id
+                "campaign_id": self.campaign_id,
             }
 
             # Generate summary
@@ -720,7 +679,10 @@ class CampaignMemoryService:
             summary = f"Campaign memory context: {event_count} recent events, {fact_count} high-confidence facts."
 
             # Estimate token count (rough approximation)
-            total_text = " ".join([e.description for e in recent_events] + [f.description for f in high_confidence_facts])
+            total_text = " ".join(
+                [e.description for e in recent_events]
+                + [f.description for f in high_confidence_facts]
+            )
             context_size = len(total_text) // 4  # Rough token estimation
 
             return MemoryContext(
@@ -729,7 +691,7 @@ class CampaignMemoryService:
                 character_knowledge=character_knowledge,
                 world_state=world_state,
                 summary=summary,
-                context_size=context_size
+                context_size=context_size,
             )
 
         except Exception as e:
@@ -741,7 +703,7 @@ class CampaignMemoryService:
                 character_knowledge={},
                 world_state={"error": str(e)},
                 summary=f"Error generating context: {str(e)}",
-                context_size=0
+                context_size=0,
             )
 
     # Service Management
@@ -754,7 +716,7 @@ class CampaignMemoryService:
             "event_types": list(self._storage.event_index.get("event_type", set())),
             "fact_types": list(self._storage.fact_index.get("fact_type", set())),
             "last_activity": datetime.utcnow().isoformat(),
-            "memory_usage_estimate": self._estimate_memory_usage()
+            "memory_usage_estimate": self._estimate_memory_usage(),
         }
 
     def _estimate_memory_usage(self) -> int:
@@ -771,9 +733,7 @@ class CampaignMemoryService:
             self._initialize_indexes()
 
             self.logger.warning(
-                "Memory cleared",
-                campaign_id=self.campaign_id,
-                user=user
+                "Memory cleared", campaign_id=self.campaign_id, user=user
             )
             return True
 

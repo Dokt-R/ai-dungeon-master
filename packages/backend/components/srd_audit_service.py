@@ -9,22 +9,23 @@ This module provides audit logging and compliance monitoring for SRD data includ
 - Audit report generation
 """
 
-import json
 import hashlib
+import json
+from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
-from dataclasses import dataclass
-from enum import Enum
 
-from packages.shared.models import Monster, Spell, Weapon
 from packages.shared.logging_config import get_logger
+from packages.shared.models import Monster, Spell, Weapon
 
 logger = get_logger(__name__)
 
 
 class AuditEventType(Enum):
     """Type of audit event."""
+
     DATA_ACCESS = "data_access"
     DATA_MODIFICATION = "data_modification"
     COMPLIANCE_CHECK = "compliance_check"
@@ -37,6 +38,7 @@ class AuditEventType(Enum):
 
 class ComplianceViolationType(Enum):
     """Type of compliance violation."""
+
     UNVERIFIED_SOURCE = "unverified_source"
     INVALID_CHECKSUM = "invalid_checksum"
     EXPIRED_VERIFICATION = "expired_verification"
@@ -48,6 +50,7 @@ class ComplianceViolationType(Enum):
 @dataclass
 class AuditEvent:
     """Audit event record."""
+
     event_id: str
     event_type: AuditEventType
     entity_type: str
@@ -64,6 +67,7 @@ class AuditEvent:
 @dataclass
 class ComplianceViolation:
     """Compliance violation record."""
+
     violation_id: str
     violation_type: ComplianceViolationType
     entity_type: str
@@ -104,7 +108,7 @@ class SRDAuditService:
         access_type: str = "read",
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ) -> str:
         """Log data access event."""
         entity_type = entity.__class__.__name__.lower()
@@ -122,15 +126,20 @@ class SRDAuditService:
                 "access_type": access_type,
                 "entity_id": getattr(entity, f"{entity_type}_id"),
                 "data_source": entity.data_source.source_name,
-                "compliance_status": entity.srd_compliance.data_source
+                "compliance_status": entity.srd_compliance.data_source,
             },
             ip_address=ip_address,
             user_agent=user_agent,
-            session_id=session_id
+            session_id=session_id,
         )
 
         self._write_audit_event(event)
-        self.logger.info("Data access logged", event_id=event.event_id, entity_type=entity_type, user_id=user_id)
+        self.logger.info(
+            "Data access logged",
+            event_id=event.event_id,
+            entity_type=entity_type,
+            user_id=user_id,
+        )
 
         return event.event_id
 
@@ -143,7 +152,7 @@ class SRDAuditService:
         changes: Dict[str, Any] = None,
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ) -> str:
         """Log data modification event."""
         entity_type = entity.__class__.__name__.lower()
@@ -161,15 +170,20 @@ class SRDAuditService:
                 "modification_type": modification_type,
                 "entity_id": getattr(entity, f"{entity_type}_id"),
                 "changes": changes or {},
-                "data_source": entity.data_source.source_name
+                "data_source": entity.data_source.source_name,
             },
             ip_address=ip_address,
             user_agent=user_agent,
-            session_id=session_id
+            session_id=session_id,
         )
 
         self._write_audit_event(event)
-        self.logger.info("Data modification logged", event_id=event.event_id, entity_type=entity_type, user_id=user_id)
+        self.logger.info(
+            "Data modification logged",
+            event_id=event.event_id,
+            entity_type=entity_type,
+            user_id=user_id,
+        )
 
         return event.event_id
 
@@ -181,7 +195,7 @@ class SRDAuditService:
         user_role: str = "system",
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ) -> str:
         """Log compliance check event."""
         entity_type = entity.__class__.__name__.lower()
@@ -199,15 +213,20 @@ class SRDAuditService:
                 "compliance_result": compliance_result,
                 "entity_id": getattr(entity, f"{entity_type}_id"),
                 "is_compliant": compliance_result.get("is_compliant", False),
-                "issue_count": len(compliance_result.get("issues", []))
+                "issue_count": len(compliance_result.get("issues", [])),
             },
             ip_address=ip_address,
             user_agent=user_agent,
-            session_id=session_id
+            session_id=session_id,
         )
 
         self._write_audit_event(event)
-        self.logger.info("Compliance check logged", event_id=event.event_id, entity_type=entity_type, is_compliant=compliance_result.get("is_compliant", False))
+        self.logger.info(
+            "Compliance check logged",
+            event_id=event.event_id,
+            entity_type=entity_type,
+            is_compliant=compliance_result.get("is_compliant", False),
+        )
 
         return event.event_id
 
@@ -219,7 +238,7 @@ class SRDAuditService:
         user_role: str = "admin",
         ip_address: Optional[str] = None,
         user_agent: Optional[str] = None,
-        session_id: Optional[str] = None
+        session_id: Optional[str] = None,
     ) -> str:
         """Log import operation event."""
         event = AuditEvent(
@@ -236,15 +255,20 @@ class SRDAuditService:
                 "total_records": import_result.get("total_records", 0),
                 "successful_imports": import_result.get("successful_imports", 0),
                 "failed_imports": import_result.get("failed_imports", 0),
-                "processing_time": import_result.get("processing_time", 0)
+                "processing_time": import_result.get("processing_time", 0),
             },
             ip_address=ip_address,
             user_agent=user_agent,
-            session_id=session_id
+            session_id=session_id,
         )
 
         self._write_audit_event(event)
-        self.logger.info("Import operation logged", event_id=event.event_id, import_type=import_type, user_id=user_id)
+        self.logger.info(
+            "Import operation logged",
+            event_id=event.event_id,
+            import_type=import_type,
+            user_id=user_id,
+        )
 
         return event.event_id
 
@@ -253,7 +277,7 @@ class SRDAuditService:
         violation_type: ComplianceViolationType,
         entity: Union[Monster, Spell, Weapon],
         description: str,
-        severity: str = "medium"
+        severity: str = "medium",
     ) -> str:
         """Log compliance violation."""
         entity_type = entity.__class__.__name__.lower()
@@ -268,7 +292,7 @@ class SRDAuditService:
             severity=severity,
             detected_at=datetime.utcnow(),
             resolved_at=None,
-            resolution_notes=None
+            resolution_notes=None,
         )
 
         self._write_violation(violation)
@@ -286,20 +310,22 @@ class SRDAuditService:
                 "violation_type": violation_type.value,
                 "description": description,
                 "severity": severity,
-                "entity_id": getattr(entity, f"{entity_type}_id")
+                "entity_id": getattr(entity, f"{entity_type}_id"),
             },
             ip_address=None,
             user_agent=None,
-            session_id=None
+            session_id=None,
         )
 
         self._write_audit_event(event)
 
-        self.logger.warning("Compliance violation detected",
-                           violation_id=violation.violation_id,
-                           violation_type=violation_type.value,
-                           entity_type=entity_type,
-                           severity=severity)
+        self.logger.warning(
+            "Compliance violation detected",
+            violation_id=violation.violation_id,
+            violation_type=violation_type.value,
+            entity_type=entity_type,
+            severity=severity,
+        )
 
         return violation.violation_id
 
@@ -323,7 +349,7 @@ class SRDAuditService:
                 "details": event.details,
                 "ip_address": event.ip_address,
                 "user_agent": event.user_agent,
-                "session_id": event.session_id
+                "session_id": event.session_id,
             }
 
             with open(self.audit_log_path, "a", encoding="utf-8") as f:
@@ -343,8 +369,10 @@ class SRDAuditService:
                 "description": violation.description,
                 "severity": violation.severity,
                 "detected_at": violation.detected_at.isoformat(),
-                "resolved_at": violation.resolved_at.isoformat() if violation.resolved_at else None,
-                "resolution_notes": violation.resolution_notes
+                "resolved_at": violation.resolved_at.isoformat()
+                if violation.resolved_at
+                else None,
+                "resolution_notes": violation.resolution_notes,
             }
 
             with open(self.violations_log_path, "a", encoding="utf-8") as f:
@@ -359,7 +387,7 @@ class SRDAuditService:
         end_date: Optional[datetime] = None,
         event_type: Optional[AuditEventType] = None,
         user_id: Optional[str] = None,
-        entity_type: Optional[str] = None
+        entity_type: Optional[str] = None,
     ) -> List[AuditEvent]:
         """Get audit events with optional filtering."""
         events = []
@@ -380,11 +408,13 @@ class SRDAuditService:
                                 entity_name=log_entry["entity_name"],
                                 user_id=log_entry["user_id"],
                                 user_role=log_entry["user_role"],
-                                timestamp=datetime.fromisoformat(log_entry["timestamp"]),
+                                timestamp=datetime.fromisoformat(
+                                    log_entry["timestamp"]
+                                ),
                                 details=log_entry["details"],
                                 ip_address=log_entry["ip_address"],
                                 user_agent=log_entry["user_agent"],
-                                session_id=log_entry["session_id"]
+                                session_id=log_entry["session_id"],
                             )
 
                             # Apply filters
@@ -402,7 +432,9 @@ class SRDAuditService:
                             events.append(event)
 
                         except (json.JSONDecodeError, KeyError, ValueError) as e:
-                            self.logger.warning("Failed to parse audit log entry", error=str(e))
+                            self.logger.warning(
+                                "Failed to parse audit log entry", error=str(e)
+                            )
                             continue
 
         except Exception as e:
@@ -415,7 +447,7 @@ class SRDAuditService:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         violation_type: Optional[ComplianceViolationType] = None,
-        resolved: Optional[bool] = None
+        resolved: Optional[bool] = None,
     ) -> List[ComplianceViolation]:
         """Get compliance violations with optional filtering."""
         violations = []
@@ -431,14 +463,22 @@ class SRDAuditService:
                             violation_entry = json.loads(line.strip())
                             violation = ComplianceViolation(
                                 violation_id=violation_entry["violation_id"],
-                                violation_type=ComplianceViolationType(violation_entry["violation_type"]),
+                                violation_type=ComplianceViolationType(
+                                    violation_entry["violation_type"]
+                                ),
                                 entity_type=violation_entry["entity_type"],
                                 entity_name=violation_entry["entity_name"],
                                 description=violation_entry["description"],
                                 severity=violation_entry["severity"],
-                                detected_at=datetime.fromisoformat(violation_entry["detected_at"]),
-                                resolved_at=datetime.fromisoformat(violation_entry["resolved_at"]) if violation_entry["resolved_at"] else None,
-                                resolution_notes=violation_entry["resolution_notes"]
+                                detected_at=datetime.fromisoformat(
+                                    violation_entry["detected_at"]
+                                ),
+                                resolved_at=datetime.fromisoformat(
+                                    violation_entry["resolved_at"]
+                                )
+                                if violation_entry["resolved_at"]
+                                else None,
+                                resolution_notes=violation_entry["resolution_notes"],
                             )
 
                             # Apply filters
@@ -446,7 +486,10 @@ class SRDAuditService:
                                 continue
                             if end_date and violation.detected_at > end_date:
                                 continue
-                            if violation_type and violation.violation_type != violation_type:
+                            if (
+                                violation_type
+                                and violation.violation_type != violation_type
+                            ):
                                 continue
                             if resolved is not None:
                                 is_resolved = violation.resolved_at is not None
@@ -456,7 +499,9 @@ class SRDAuditService:
                             violations.append(violation)
 
                         except (json.JSONDecodeError, KeyError, ValueError) as e:
-                            self.logger.warning("Failed to parse violation log entry", error=str(e))
+                            self.logger.warning(
+                                "Failed to parse violation log entry", error=str(e)
+                            )
                             continue
 
         except Exception as e:
@@ -465,9 +510,7 @@ class SRDAuditService:
         return violations
 
     def generate_audit_report(
-        self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        self, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
         """Generate comprehensive audit report."""
         if not start_date:
@@ -477,7 +520,9 @@ class SRDAuditService:
 
         # Get audit events
         all_events = self.get_audit_events(start_date=start_date, end_date=end_date)
-        violations = self.get_compliance_violations(start_date=start_date, end_date=end_date)
+        violations = self.get_compliance_violations(
+            start_date=start_date, end_date=end_date
+        )
 
         # Analyze events by type
         events_by_type = {}
@@ -515,31 +560,39 @@ class SRDAuditService:
             "report_period": {
                 "start_date": start_date.isoformat(),
                 "end_date": end_date.isoformat(),
-                "duration_days": (end_date - start_date).days
+                "duration_days": (end_date - start_date).days,
             },
             "summary": {
                 "total_events": len(all_events),
                 "total_violations": len(violations),
                 "unique_users": len(events_by_user),
-                "compliance_rate": ((len(all_events) - len(violations)) / len(all_events)) if all_events else 1.0
+                "compliance_rate": (
+                    (len(all_events) - len(violations)) / len(all_events)
+                )
+                if all_events
+                else 1.0,
             },
             "events": {
                 "by_type": events_by_type,
                 "by_user": events_by_user,
-                "top_users": sorted(events_by_user.items(), key=lambda x: x[1], reverse=True)[:10]
+                "top_users": sorted(
+                    events_by_user.items(), key=lambda x: x[1], reverse=True
+                )[:10],
             },
             "violations": {
                 "by_type": violations_by_type,
                 "by_severity": violations_by_severity,
-                "unresolved_count": len([v for v in violations if v.resolved_at is None])
+                "unresolved_count": len(
+                    [v for v in violations if v.resolved_at is None]
+                ),
             },
-            "recommendations": self._generate_report_recommendations(all_events, violations)
+            "recommendations": self._generate_report_recommendations(
+                all_events, violations
+            ),
         }
 
     def _generate_report_recommendations(
-        self,
-        events: List[AuditEvent],
-        violations: List[ComplianceViolation]
+        self, events: List[AuditEvent], violations: List[ComplianceViolation]
     ) -> List[str]:
         """Generate recommendations based on audit data."""
         recommendations = []
@@ -548,22 +601,36 @@ class SRDAuditService:
         if violations and events:
             violation_rate = len(violations) / len(events)
             if violation_rate > 0.1:
-                recommendations.append("High compliance violation rate detected. Review data sources and user training.")
+                recommendations.append(
+                    "High compliance violation rate detected. Review data sources and user training."
+                )
 
         # Check for unauthorized access patterns
-        unauthorized_events = [e for e in events if e.details.get("access_type") == "unauthorized"]
+        unauthorized_events = [
+            e for e in events if e.details.get("access_type") == "unauthorized"
+        ]
         if unauthorized_events:
-            recommendations.append("Unauthorized access attempts detected. Review access controls and user permissions.")
+            recommendations.append(
+                "Unauthorized access attempts detected. Review access controls and user permissions."
+            )
 
         # Check for frequent data modifications
-        modification_events = [e for e in events if e.event_type == AuditEventType.DATA_MODIFICATION]
+        modification_events = [
+            e for e in events if e.event_type == AuditEventType.DATA_MODIFICATION
+        ]
         if len(modification_events) > len(events) * 0.5:
-            recommendations.append("High rate of data modifications. Consider implementing stricter change controls.")
+            recommendations.append(
+                "High rate of data modifications. Consider implementing stricter change controls."
+            )
 
         # Check for compliance check frequency
-        compliance_events = [e for e in events if e.event_type == AuditEventType.COMPLIANCE_CHECK]
+        compliance_events = [
+            e for e in events if e.event_type == AuditEventType.COMPLIANCE_CHECK
+        ]
         if len(compliance_events) < len(events) * 0.1:
-            recommendations.append("Low frequency of compliance checks. Increase automated compliance monitoring.")
+            recommendations.append(
+                "Low frequency of compliance checks. Increase automated compliance monitoring."
+            )
 
         return recommendations
 
@@ -574,8 +641,14 @@ class SRDAuditService:
             violations_log_exists = Path(self.violations_log_path).exists()
 
             # Get log file sizes
-            audit_size = Path(self.audit_log_path).stat().st_size if audit_log_exists else 0
-            violations_size = Path(self.violations_log_path).stat().st_size if violations_log_exists else 0
+            audit_size = (
+                Path(self.audit_log_path).stat().st_size if audit_log_exists else 0
+            )
+            violations_size = (
+                Path(self.violations_log_path).stat().st_size
+                if violations_log_exists
+                else 0
+            )
 
             # Count recent events (last 24 hours)
             recent_events = self.get_audit_events(
@@ -590,7 +663,7 @@ class SRDAuditService:
                 "violations_log_size_bytes": violations_size,
                 "recent_events_count": len(recent_events),
                 "service_ready": True,
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
@@ -598,7 +671,7 @@ class SRDAuditService:
                 "status": "unhealthy",
                 "error": str(e),
                 "service_ready": False,
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
 

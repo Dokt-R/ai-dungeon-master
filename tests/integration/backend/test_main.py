@@ -46,7 +46,6 @@ async def test_set_server_config_failure(client, monkeypatch):
     assert response.status_code == 500
 
 
-
 async def test_set_server_config_validation_error(client):
     payload = {
         "api_key": "",  # Invalid: empty API key

@@ -31,7 +31,6 @@ class TestGeneralCommands:
         assert args[0] is not None
         assert kwargs.get("ephemeral") is True
 
-
     async def test_server_setup_permissions(self, mock_admin_cog):
         """Test that only admins can run the /server-setup command."""
         cog = mock_admin_cog
@@ -72,8 +71,10 @@ class TestOnServerSetkey:
         cog = mock_admin_cog
         interaction = InteractionFactory.admin_interaction()
         # Replace API client with mock
-        cog.api_client.set_response_override('set_server_config', {"message": "Server configuration updated successfully"})
-
+        cog.api_client.set_response_override(
+            "set_server_config",
+            {"message": "Server configuration updated successfully"},
+        )
 
         await cog._handle_server_setkey(interaction, "testkey")
         interaction.response.send_message.assert_awaited_with(
@@ -84,8 +85,7 @@ class TestOnServerSetkey:
         cog = mock_admin_cog
         interaction = InteractionFactory.admin_interaction()
         # Replace API client with mock
-        cog.api_client.set_exception_override('set_server_config', CustomException())
-
+        cog.api_client.set_exception_override("set_server_config", CustomException())
 
         with pytest.raises(CustomException) as exc_info:
             await cog._handle_server_setkey(interaction, "testkey")
@@ -189,7 +189,7 @@ class TestErrorHandling:
         cog = mock_admin_cog
         # Replace API client with mock
         cog.api_client = MockApiClient()
-        cog.api_client.set_exception_override('set_server_config', CustomException())
+        cog.api_client.set_exception_override("set_server_config", CustomException())
 
         with pytest.raises(CustomException) as exc_info:
             await cog._handle_server_setkey(interaction, "testkey")
@@ -242,7 +242,7 @@ class TestSyncCommands:
         cog = mock_admin_cog
         # Replace API client with mock
         mock_response = {"player_id": "123", "username": "TestUser1"}
-        cog.api_client.set_response_override('create_player', mock_response)
+        cog.api_client.set_response_override("create_player", mock_response)
 
         interaction = InteractionFactory.admin_interaction()
 
@@ -270,7 +270,16 @@ class TestSyncCommands:
         assert "Starting sync of 1 members" in initial_call
 
         # Verify API was called for the non-bot member
-        assert len([call for call in cog.api_client.call_history if call['method'] == 'create_player']) == 1
+        assert (
+            len(
+                [
+                    call
+                    for call in cog.api_client.call_history
+                    if call["method"] == "create_player"
+                ]
+            )
+            == 1
+        )
 
     async def test_sync_start_callback(self, mock_admin_cog):
         """Test that only admins can run the /server-setup command."""
@@ -287,7 +296,6 @@ class TestSyncCommands:
         """Test sync start command."""
         cog = mock_admin_cog
         interaction = InteractionFactory.admin_interaction()
-
 
         # Mock the periodic sync task
         cog._periodic_sync = AsyncMock()
@@ -363,7 +371,7 @@ class TestSyncCommands:
 
         interaction.response.send_message.assert_awaited_with(
             "❌ Periodic sync is not running\nYou can start it with `/sync start`",
-            ephemeral=True
+            ephemeral=True,
         )
 
     async def test_sync_restart_callback(self, mock_admin_cog):
@@ -402,8 +410,7 @@ class TestSyncCommands:
         mock_member = MemberFactory.regular()
 
         mock_response = {"player_id": mock_member.id, "username": mock_member.name}
-        cog.api_client.set_response_override('create_player', mock_response)
-
+        cog.api_client.set_response_override("create_player", mock_response)
 
         # This method might not exist or return different format, let's test the API call instead
         try:
@@ -415,32 +422,61 @@ class TestSyncCommands:
             pass
 
         # Verify API was called with correct parameters
-        assert len([call for call in cog.api_client.call_history if call['method'] == 'create_player']) == 1
-        call_args = [call for call in cog.api_client.call_history if call['method'] == 'create_player'][0]
-        assert call_args['args'][0]['player_id'] == mock_member.id
-        assert call_args['args'][0]['username'] == mock_member.name
+        assert (
+            len(
+                [
+                    call
+                    for call in cog.api_client.call_history
+                    if call["method"] == "create_player"
+                ]
+            )
+            == 1
+        )
+        call_args = [
+            call
+            for call in cog.api_client.call_history
+            if call["method"] == "create_player"
+        ][0]
+        assert call_args["args"][0]["player_id"] == mock_member.id
+        assert call_args["args"][0]["username"] == mock_member.name
 
     async def test_check_backend_health_success(self, mock_admin_cog):
         """Test successful backend health check."""
         cog = mock_admin_cog
         # Replace API client with mock
-        mock_response = {"player_id": "health_check_test", "username": "Health Check User"}
-        cog.api_client.set_response_override('create_player', mock_response)
+        mock_response = {
+            "player_id": "health_check_test",
+            "username": "Health Check User",
+        }
+        cog.api_client.set_response_override("create_player", mock_response)
 
         result = await cog._check_backend_health()
 
         assert result is True
         # Verify API was called with correct parameters
-        assert len([call for call in cog.api_client.call_history if call['method'] == 'create_player']) == 1
-        call_args = [call for call in cog.api_client.call_history if call['method'] == 'create_player'][0]
-        assert call_args['args'][0]['player_id'] == "health_check_test"
-        assert call_args['args'][0]['username'] == "Health Check User"
+        assert (
+            len(
+                [
+                    call
+                    for call in cog.api_client.call_history
+                    if call["method"] == "create_player"
+                ]
+            )
+            == 1
+        )
+        call_args = [
+            call
+            for call in cog.api_client.call_history
+            if call["method"] == "create_player"
+        ][0]
+        assert call_args["args"][0]["player_id"] == "health_check_test"
+        assert call_args["args"][0]["username"] == "Health Check User"
 
     async def test_check_backend_health_failure(self, mock_admin_cog):
         """Test failed backend health check."""
         cog = mock_admin_cog
         # Replace API client with mock
-        cog.api_client.set_exception_override('create_player', CustomException())
+        cog.api_client.set_exception_override("create_player", CustomException())
 
         result = await cog._check_backend_health()
 

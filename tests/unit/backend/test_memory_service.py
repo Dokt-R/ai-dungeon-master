@@ -10,19 +10,16 @@ Tests cover:
 - Performance monitoring and error handling
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime
+from unittest.mock import AsyncMock, Mock, patch
 
 from packages.backend.components.memory_service import (
-    MemoryService,
-    MemoryContext,
     MemoryConfig,
-    memory_service
+    MemoryContext,
+    MemoryService,
+    memory_service,
 )
 from packages.shared.models import MemoryState
-from packages.backend.components.observability_service import observability_service
 
 
 class TestMemoryConfig:
@@ -47,7 +44,7 @@ class TestMemoryConfig:
             max_context_tokens=1500,
             memory_relevance_threshold=0.8,
             max_memory_items=100,
-            max_recent_events=15
+            max_recent_events=15,
         )
 
         assert config.max_context_tokens == 1500
@@ -67,7 +64,7 @@ class TestMemoryContext:
             character_knowledge={"alice": ["fighter", "level 3"]},
             world_state={"location": "dungeon"},
             summary="Test summary",
-            token_count=150
+            token_count=150,
         )
 
         assert len(context.recent_events) == 1
@@ -81,7 +78,7 @@ class TestMemoryContext:
         """Test converting memory context to dictionary."""
         context = MemoryContext(
             recent_events=[{"type": "message", "content": "test"}],
-            summary="Test summary"
+            summary="Test summary",
         )
 
         data = context.to_dict()
@@ -107,10 +104,12 @@ class TestMemoryService:
         assert self.service._session_contexts == {}
         assert self.service._operation_times == {}
 
-    @patch('packages.backend.components.memory_service.observability_service')
+    @patch("packages.backend.components.memory_service.observability_service")
     def test_prepare_memory_context_short_conversation(self, mock_obs):
         """Test memory context preparation for short conversation."""
-        mock_obs.trace_operation.return_value.__enter__ = Mock(return_value="test-trace")
+        mock_obs.trace_operation.return_value.__enter__ = Mock(
+            return_value="test-trace"
+        )
         mock_obs.trace_operation.return_value.__exit__ = Mock(return_value=None)
 
         # Create memory state with short conversation
@@ -118,23 +117,29 @@ class TestMemoryService:
         memory_state.add_message("user", "I want to investigate the room")
 
         # Mock the _load_memory_state method
-        with patch.object(self.service, '_load_memory_state', new_callable=AsyncMock) as mock_load:
+        with patch.object(
+            self.service, "_load_memory_state", new_callable=AsyncMock
+        ) as mock_load:
             mock_load.return_value = memory_state
 
-            result = asyncio.run(self.service.prepare_memory_context(
-                session_id="test_session",
-                user_prompt="I look around",
-                correlation_id="test-correlation"
-            ))
+            result = asyncio.run(
+                self.service.prepare_memory_context(
+                    session_id="test_session",
+                    user_prompt="I look around",
+                    correlation_id="test-correlation",
+                )
+            )
 
             assert isinstance(result, MemoryContext)
             assert len(result.recent_events) >= 1
             assert "I look around" in str(result.recent_events)
 
-    @patch('packages.backend.components.memory_service.observability_service')
+    @patch("packages.backend.components.memory_service.observability_service")
     def test_prepare_memory_context_long_conversation(self, mock_obs):
         """Test memory context preparation for long conversation."""
-        mock_obs.trace_operation.return_value.__enter__ = Mock(return_value="test-trace")
+        mock_obs.trace_operation.return_value.__enter__ = Mock(
+            return_value="test-trace"
+        )
         mock_obs.trace_operation.return_value.__exit__ = Mock(return_value=None)
 
         # Create memory state with long conversation
@@ -145,14 +150,18 @@ class TestMemoryService:
             memory_state.add_message("user", f"Action {i}")
             memory_state.add_message("assistant", f"Response {i}")
 
-        with patch.object(self.service, '_load_memory_state', new_callable=AsyncMock) as mock_load:
+        with patch.object(
+            self.service, "_load_memory_state", new_callable=AsyncMock
+        ) as mock_load:
             mock_load.return_value = memory_state
 
-            result = asyncio.run(self.service.prepare_memory_context(
-                session_id="test_session",
-                user_prompt="What's the current situation?",
-                correlation_id="test-correlation"
-            ))
+            result = asyncio.run(
+                self.service.prepare_memory_context(
+                    session_id="test_session",
+                    user_prompt="What's the current situation?",
+                    correlation_id="test-correlation",
+                )
+            )
 
             assert isinstance(result, MemoryContext)
             assert result.summary != ""
@@ -191,15 +200,19 @@ class TestMemoryService:
         memory_state = MemoryState(session_id="test_session")
 
         # Add messages with relevant keywords
-        memory_state.add_message("assistant", "You find a treasure chest in the corner of the room.")
+        memory_state.add_message(
+            "assistant", "You find a treasure chest in the corner of the room."
+        )
         memory_state.add_message("assistant", "The goblin guard is blocking the exit.")
-        memory_state.add_message("assistant", "You discover an ancient sword on the pedestal.")
+        memory_state.add_message(
+            "assistant", "You discover an ancient sword on the pedestal."
+        )
 
-        relevant = asyncio.run(self.service._find_relevant_memories(
-            memory_state,
-            "I want to get the treasure",
-            "test-correlation"
-        ))
+        relevant = asyncio.run(
+            self.service._find_relevant_memories(
+                memory_state, "I want to get the treasure", "test-correlation"
+            )
+        )
 
         assert len(relevant) > 0
         assert any("treasure chest" in memory.lower() for memory in relevant)
@@ -209,11 +222,11 @@ class TestMemoryService:
         memory_state = MemoryState(session_id="test_session")
         memory_state.add_message("assistant", "The weather is nice today.")
 
-        relevant = asyncio.run(self.service._find_relevant_memories(
-            memory_state,
-            "I want to fight the dragon",
-            "test-correlation"
-        ))
+        relevant = asyncio.run(
+            self.service._find_relevant_memories(
+                memory_state, "I want to fight the dragon", "test-correlation"
+            )
+        )
 
         assert len(relevant) == 0
 
@@ -243,12 +256,14 @@ class TestMemoryService:
         memory_state = MemoryState(session_id="test_session")
         memory_state.add_message("user", "I look around")
 
-        summary = asyncio.run(self.service._generate_memory_summary(
-            memory_state,
-            [{"type": "message", "content": "I look around"}],
-            [],
-            "test-correlation"
-        ))
+        summary = asyncio.run(
+            self.service._generate_memory_summary(
+                memory_state,
+                [{"type": "message", "content": "I look around"}],
+                [],
+                "test-correlation",
+            )
+        )
 
         assert "Beginning of conversation" in summary
 
@@ -260,12 +275,14 @@ class TestMemoryService:
             memory_state.add_message("user", f"Action {i}")
             memory_state.add_message("assistant", f"Response {i}")
 
-        summary = asyncio.run(self.service._generate_memory_summary(
-            memory_state,
-            [{"type": "message", "content": "Most recent action"}],
-            ["Important memory"],
-            "test-correlation"
-        ))
+        summary = asyncio.run(
+            self.service._generate_memory_summary(
+                memory_state,
+                [{"type": "message", "content": "Most recent action"}],
+                ["Important memory"],
+                "test-correlation",
+            )
+        )
 
         assert "Conversation with" in summary
         assert "50 messages" in summary
@@ -275,22 +292,24 @@ class TestMemoryService:
         context = MemoryContext(
             recent_events=[{"content": "test event"}],
             relevant_memories=["memory 1", "memory 2"],
-            summary="Test summary"
+            summary="Test summary",
         )
 
         token_count = self.service._estimate_token_count(context)
 
         assert token_count > 0
-        assert token_count == len(str(context.to_dict())) // 4 + self.config.token_estimation_buffer
+        assert (
+            token_count
+            == len(str(context.to_dict())) // 4 + self.config.token_estimation_buffer
+        )
 
     def test_optimize_context_size_under_limit(self):
         """Test context optimization when under token limit."""
-        context = MemoryContext(
-            summary="Short summary",
-            token_count=500
-        )
+        context = MemoryContext(summary="Short summary", token_count=500)
 
-        optimized = asyncio.run(self.service._optimize_context_size(context, "test-correlation"))
+        optimized = asyncio.run(
+            self.service._optimize_context_size(context, "test-correlation")
+        )
 
         assert optimized.token_count == 500
         assert optimized.summary == "Short summary"
@@ -301,27 +320,33 @@ class TestMemoryService:
         context = MemoryContext(
             relevant_memories=[f"Memory {i}" for i in range(10)],
             summary="x" * 1000,  # Very long summary
-            token_count=2500
+            token_count=2500,
         )
 
-        optimized = asyncio.run(self.service._optimize_context_size(context, "test-correlation"))
+        optimized = asyncio.run(
+            self.service._optimize_context_size(context, "test-correlation")
+        )
 
         assert optimized.token_count < 2500  # Should be reduced
         assert len(optimized.relevant_memories) <= 3  # Should be reduced
         assert len(optimized.summary) <= 500  # Should be truncated
 
-    @patch('packages.backend.components.memory_service.observability_service')
+    @patch("packages.backend.components.memory_service.observability_service")
     def test_update_memory_after_interaction(self, mock_obs):
         """Test memory update after interaction."""
-        mock_obs.trace_operation.return_value.__enter__ = Mock(return_value="test-trace")
+        mock_obs.trace_operation.return_value.__enter__ = Mock(
+            return_value="test-trace"
+        )
         mock_obs.trace_operation.return_value.__exit__ = Mock(return_value=None)
 
-        asyncio.run(self.service.update_memory_after_interaction(
-            session_id="test_session",
-            user_prompt="I attack the goblin",
-            ai_response="You strike the goblin with your sword!",
-            correlation_id="test-correlation"
-        ))
+        asyncio.run(
+            self.service.update_memory_after_interaction(
+                session_id="test_session",
+                user_prompt="I attack the goblin",
+                ai_response="You strike the goblin with your sword!",
+                correlation_id="test-correlation",
+            )
+        )
 
         # Check that memory was stored
         assert "test_session" in self.service._session_memory
@@ -345,7 +370,9 @@ class TestMemoryService:
     def test_clear_session_memory(self):
         """Test clearing session memory."""
         # Add some memory
-        self.service._session_memory["test_session"] = MemoryState(session_id="test_session")
+        self.service._session_memory["test_session"] = MemoryState(
+            session_id="test_session"
+        )
         self.service._session_contexts["test_session"] = MemoryContext()
 
         # Clear it
@@ -386,16 +413,18 @@ class TestMemoryServiceErrorHandling:
         """Set up test fixtures."""
         self.service = MemoryService()
 
-    @patch('packages.backend.components.memory_service.observability_service')
+    @patch("packages.backend.components.memory_service.observability_service")
     def test_prepare_context_error_handling(self, mock_obs):
         """Test error handling in context preparation."""
         mock_obs.trace_operation.side_effect = Exception("Tracing failed")
 
-        result = asyncio.run(self.service.prepare_memory_context(
-            session_id="test_session",
-            user_prompt="test prompt",
-            correlation_id="test-correlation"
-        ))
+        result = asyncio.run(
+            self.service.prepare_memory_context(
+                session_id="test_session",
+                user_prompt="test prompt",
+                correlation_id="test-correlation",
+            )
+        )
 
         # Should return minimal context on error
         assert isinstance(result, MemoryContext)
@@ -404,12 +433,14 @@ class TestMemoryServiceErrorHandling:
     def test_memory_update_error_handling(self):
         """Test error handling in memory updates."""
         # This should not raise an exception even if there are issues
-        asyncio.run(self.service.update_memory_after_interaction(
-            session_id="test_session",
-            user_prompt="test prompt",
-            ai_response="test response",
-            correlation_id="test-correlation"
-        ))
+        asyncio.run(
+            self.service.update_memory_after_interaction(
+                session_id="test_session",
+                user_prompt="test prompt",
+                ai_response="test response",
+                correlation_id="test-correlation",
+            )
+        )
 
         # Memory should still be created
         assert "test_session" in self.service._session_memory

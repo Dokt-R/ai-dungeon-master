@@ -20,8 +20,7 @@ class TestActionRequest:
     def test_valid_action_request_minimal(self):
         """Test creating a valid ActionRequest with minimal required fields."""
         request = ActionRequest(
-            prompt="I want to investigate the room",
-            session_id="session_123"
+            prompt="I want to investigate the room", session_id="session_123"
         )
 
         assert request.prompt == "I want to investigate the room"
@@ -40,7 +39,7 @@ class TestActionRequest:
             session_id="session_456",
             campaign_context=campaign_context,
             user_id="user_789",
-            metadata=metadata
+            metadata=metadata,
         )
 
         assert request.prompt == "I attack the goblin with my sword"
@@ -103,9 +102,7 @@ class TestActionRequest:
         """Test user_id pattern validation."""
         # Should work with valid pattern
         request = ActionRequest(
-            prompt="test prompt",
-            session_id="session_123",
-            user_id="user_456"
+            prompt="test prompt", session_id="session_123", user_id="user_456"
         )
         assert request.user_id == "user_456"
 
@@ -114,7 +111,7 @@ class TestActionRequest:
             ActionRequest(
                 prompt="test prompt",
                 session_id="session_123",
-                user_id="user@456"  # @ not allowed
+                user_id="user@456",  # @ not allowed
             )
 
     def test_user_id_validation_max_length(self):
@@ -123,9 +120,7 @@ class TestActionRequest:
 
         with pytest.raises(ValidationError):
             ActionRequest(
-                prompt="test prompt",
-                session_id="session_123",
-                user_id=long_user_id
+                prompt="test prompt", session_id="session_123", user_id=long_user_id
             )
 
     def test_campaign_context_validation(self):
@@ -133,17 +128,13 @@ class TestActionRequest:
         # Should work with dict
         context = {"name": "Test Campaign", "level": 5}
         request = ActionRequest(
-            prompt="test prompt",
-            session_id="session_123",
-            campaign_context=context
+            prompt="test prompt", session_id="session_123", campaign_context=context
         )
         assert request.campaign_context == context
 
         # Should work with None
         request = ActionRequest(
-            prompt="test prompt",
-            session_id="session_123",
-            campaign_context=None
+            prompt="test prompt", session_id="session_123", campaign_context=None
         )
         assert request.campaign_context is None
 
@@ -152,17 +143,13 @@ class TestActionRequest:
         # Should work with dict
         meta = {"source": "discord", "channel_id": "123456"}
         request = ActionRequest(
-            prompt="test prompt",
-            session_id="session_123",
-            metadata=meta
+            prompt="test prompt", session_id="session_123", metadata=meta
         )
         assert request.metadata == meta
 
         # Should work with None
         request = ActionRequest(
-            prompt="test prompt",
-            session_id="session_123",
-            metadata=None
+            prompt="test prompt", session_id="session_123", metadata=None
         )
         assert request.metadata is None
 
@@ -174,7 +161,7 @@ class TestActionResponse:
         """Test creating a valid ActionResponse with minimal required fields."""
         response = ActionResponse(
             narrative="The DM responds with a narrative continuation",
-            session_id="session_123"
+            session_id="session_123",
         )
 
         assert response.narrative == "The DM responds with a narrative continuation"
@@ -197,7 +184,7 @@ class TestActionResponse:
             processing_time=2.5,
             status="partial",
             correlation_id="550e8400-e29b-41d4-a716-446655440000",
-            error=error
+            error=error,
         )
 
         assert response.narrative == "You discover a hidden treasure chest!"
@@ -227,9 +214,7 @@ class TestActionResponse:
         """Test processing_time positive value validation."""
         with pytest.raises(ValidationError):
             ActionResponse(
-                narrative="test narrative",
-                session_id="session_123",
-                processing_time=-1
+                narrative="test narrative", session_id="session_123", processing_time=-1
             )
 
     def test_processing_time_validation_max_value(self):
@@ -238,15 +223,12 @@ class TestActionResponse:
             ActionResponse(
                 narrative="test narrative",
                 session_id="session_123",
-                processing_time=301  # Exceeds 300 second limit
+                processing_time=301,  # Exceeds 300 second limit
             )
 
     def test_status_default_value(self):
         """Test that status defaults to 'success'."""
-        response = ActionResponse(
-            narrative="test narrative",
-            session_id="session_123"
-        )
+        response = ActionResponse(narrative="test narrative", session_id="session_123")
         assert response.status == "success"
 
     def test_session_id_required(self):
@@ -262,7 +244,7 @@ class TestActionResponse:
             metadata=None,
             processing_time=None,
             correlation_id=None,
-            error=None
+            error=None,
         )
 
         assert response.metadata is None
@@ -277,14 +259,13 @@ class TestModelIntegration:
     def test_request_response_session_id_consistency(self):
         """Test that session_id flows consistently from request to response."""
         request = ActionRequest(
-            prompt="I want to explore the dungeon",
-            session_id="dungeon_session_001"
+            prompt="I want to explore the dungeon", session_id="dungeon_session_001"
         )
 
         # Simulate processing
         response = ActionResponse(
             narrative="You enter the dark dungeon, hearing echoes in the distance.",
-            session_id=request.session_id  # Use same session_id
+            session_id=request.session_id,  # Use same session_id
         )
 
         assert request.session_id == response.session_id
@@ -299,7 +280,7 @@ class TestModelIntegration:
             session_id="session_001",
             campaign_context=campaign_context,
             user_id="player123",
-            metadata=request_metadata
+            metadata=request_metadata,
         )
 
         # Response should be able to reference request data
@@ -309,8 +290,8 @@ class TestModelIntegration:
             metadata={
                 "request_metadata": request.metadata,
                 "campaign_context": request.campaign_context,
-                "processed_by": "ai_dm_system"
-            }
+                "processed_by": "ai_dm_system",
+            },
         )
 
         assert response.metadata["request_metadata"] == request_metadata
@@ -321,14 +302,14 @@ class TestModelIntegration:
         error_info = {
             "code": "AI_SERVICE_UNAVAILABLE",
             "message": "AI service is temporarily unavailable",
-            "retry_after": 60
+            "retry_after": 60,
         }
 
         response = ActionResponse(
             narrative="The DM seems distracted and doesn't respond clearly.",
             session_id="session_001",
             status="error",
-            error=error_info
+            error=error_info,
         )
 
         assert response.status == "error"
@@ -378,7 +359,9 @@ class TestModelValidationEdgeCases:
 
         # Test maximum length (4000 characters)
         max_length_narrative = "a" * 4000
-        response = ActionResponse(narrative=max_length_narrative, session_id="session_123")
+        response = ActionResponse(
+            narrative=max_length_narrative, session_id="session_123"
+        )
         assert response.narrative == max_length_narrative
 
         # Test over maximum length
@@ -394,6 +377,6 @@ class TestModelValidationEdgeCases:
             response = ActionResponse(
                 narrative="test narrative",
                 session_id="session_123",
-                processing_time=time_value
+                processing_time=time_value,
             )
             assert response.processing_time == time_value

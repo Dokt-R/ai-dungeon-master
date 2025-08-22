@@ -9,9 +9,9 @@ This service provides centralized observability functionality including:
 """
 
 import os
-from typing import Optional, Dict, Any
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 from packages.shared.logging_config import get_logger
 
@@ -21,6 +21,7 @@ logger = get_logger(__name__)
 @dataclass
 class ObservabilityConfig:
     """Configuration for observability settings."""
+
     api_key: str
     project: str = "ai-dungeon-master"
     endpoint: Optional[str] = None
@@ -29,11 +30,13 @@ class ObservabilityConfig:
 
 class ObservabilityError(Exception):
     """Base exception for observability-related errors."""
+
     pass
 
 
 class ConfigurationError(ObservabilityError):
     """Raised when observability configuration is invalid or missing."""
+
     pass
 
 
@@ -48,17 +51,17 @@ class ObservabilityService:
     - Health check functionality
     """
 
-    _instance: Optional['ObservabilityService'] = None
+    _instance: Optional["ObservabilityService"] = None
     _is_initialized: bool = False
 
-    def __new__(cls) -> 'ObservabilityService':
+    def __new__(cls) -> "ObservabilityService":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self) -> None:
         """Initialize the observability service."""
-        if not hasattr(self, '_config'):
+        if not hasattr(self, "_config"):
             self._config: Optional[ObservabilityConfig] = None
             self._langsmith_client: Optional[Any] = None
             self._initialization_error: Optional[str] = None
@@ -81,15 +84,15 @@ class ObservabilityService:
         """
         try:
             # Load required API key
-            api_key = os.getenv('LANGSMITH_API_KEY')
+            api_key = os.getenv("LANGSMITH_API_KEY")
             if not api_key:
                 raise ConfigurationError(
                     "LANGSMITH_API_KEY environment variable is required"
                 )
 
             # Load optional configuration with defaults
-            project = os.getenv('LANGSMITH_PROJECT', 'ai-dungeon-master')
-            endpoint = os.getenv('LANGSMITH_ENDPOINT')
+            project = os.getenv("LANGSMITH_PROJECT", "ai-dungeon-master")
+            endpoint = os.getenv("LANGSMITH_ENDPOINT")
 
             # Validate API key format (basic check)
             if not isinstance(api_key, str) or len(api_key.strip()) == 0:
@@ -103,13 +106,13 @@ class ObservabilityService:
                 api_key=api_key.strip(),
                 project=project.strip(),
                 endpoint=endpoint.strip() if endpoint else None,
-                tracing_enabled=True
+                tracing_enabled=True,
             )
 
             logger.info(
                 "observability_config_loaded",
                 project=config.project,
-                has_endpoint=bool(config.endpoint)
+                has_endpoint=bool(config.endpoint),
             )
 
             return config
@@ -143,7 +146,7 @@ class ObservabilityService:
             logger.info(
                 "observability_initialized",
                 project=self._config.project,
-                provider="langsmith"
+                provider="langsmith",
             )
 
             return True
@@ -166,11 +169,11 @@ class ObservabilityService:
             from langsmith import Client
 
             # Set environment variables for LangSmith
-            os.environ['LANGSMITH_API_KEY'] = self._config.api_key
-            os.environ['LANGSMITH_PROJECT'] = self._config.project
+            os.environ["LANGSMITH_API_KEY"] = self._config.api_key
+            os.environ["LANGSMITH_PROJECT"] = self._config.project
 
             if self._config.endpoint:
-                os.environ['LANGSMITH_ENDPOINT'] = self._config.endpoint
+                os.environ["LANGSMITH_ENDPOINT"] = self._config.endpoint
 
             # Create client instance
             self._langsmith_client = Client()
@@ -198,7 +201,7 @@ class ObservabilityService:
                 "status": "unhealthy",
                 "provider": "langsmith",
                 "project": "unknown",
-                "error": self._initialization_error or "not_initialized"
+                "error": self._initialization_error or "not_initialized",
             }
 
         try:
@@ -208,7 +211,7 @@ class ObservabilityService:
                     "status": "unhealthy",
                     "provider": "langsmith",
                     "project": self._config.project if self._config else "unknown",
-                    "error": "client_not_available"
+                    "error": "client_not_available",
                 }
 
             # Additional health checks can be added here
@@ -218,7 +221,7 @@ class ObservabilityService:
                 "status": "healthy",
                 "provider": "langsmith",
                 "project": self._config.project,
-                "tracing_enabled": self._config.tracing_enabled
+                "tracing_enabled": self._config.tracing_enabled,
             }
 
         except Exception as e:
@@ -227,7 +230,7 @@ class ObservabilityService:
                 "status": "unhealthy",
                 "provider": "langsmith",
                 "project": self._config.project if self._config else "unknown",
-                "error": f"health_check_failed: {str(e)}"
+                "error": f"health_check_failed: {str(e)}",
             }
 
     @contextmanager
@@ -249,10 +252,7 @@ class ObservabilityService:
         trace_id = f"{operation_name}_{os.urandom(8).hex()}"
 
         logger.info(
-            "trace_started",
-            operation=operation_name,
-            trace_id=trace_id,
-            **tags
+            "trace_started", operation=operation_name, trace_id=trace_id, **tags
         )
 
         try:
@@ -263,15 +263,12 @@ class ObservabilityService:
                 operation=operation_name,
                 trace_id=trace_id,
                 error=str(e),
-                **tags
+                **tags,
             )
             raise
         finally:
             logger.info(
-                "trace_completed",
-                operation=operation_name,
-                trace_id=trace_id,
-                **tags
+                "trace_completed", operation=operation_name, trace_id=trace_id, **tags
             )
 
     def is_initialized(self) -> bool:

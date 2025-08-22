@@ -13,7 +13,7 @@ async def test_discord_validation_error_handler():
 
     async def command_that_raises_validation_error(self, interaction):
         raise ValidationError(ErrorCode.VALIDATION_ERROR)
-    
+
     test_command = discord_error_handler()(command_that_raises_validation_error)
 
     # Mock interaction object
@@ -37,7 +37,7 @@ async def test_discord_not_found_error_handler():
 
     async def command_that_raises_not_found_error(self, interaction):
         raise NotFoundError(ErrorCode.NOT_FOUND)
-    
+
     test_command = discord_error_handler()(command_that_raises_not_found_error)
 
     # Mock interaction object
@@ -61,7 +61,7 @@ async def test_discord_ai_api_error_handler():
 
     async def command_that_raises_ai_api_error(self, interaction):
         raise AIAPIError(ErrorCode.AI_API_ERROR)
-    
+
     test_command = discord_error_handler()(command_that_raises_ai_api_error)
 
     # Mock interaction object
@@ -85,7 +85,7 @@ async def test_discord_generic_error_handler():
 
     async def command_that_raises_generic_error(self, interaction):
         raise Exception("Test generic error")
-    
+
     test_command = discord_error_handler()(command_that_raises_generic_error)
 
     # Mock interaction object
@@ -111,8 +111,10 @@ async def test_discord_error_handler_custom_fallback_message():
 
     async def command_with_custom_fallback(self, interaction):
         raise Exception("Test generic error")
-    
-    test_command = discord_error_handler(fallback_message=custom_fallback)(command_with_custom_fallback)
+
+    test_command = discord_error_handler(fallback_message=custom_fallback)(
+        command_with_custom_fallback
+    )
 
     # Mock interaction object
     mock_interaction = AsyncMock()
@@ -135,12 +137,14 @@ async def test_discord_error_handler_fallback_send():
 
     async def command_that_raises_validation_error(self, interaction):
         raise ValidationError(ErrorCode.VALIDATION_ERROR)
-    
+
     test_command = discord_error_handler()(command_that_raises_validation_error)
 
     # Mock interaction object where response.send_message fails
     mock_interaction = AsyncMock()
-    mock_interaction.response.send_message = AsyncMock(side_effect=Exception("Already responded"))
+    mock_interaction.response.send_message = AsyncMock(
+        side_effect=Exception("Already responded")
+    )
     mock_interaction.followup.send = AsyncMock()
 
     # Call the decorated command

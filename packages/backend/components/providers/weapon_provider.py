@@ -12,16 +12,14 @@ Features:
 - Caching for frequently queried weapons
 """
 
-import time
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Any, Dict, List
 
-from packages.shared.models import Weapon, RulesQuery, RulesResponse
-from packages.backend.components.srd_database_manager import srd_database_manager
-from packages.backend.components.srd_compliance_service import srd_compliance_service
-from packages.backend.components.srd_audit_service import srd_audit_service
 from packages.backend.components.rules_engine import BaseRuleProvider, RuleProviderType
+from packages.backend.components.srd_audit_service import srd_audit_service
+from packages.backend.components.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
+from packages.shared.models import RulesQuery, RulesResponse, Weapon
 
 
 class WeaponRuleProvider(BaseRuleProvider):
@@ -47,7 +45,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Weapon query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     async def _handle_name_query(self, query: RulesQuery) -> RulesResponse:
@@ -56,8 +54,10 @@ class WeaponRuleProvider(BaseRuleProvider):
             # Search across all weapon categories
             weapon = None
             categories = [
-                "Simple Melee Weapons", "Simple Ranged Weapons",
-                "Martial Melee Weapons", "Martial Ranged Weapons"
+                "Simple Melee Weapons",
+                "Simple Ranged Weapons",
+                "Martial Melee Weapons",
+                "Martial Ranged Weapons",
             ]
 
             for category in categories:
@@ -77,7 +77,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Weapon not found in SRD database",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
         except Exception as e:
@@ -86,7 +86,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Database query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     async def _handle_filtered_query(self, query: RulesQuery) -> RulesResponse:
@@ -96,7 +96,9 @@ class WeaponRuleProvider(BaseRuleProvider):
 
             # Handle category-specific queries
             if "category" in filters:
-                weapons = srd_database_manager.get_weapons_by_category(filters["category"])
+                weapons = srd_database_manager.get_weapons_by_category(
+                    filters["category"]
+                )
                 filtered_weapons = self._apply_additional_filters(weapons, filters)
 
                 return RulesResponse(
@@ -104,33 +106,41 @@ class WeaponRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=len(filtered_weapons) > 0,
                     data=filtered_weapons if filtered_weapons else None,
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Handle damage type queries
             if "damage_type" in filters:
-                damage_weapons = await self._get_weapons_by_damage_type(filters["damage_type"])
-                filtered_weapons = self._apply_additional_filters(damage_weapons, filters)
+                damage_weapons = await self._get_weapons_by_damage_type(
+                    filters["damage_type"]
+                )
+                filtered_weapons = self._apply_additional_filters(
+                    damage_weapons, filters
+                )
 
                 return RulesResponse(
                     query_type=query.query_type,
                     name=query.name,
                     found=len(filtered_weapons) > 0,
                     data=filtered_weapons if filtered_weapons else None,
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Handle property queries
             if "property" in filters:
-                property_weapons = await self._get_weapons_by_property(filters["property"])
-                filtered_weapons = self._apply_additional_filters(property_weapons, filters)
+                property_weapons = await self._get_weapons_by_property(
+                    filters["property"]
+                )
+                filtered_weapons = self._apply_additional_filters(
+                    property_weapons, filters
+                )
 
                 return RulesResponse(
                     query_type=query.query_type,
                     name=query.name,
                     found=len(filtered_weapons) > 0,
                     data=filtered_weapons if filtered_weapons else None,
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Default to name-based search if no recognized filters
@@ -142,10 +152,12 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Filtered query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
-    async def _process_weapon_result(self, weapon: Weapon, query: RulesQuery) -> RulesResponse:
+    async def _process_weapon_result(
+        self, weapon: Weapon, query: RulesQuery
+    ) -> RulesResponse:
         """Process and validate weapon query result."""
         try:
             # Verify compliance
@@ -159,13 +171,11 @@ class WeaponRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Data compliance check failed",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Log audit event
-            srd_audit_service.log_data_access(
-                weapon, "rules_engine", "system", "query"
-            )
+            srd_audit_service.log_data_access(weapon, "rules_engine", "system", "query")
 
             # Format weapon data for response
             weapon_data = self._format_weapon_data(weapon)
@@ -175,7 +185,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=True,
                 data=weapon_data,
-                query_time=0.0
+                query_time=0.0,
             )
 
         except Exception as e:
@@ -184,7 +194,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Weapon data processing failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     def _format_weapon_data(self, weapon: Weapon) -> Dict[str, Any]:
@@ -200,45 +210,67 @@ class WeaponRuleProvider(BaseRuleProvider):
             "description": weapon.description,
             "source": weapon.data_source.source_name,
             "compliance_status": weapon.srd_compliance.data_source,
-            "last_updated": weapon.updated_at.isoformat()
+            "last_updated": weapon.updated_at.isoformat(),
         }
 
-    def _apply_additional_filters(self, weapons: List[Weapon], filters: Dict[str, Any]) -> List[Weapon]:
+    def _apply_additional_filters(
+        self, weapons: List[Weapon], filters: Dict[str, Any]
+    ) -> List[Weapon]:
         """Apply additional filters to weapon list."""
         filtered_weapons = weapons
 
         # Filter by cost range
         if "min_cost" in filters:
             min_cost = self._parse_cost(filters["min_cost"])
-            filtered_weapons = [w for w in filtered_weapons if self._parse_cost(w.cost) >= min_cost]
+            filtered_weapons = [
+                w for w in filtered_weapons if self._parse_cost(w.cost) >= min_cost
+            ]
 
         if "max_cost" in filters:
             max_cost = self._parse_cost(filters["max_cost"])
-            filtered_weapons = [w for w in filtered_weapons if self._parse_cost(w.cost) <= max_cost]
+            filtered_weapons = [
+                w for w in filtered_weapons if self._parse_cost(w.cost) <= max_cost
+            ]
 
         # Filter by weight range
         if "min_weight" in filters:
             min_weight = float(filters["min_weight"])
-            filtered_weapons = [w for w in filtered_weapons if self._parse_weight(w.weight) >= min_weight]
+            filtered_weapons = [
+                w
+                for w in filtered_weapons
+                if self._parse_weight(w.weight) >= min_weight
+            ]
 
         if "max_weight" in filters:
             max_weight = float(filters["max_weight"])
-            filtered_weapons = [w for w in filtered_weapons if self._parse_weight(w.weight) <= max_weight]
+            filtered_weapons = [
+                w
+                for w in filtered_weapons
+                if self._parse_weight(w.weight) <= max_weight
+            ]
 
         # Filter by properties
         if "has_property" in filters:
             required_property = filters["has_property"].lower()
-            filtered_weapons = [w for w in filtered_weapons if any(prop.lower() == required_property for prop in w.properties)]
+            filtered_weapons = [
+                w
+                for w in filtered_weapons
+                if any(prop.lower() == required_property for prop in w.properties)
+            ]
 
         # Filter by damage type
         if "damage_type" in filters:
             damage_type = filters["damage_type"].lower()
-            filtered_weapons = [w for w in filtered_weapons if damage_type in w.damage.lower()]
+            filtered_weapons = [
+                w for w in filtered_weapons if damage_type in w.damage.lower()
+            ]
 
         # Filter by name substring
         if "name_contains" in filters:
             name_filter = filters["name_contains"].lower()
-            filtered_weapons = [w for w in filtered_weapons if name_filter in w.weapon_name.lower()]
+            filtered_weapons = [
+                w for w in filtered_weapons if name_filter in w.weapon_name.lower()
+            ]
 
         return filtered_weapons
 
@@ -258,13 +290,15 @@ class WeaponRuleProvider(BaseRuleProvider):
         else:
             # Try to extract numerical value
             import re
-            match = re.search(r'(\d+(?:\.\d+)?)', cost_str)
+
+            match = re.search(r"(\d+(?:\.\d+)?)", cost_str)
             return float(match.group(1)) if match else 0.0
 
     def _parse_weight(self, weight_str: str) -> float:
         """Parse weight string into numerical value (in pounds)."""
         import re
-        match = re.search(r'(\d+(?:\.\d+)?)', weight_str)
+
+        match = re.search(r"(\d+(?:\.\d+)?)", weight_str)
         return float(match.group(1)) if match else 0.0
 
     # Specialized weapon query methods
@@ -285,7 +319,9 @@ class WeaponRuleProvider(BaseRuleProvider):
             return compliant_weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by category", category=category, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by category", category=category, error=str(e)
+            )
             return []
 
     async def _get_weapons_by_damage_type(self, damage_type: str) -> List[Weapon]:
@@ -294,22 +330,32 @@ class WeaponRuleProvider(BaseRuleProvider):
             # Get weapons from all categories and filter by damage type
             all_weapons = []
             categories = [
-                "Simple Melee Weapons", "Simple Ranged Weapons",
-                "Martial Melee Weapons", "Martial Ranged Weapons"
+                "Simple Melee Weapons",
+                "Simple Ranged Weapons",
+                "Martial Melee Weapons",
+                "Martial Ranged Weapons",
             ]
 
             for category in categories:
                 weapons = srd_database_manager.get_weapons_by_category(category)
-                type_weapons = [w for w in weapons if damage_type.lower() in w.damage.lower()]
+                type_weapons = [
+                    w for w in weapons if damage_type.lower() in w.damage.lower()
+                ]
                 all_weapons.extend(type_weapons)
 
             return all_weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by damage type", damage_type=damage_type, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by damage type",
+                damage_type=damage_type,
+                error=str(e),
+            )
             return []
 
-    async def get_weapons_by_damage_type(self, damage_type: str) -> List[Dict[str, Any]]:
+    async def get_weapons_by_damage_type(
+        self, damage_type: str
+    ) -> List[Dict[str, Any]]:
         """Get all weapons that deal a specific damage type (public method)."""
         try:
             weapons = await self._get_weapons_by_damage_type(damage_type)
@@ -326,7 +372,11 @@ class WeaponRuleProvider(BaseRuleProvider):
             return compliant_weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by damage type", damage_type=damage_type, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by damage type",
+                damage_type=damage_type,
+                error=str(e),
+            )
             return []
 
     async def _get_weapons_by_property(self, property_name: str) -> List[Weapon]:
@@ -335,19 +385,31 @@ class WeaponRuleProvider(BaseRuleProvider):
             # Get weapons from all categories and filter by property
             all_weapons = []
             categories = [
-                "Simple Melee Weapons", "Simple Ranged Weapons",
-                "Martial Melee Weapons", "Martial Ranged Weapons"
+                "Simple Melee Weapons",
+                "Simple Ranged Weapons",
+                "Martial Melee Weapons",
+                "Martial Ranged Weapons",
             ]
 
             for category in categories:
                 weapons = srd_database_manager.get_weapons_by_category(category)
-                property_weapons = [w for w in weapons if any(prop.lower() == property_name.lower() for prop in w.properties)]
+                property_weapons = [
+                    w
+                    for w in weapons
+                    if any(
+                        prop.lower() == property_name.lower() for prop in w.properties
+                    )
+                ]
                 all_weapons.extend(property_weapons)
 
             return all_weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by property", property_name=property_name, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by property",
+                property_name=property_name,
+                error=str(e),
+            )
             return []
 
     async def get_weapons_by_property(self, property_name: str) -> List[Dict[str, Any]]:
@@ -367,10 +429,16 @@ class WeaponRuleProvider(BaseRuleProvider):
             return compliant_weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by property", property_name=property_name, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by property",
+                property_name=property_name,
+                error=str(e),
+            )
             return []
 
-    async def get_weapon_comparison(self, weapon_names: List[str]) -> List[Dict[str, Any]]:
+    async def get_weapon_comparison(
+        self, weapon_names: List[str]
+    ) -> List[Dict[str, Any]]:
         """Compare multiple weapons side by side."""
         try:
             comparison_data = []
@@ -379,8 +447,10 @@ class WeaponRuleProvider(BaseRuleProvider):
                 # Find the weapon
                 weapon = None
                 categories = [
-                    "Simple Melee Weapons", "Simple Ranged Weapons",
-                    "Martial Melee Weapons", "Martial Ranged Weapons"
+                    "Simple Melee Weapons",
+                    "Simple Ranged Weapons",
+                    "Martial Melee Weapons",
+                    "Martial Ranged Weapons",
                 ]
 
                 for category in categories:
@@ -401,15 +471,21 @@ class WeaponRuleProvider(BaseRuleProvider):
                     if compliance_result.is_compliant:
                         # Analyze weapon stats
                         weapon_analysis = self._analyze_weapon_stats(weapon)
-                        comparison_data.append({
-                            "weapon": self._format_weapon_data(weapon),
-                            "analysis": weapon_analysis
-                        })
+                        comparison_data.append(
+                            {
+                                "weapon": self._format_weapon_data(weapon),
+                                "analysis": weapon_analysis,
+                            }
+                        )
 
             return comparison_data
 
         except Exception as e:
-            self.logger.error("Failed to get weapon comparison", weapon_names=weapon_names, error=str(e))
+            self.logger.error(
+                "Failed to get weapon comparison",
+                weapon_names=weapon_names,
+                error=str(e),
+            )
             return []
 
     def _analyze_weapon_stats(self, weapon: Weapon) -> Dict[str, Any]:
@@ -427,7 +503,7 @@ class WeaponRuleProvider(BaseRuleProvider):
             "damage_analysis": damage_analysis,
             "property_analysis": property_analysis,
             "effectiveness_metrics": effectiveness,
-            "combat_role": self._determine_weapon_combat_role(weapon)
+            "combat_role": self._determine_weapon_combat_role(weapon),
         }
 
     def _parse_damage_dice(self, damage_str: str) -> Dict[str, Any]:
@@ -435,7 +511,7 @@ class WeaponRuleProvider(BaseRuleProvider):
         import re
 
         # Extract dice pattern like "1d8" or "2d6"
-        dice_match = re.search(r'(\d+)d(\d+)', damage_str)
+        dice_match = re.search(r"(\d+)d(\d+)", damage_str)
         if dice_match:
             num_dice = int(dice_match.group(1))
             dice_size = int(dice_match.group(2))
@@ -446,15 +522,20 @@ class WeaponRuleProvider(BaseRuleProvider):
             average_damage = 0
 
         # Extract damage type
-        damage_type_match = re.search(r'(slashing|piercing|bludgeoning|acid|cold|fire|force|lightning|necrotic|poison|psychic|radiant|thunder)', damage_str.lower())
-        damage_type = damage_type_match.group(1).title() if damage_type_match else "Unknown"
+        damage_type_match = re.search(
+            r"(slashing|piercing|bludgeoning|acid|cold|fire|force|lightning|necrotic|poison|psychic|radiant|thunder)",
+            damage_str.lower(),
+        )
+        damage_type = (
+            damage_type_match.group(1).title() if damage_type_match else "Unknown"
+        )
 
         return {
             "dice_notation": f"{num_dice}d{dice_size}" if num_dice > 0 else "N/A",
             "num_dice": num_dice,
             "dice_size": dice_size,
             "average_damage": average_damage,
-            "damage_type": damage_type
+            "damage_type": damage_type,
         }
 
     def _analyze_weapon_properties(self, properties: List[str]) -> Dict[str, Any]:
@@ -471,7 +552,7 @@ class WeaponRuleProvider(BaseRuleProvider):
             "loading": False,
             "ammunition": False,
             "thrown": False,
-            "special_properties": []
+            "special_properties": [],
         }
 
         for prop in properties:
@@ -548,7 +629,13 @@ class WeaponRuleProvider(BaseRuleProvider):
         return {
             "effectiveness_score": effectiveness_score,
             "cost_efficiency": damage_analysis["average_damage"] / max(cost_gp, 0.1),
-            "versatility_score": len([p for p in weapon.properties if p.lower() in ["finesse", "versatile", "light"]])
+            "versatility_score": len(
+                [
+                    p
+                    for p in weapon.properties
+                    if p.lower() in ["finesse", "versatile", "light"]
+                ]
+            ),
         }
 
     def _determine_weapon_combat_role(self, weapon: Weapon) -> str:
@@ -583,21 +670,37 @@ class WeaponRuleProvider(BaseRuleProvider):
             "cache_ttl": self.default_ttl,
             "provider_type": self.provider_type.value,
             "supported_filters": [
-                "category", "damage_type", "property", "min_cost", "max_cost",
-                "min_weight", "max_weight", "has_property", "name_contains"
+                "category",
+                "damage_type",
+                "property",
+                "min_cost",
+                "max_cost",
+                "min_weight",
+                "max_weight",
+                "has_property",
+                "name_contains",
             ],
             "special_methods": [
                 "get_weapons_by_category",
                 "get_weapons_by_damage_type",
                 "get_weapons_by_property",
-                "get_weapon_comparison"
+                "get_weapon_comparison",
             ],
             "weapon_categories": [
-                "Simple Melee Weapons", "Simple Ranged Weapons",
-                "Martial Melee Weapons", "Martial Ranged Weapons"
+                "Simple Melee Weapons",
+                "Simple Ranged Weapons",
+                "Martial Melee Weapons",
+                "Martial Ranged Weapons",
             ],
             "common_properties": [
-                "Finesse", "Light", "Heavy", "Two-Handed", "Versatile",
-                "Reach", "Loading", "Ammunition", "Thrown"
-            ]
+                "Finesse",
+                "Light",
+                "Heavy",
+                "Two-Handed",
+                "Versatile",
+                "Reach",
+                "Loading",
+                "Ammunition",
+                "Thrown",
+            ],
         }

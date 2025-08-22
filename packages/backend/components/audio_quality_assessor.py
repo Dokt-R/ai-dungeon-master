@@ -15,20 +15,18 @@ Features:
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
-from packages.shared.models import (
-    AudioQualityMetrics, AudioStreamInfo, VoiceLatencyMetrics,
-    PerformanceReport
-)
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.audio_processor import audio_processor
-from packages.backend.components.tts_service import tts_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import (
+    AudioQualityMetrics,
+)
 
 logger = get_logger(__name__)
 
@@ -137,7 +135,7 @@ class AudioQualityAssessor:
                 "min_clarity": 0.8,
                 "max_noise": 0.1,
                 "min_snr": 20.0,
-                "max_artifacts": 0.05
+                "max_artifacts": 0.05,
             },
             "narration": {
                 "description": "Story narration quality",
@@ -145,7 +143,7 @@ class AudioQualityAssessor:
                 "min_clarity": 0.85,
                 "max_noise": 0.08,
                 "min_snr": 25.0,
-                "max_artifacts": 0.03
+                "max_artifacts": 0.03,
             },
             "background_audio": {
                 "description": "Background audio quality",
@@ -153,8 +151,8 @@ class AudioQualityAssessor:
                 "min_clarity": 0.7,
                 "max_noise": 0.2,
                 "min_snr": 15.0,
-                "max_artifacts": 0.15
-            }
+                "max_artifacts": 0.15,
+            },
         }
 
     async def start_assessment(self) -> None:
@@ -197,7 +195,7 @@ class AudioQualityAssessor:
         audio_format: str,
         sample_rate: int,
         channels: int,
-        context: Dict[str, Any] = None
+        context: Dict[str, Any] = None,
     ) -> AudioQualityMetrics:
         """
         Assess the quality of audio data.
@@ -219,17 +217,22 @@ class AudioQualityAssessor:
             with observability_service.trace_operation(
                 operation_name="audio_quality_assessment",
                 session_id=session_id,
-                audio_format=audio_format
+                audio_format=audio_format,
             ) as trace_id:
-
                 # Basic audio properties
-                audio_info = self._analyze_audio_properties(audio_data, sample_rate, channels)
+                audio_info = self._analyze_audio_properties(
+                    audio_data, sample_rate, channels
+                )
 
                 # Technical quality metrics
-                technical_metrics = self._calculate_technical_metrics(audio_data, sample_rate)
+                technical_metrics = self._calculate_technical_metrics(
+                    audio_data, sample_rate
+                )
 
                 # Content-based assessment
-                content_metrics = await self._assess_content_quality(audio_data, audio_format, context)
+                content_metrics = await self._assess_content_quality(
+                    audio_data, audio_format, context
+                )
 
                 # Overall quality score
                 overall_score = self._calculate_overall_score(
@@ -242,15 +245,17 @@ class AudioQualityAssessor:
                 # Create assessment result
                 assessment = AudioQualityMetrics(
                     session_id=session_id,
-                    transcription_accuracy=content_metrics.get('accuracy'),
-                    voice_clarity=content_metrics.get('clarity'),
-                    audio_artifacts=technical_metrics.get('artifacts_ratio', 0),
-                    noise_level=technical_metrics.get('noise_level', 0),
-                    signal_to_noise_ratio=technical_metrics.get('snr'),
-                    audio_bitrate=self._estimate_bitrate(audio_data, sample_rate, channels),
+                    transcription_accuracy=content_metrics.get("accuracy"),
+                    voice_clarity=content_metrics.get("clarity"),
+                    audio_artifacts=technical_metrics.get("artifacts_ratio", 0),
+                    noise_level=technical_metrics.get("noise_level", 0),
+                    signal_to_noise_ratio=technical_metrics.get("snr"),
+                    audio_bitrate=self._estimate_bitrate(
+                        audio_data, sample_rate, channels
+                    ),
                     sample_rate=sample_rate,
                     audio_format=audio_format,
-                    quality_score=overall_score
+                    quality_score=overall_score,
                 )
 
                 # Store assessment
@@ -266,7 +271,7 @@ class AudioQualityAssessor:
                     quality_score=overall_score,
                     quality_standard=quality_standard.value,
                     processing_time=processing_time,
-                    trace_id=trace_id
+                    trace_id=trace_id,
                 )
 
                 return assessment
@@ -277,20 +282,14 @@ class AudioQualityAssessor:
                 "audio_quality_assessment_failed",
                 session_id=session_id,
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
 
             # Return minimal assessment on error
-            return AudioQualityMetrics(
-                session_id=session_id,
-                quality_score=0.0
-            )
+            return AudioQualityMetrics(session_id=session_id, quality_score=0.0)
 
     def _analyze_audio_properties(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> Dict[str, Any]:
         """Analyze basic audio properties."""
         try:
@@ -299,7 +298,7 @@ class AudioQualityAssessor:
             audio_array = audio_array / 32768.0  # Normalize to [-1, 1]
 
             # Calculate RMS and peak levels
-            rms_level = np.sqrt(np.mean(audio_array ** 2))
+            rms_level = np.sqrt(np.mean(audio_array**2))
             peak_level = np.max(np.abs(audio_array))
 
             # Calculate duration
@@ -312,19 +311,21 @@ class AudioQualityAssessor:
                 dynamic_range = 0.0
 
             return {
-                'rms_level': rms_level,
-                'peak_level': peak_level,
-                'duration': duration,
-                'dynamic_range': dynamic_range,
-                'channels': channels,
-                'sample_rate': sample_rate
+                "rms_level": rms_level,
+                "peak_level": peak_level,
+                "duration": duration,
+                "dynamic_range": dynamic_range,
+                "channels": channels,
+                "sample_rate": sample_rate,
             }
 
         except Exception as e:
             self.logger.warning("audio_properties_analysis_failed", error=str(e))
             return {}
 
-    def _calculate_technical_metrics(self, audio_data: bytes, sample_rate: int) -> Dict[str, Any]:
+    def _calculate_technical_metrics(
+        self, audio_data: bytes, sample_rate: int
+    ) -> Dict[str, Any]:
         """Calculate technical audio quality metrics."""
         try:
             audio_array = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
@@ -332,7 +333,9 @@ class AudioQualityAssessor:
 
             # Signal-to-noise ratio estimation
             signal_power = np.var(audio_array)
-            noise_power = np.var(audio_array - np.convolve(audio_array, [1/5]*5, mode='same'))
+            noise_power = np.var(
+                audio_array - np.convolve(audio_array, [1 / 5] * 5, mode="same")
+            )
 
             if noise_power > 0:
                 snr = 10 * np.log10(signal_power / noise_power)
@@ -351,10 +354,10 @@ class AudioQualityAssessor:
             zero_crossing_rate = zero_crossings / len(audio_array)
 
             return {
-                'snr': snr,
-                'noise_level': noise_level,
-                'artifacts_ratio': artifacts_ratio,
-                'zero_crossing_rate': zero_crossing_rate
+                "snr": snr,
+                "noise_level": noise_level,
+                "artifacts_ratio": artifacts_ratio,
+                "zero_crossing_rate": zero_crossing_rate,
             }
 
         except Exception as e:
@@ -362,10 +365,7 @@ class AudioQualityAssessor:
             return {}
 
     async def _assess_content_quality(
-        self,
-        audio_data: bytes,
-        audio_format: str,
-        context: Dict[str, Any] = None
+        self, audio_data: bytes, audio_format: str, context: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """Assess content-based quality (placeholder for advanced analysis)."""
         try:
@@ -379,22 +379,20 @@ class AudioQualityAssessor:
             technical_metrics = self._calculate_technical_metrics(audio_data, 16000)
 
             # Estimate clarity based on SNR and noise
-            snr = technical_metrics.get('snr', 20.0)
-            noise_level = technical_metrics.get('noise_level', 0.1)
-            artifacts = technical_metrics.get('artifacts_ratio', 0.05)
+            snr = technical_metrics.get("snr", 20.0)
+            noise_level = technical_metrics.get("noise_level", 0.1)
+            artifacts = technical_metrics.get("artifacts_ratio", 0.05)
 
             # Simple clarity estimation
-            clarity = max(0.0, min(1.0, (snr / 40.0) * (1.0 - noise_level) * (1.0 - artifacts)))
+            clarity = max(
+                0.0, min(1.0, (snr / 40.0) * (1.0 - noise_level) * (1.0 - artifacts))
+            )
 
             # Transcription accuracy would come from actual STT comparison
             # For now, use clarity as proxy
             accuracy = clarity * 0.9  # Slightly lower as proxy
 
-            return {
-                'clarity': clarity,
-                'accuracy': accuracy,
-                'content_assessed': True
-            }
+            return {"clarity": clarity, "accuracy": accuracy, "content_assessed": True}
 
         except Exception as e:
             self.logger.warning("content_quality_assessment_failed", error=str(e))
@@ -404,42 +402,42 @@ class AudioQualityAssessor:
         self,
         audio_info: Dict[str, Any],
         technical_metrics: Dict[str, Any],
-        content_metrics: Dict[str, Any]
+        content_metrics: Dict[str, Any],
     ) -> float:
         """Calculate overall quality score."""
         try:
             scores = []
 
             # Technical quality score (40% weight)
-            snr = technical_metrics.get('snr', 20.0)
-            noise_level = technical_metrics.get('noise_level', 0.1)
-            artifacts = technical_metrics.get('artifacts_ratio', 0.05)
+            snr = technical_metrics.get("snr", 20.0)
+            noise_level = technical_metrics.get("noise_level", 0.1)
+            artifacts = technical_metrics.get("artifacts_ratio", 0.05)
 
             technical_score = (
-                min(1.0, snr / 40.0) * 0.5 +  # SNR contribution
-                (1.0 - noise_level) * 0.3 +     # Noise contribution
-                (1.0 - artifacts) * 0.2         # Artifacts contribution
+                min(1.0, snr / 40.0) * 0.5  # SNR contribution
+                + (1.0 - noise_level) * 0.3  # Noise contribution
+                + (1.0 - artifacts) * 0.2  # Artifacts contribution
             )
-            scores.append(('technical', technical_score, 0.4))
+            scores.append(("technical", technical_score, 0.4))
 
             # Content quality score (35% weight)
-            clarity = content_metrics.get('clarity', 0.8)
-            accuracy = content_metrics.get('accuracy', clarity * 0.9)
+            clarity = content_metrics.get("clarity", 0.8)
+            accuracy = content_metrics.get("accuracy", clarity * 0.9)
 
             content_score = (clarity + accuracy) / 2.0
-            scores.append(('content', content_score, 0.35))
+            scores.append(("content", content_score, 0.35))
 
             # Audio properties score (25% weight)
-            rms_level = audio_info.get('rms_level', 0.5)
-            peak_level = audio_info.get('peak_level', 0.8)
-            dynamic_range = audio_info.get('dynamic_range', 20.0)
+            rms_level = audio_info.get("rms_level", 0.5)
+            peak_level = audio_info.get("peak_level", 0.8)
+            dynamic_range = audio_info.get("dynamic_range", 20.0)
 
             properties_score = (
-                min(1.0, rms_level * 2.0) * 0.4 +      # RMS level
-                min(1.0, peak_level * 1.2) * 0.3 +     # Peak level
-                min(1.0, dynamic_range / 30.0) * 0.3   # Dynamic range
+                min(1.0, rms_level * 2.0) * 0.4  # RMS level
+                + min(1.0, peak_level * 1.2) * 0.3  # Peak level
+                + min(1.0, dynamic_range / 30.0) * 0.3  # Dynamic range
             )
-            scores.append(('properties', properties_score, 0.25))
+            scores.append(("properties", properties_score, 0.25))
 
             # Calculate weighted average
             overall_score = sum(score * weight for _, score, weight in scores)
@@ -465,7 +463,9 @@ class AudioQualityAssessor:
         else:
             return QualityStandard.UNUSABLE
 
-    def _estimate_bitrate(self, audio_data: bytes, sample_rate: int, channels: int) -> int:
+    def _estimate_bitrate(
+        self, audio_data: bytes, sample_rate: int, channels: int
+    ) -> int:
         """Estimate audio bitrate."""
         duration = len(audio_data) / (sample_rate * channels * 2)  # 16-bit samples
         if duration > 0:
@@ -479,7 +479,7 @@ class AudioQualityAssessor:
         rating: float,
         categories: List[str],
         comments: Optional[str] = None,
-        metadata: Dict[str, Any] = None
+        metadata: Dict[str, Any] = None,
     ) -> None:
         """
         Collect user feedback on audio quality.
@@ -499,7 +499,7 @@ class AudioQualityAssessor:
                 rating=rating,
                 categories=categories,
                 comments=comments,
-                metadata=metadata or {}
+                metadata=metadata or {},
             )
 
             self.user_feedback.append(feedback)
@@ -511,7 +511,7 @@ class AudioQualityAssessor:
                 user_id=user_id,
                 rating=rating,
                 categories=categories,
-                has_comments=comments is not None
+                has_comments=comments is not None,
             )
 
             # Check if immediate action is needed
@@ -522,8 +522,7 @@ class AudioQualityAssessor:
             self.logger.error("user_feedback_collection_failed", error=str(e))
 
     async def generate_quality_report(
-        self,
-        time_range_hours: int = 24
+        self, time_range_hours: int = 24
     ) -> Dict[str, Any]:
         """Generate comprehensive quality report."""
         try:
@@ -536,17 +535,35 @@ class AudioQualityAssessor:
                 recent_assessments.extend(recent)
 
             # Filter recent feedback
-            recent_feedback = [f for f in self.user_feedback if f.timestamp >= cutoff_time]
+            recent_feedback = [
+                f for f in self.user_feedback if f.timestamp >= cutoff_time
+            ]
 
             # Calculate statistics
             if recent_assessments:
-                avg_quality_score = np.mean([a.quality_score for a in recent_assessments if a.quality_score])
-                avg_clarity = np.mean([a.voice_clarity for a in recent_assessments if a.voice_clarity])
-                avg_accuracy = np.mean([a.transcription_accuracy for a in recent_assessments if a.transcription_accuracy])
-                avg_noise = np.mean([a.noise_level for a in recent_assessments if a.noise_level])
-                avg_artifacts = np.mean([a.audio_artifacts for a in recent_assessments if a.audio_artifacts])
+                avg_quality_score = np.mean(
+                    [a.quality_score for a in recent_assessments if a.quality_score]
+                )
+                avg_clarity = np.mean(
+                    [a.voice_clarity for a in recent_assessments if a.voice_clarity]
+                )
+                avg_accuracy = np.mean(
+                    [
+                        a.transcription_accuracy
+                        for a in recent_assessments
+                        if a.transcription_accuracy
+                    ]
+                )
+                avg_noise = np.mean(
+                    [a.noise_level for a in recent_assessments if a.noise_level]
+                )
+                avg_artifacts = np.mean(
+                    [a.audio_artifacts for a in recent_assessments if a.audio_artifacts]
+                )
             else:
-                avg_quality_score = avg_clarity = avg_accuracy = avg_noise = avg_artifacts = 0.0
+                avg_quality_score = avg_clarity = avg_accuracy = avg_noise = (
+                    avg_artifacts
+                ) = 0.0
 
             if recent_feedback:
                 avg_user_rating = np.mean([f.rating for f in recent_feedback])
@@ -571,7 +588,7 @@ class AudioQualityAssessor:
                 "average_artifacts_ratio": avg_artifacts,
                 "average_user_rating": avg_user_rating,
                 "recommendations": [r.__dict__ for r in recommendations],
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
             self.logger.info(
@@ -579,7 +596,7 @@ class AudioQualityAssessor:
                 assessments=len(recent_assessments),
                 feedback=feedback_count,
                 avg_score=avg_quality_score,
-                avg_rating=avg_user_rating
+                avg_rating=avg_user_rating,
             )
 
             return report
@@ -589,9 +606,7 @@ class AudioQualityAssessor:
             return {}
 
     async def _generate_quality_recommendations(
-        self,
-        assessments: List[AudioQualityMetrics],
-        feedback: List[UserFeedback]
+        self, assessments: List[AudioQualityMetrics], feedback: List[UserFeedback]
     ) -> List[QualityRecommendation]:
         """Generate quality improvement recommendations."""
         recommendations = []
@@ -601,45 +616,57 @@ class AudioQualityAssessor:
                 return recommendations
 
             # Analyze quality issues
-            avg_score = np.mean([a.quality_score for a in assessments if a.quality_score])
+            avg_score = np.mean(
+                [a.quality_score for a in assessments if a.quality_score]
+            )
 
             if avg_score < self.thresholds.good_threshold:
-                recommendations.append(QualityRecommendation(
-                    recommendation_id=f"rec_{int(time.time())}_quality_improvement",
-                    category="overall_quality",
-                    severity="high" if avg_score < self.thresholds.poor_threshold else "medium",
-                    description=".2f",
-                    action_required="Implement audio enhancement pipeline and quality monitoring",
-                    estimated_improvement=0.2,
-                    implementation_complexity="medium"
-                ))
+                recommendations.append(
+                    QualityRecommendation(
+                        recommendation_id=f"rec_{int(time.time())}_quality_improvement",
+                        category="overall_quality",
+                        severity="high"
+                        if avg_score < self.thresholds.poor_threshold
+                        else "medium",
+                        description=".2f",
+                        action_required="Implement audio enhancement pipeline and quality monitoring",
+                        estimated_improvement=0.2,
+                        implementation_complexity="medium",
+                    )
+                )
 
             # Check noise levels
-            high_noise_sessions = [a for a in assessments if a.noise_level and a.noise_level > 0.2]
+            high_noise_sessions = [
+                a for a in assessments if a.noise_level and a.noise_level > 0.2
+            ]
             if len(high_noise_sessions) > len(assessments) * 0.3:  # More than 30%
-                recommendations.append(QualityRecommendation(
-                    recommendation_id=f"rec_{int(time.time())}_noise_reduction",
-                    category="noise_reduction",
-                    severity="medium",
-                    description=f"High noise detected in {len(high_noise_sessions)} sessions",
-                    action_required="Implement noise reduction algorithms and echo cancellation",
-                    estimated_improvement=0.15,
-                    implementation_complexity="high"
-                ))
+                recommendations.append(
+                    QualityRecommendation(
+                        recommendation_id=f"rec_{int(time.time())}_noise_reduction",
+                        category="noise_reduction",
+                        severity="medium",
+                        description=f"High noise detected in {len(high_noise_sessions)} sessions",
+                        action_required="Implement noise reduction algorithms and echo cancellation",
+                        estimated_improvement=0.15,
+                        implementation_complexity="high",
+                    )
+                )
 
             # Check user feedback
             if feedback:
                 low_ratings = [f for f in feedback if f.rating <= 3.0]
                 if len(low_ratings) > len(feedback) * 0.4:  # More than 40% low ratings
-                    recommendations.append(QualityRecommendation(
-                        recommendation_id=f"rec_{int(time.time())}_user_feedback",
-                        category="user_experience",
-                        severity="high",
-                        description=f"{len(low_ratings)} users reported poor quality",
-                        action_required="Address user feedback and implement quality monitoring",
-                        estimated_improvement=0.25,
-                        implementation_complexity="medium"
-                    ))
+                    recommendations.append(
+                        QualityRecommendation(
+                            recommendation_id=f"rec_{int(time.time())}_user_feedback",
+                            category="user_experience",
+                            severity="high",
+                            description=f"{len(low_ratings)} users reported poor quality",
+                            action_required="Address user feedback and implement quality monitoring",
+                            estimated_improvement=0.25,
+                            implementation_complexity="medium",
+                        )
+                    )
 
         except Exception as e:
             self.logger.error("recommendation_generation_failed", error=str(e))
@@ -655,7 +682,7 @@ class AudioQualityAssessor:
                 user_id=feedback.user_id,
                 rating=feedback.rating,
                 categories=feedback.categories,
-                comments=feedback.comments
+                comments=feedback.comments,
             )
 
             # In a real implementation, this could trigger:
@@ -678,7 +705,7 @@ class AudioQualityAssessor:
                 avg_quality_score=report.get("average_quality_score", 0),
                 avg_user_rating=report.get("average_user_rating", 0),
                 assessment_count=report.get("assessment_count", 0),
-                feedback_count=report.get("feedback_count", 0)
+                feedback_count=report.get("feedback_count", 0),
             )
 
         except Exception as e:
@@ -690,10 +717,18 @@ class AudioQualityAssessor:
             # Get recent data
             recent_assessments = []
             for assessments in self.quality_assessments.values():
-                recent = [a for a in assessments if a.timestamp >= datetime.utcnow() - timedelta(hours=1)]
+                recent = [
+                    a
+                    for a in assessments
+                    if a.timestamp >= datetime.utcnow() - timedelta(hours=1)
+                ]
                 recent_assessments.extend(recent)
 
-            recent_feedback = [f for f in self.user_feedback if f.timestamp >= datetime.utcnow() - timedelta(hours=1)]
+            recent_feedback = [
+                f
+                for f in self.user_feedback
+                if f.timestamp >= datetime.utcnow() - timedelta(hours=1)
+            ]
 
             # Generate new recommendations
             new_recommendations = await self._generate_quality_recommendations(
@@ -706,7 +741,9 @@ class AudioQualityAssessor:
         except Exception as e:
             self.logger.error("recommendation_update_failed", error=str(e))
 
-    def get_quality_assessments(self, session_id: Optional[str] = None) -> List[AudioQualityMetrics]:
+    def get_quality_assessments(
+        self, session_id: Optional[str] = None
+    ) -> List[AudioQualityMetrics]:
         """Get quality assessments for a session or all sessions."""
         if session_id:
             return self.quality_assessments.get(session_id, [])
@@ -730,25 +767,41 @@ class AudioQualityAssessor:
         """Get health status of the quality assessor."""
         recent_assessments = []
         for assessments in self.quality_assessments.values():
-            recent = [a for a in assessments if a.timestamp >= datetime.utcnow() - timedelta(minutes=30)]
+            recent = [
+                a
+                for a in assessments
+                if a.timestamp >= datetime.utcnow() - timedelta(minutes=30)
+            ]
             recent_assessments.extend(recent)
 
         avg_quality = 0.0
         if recent_assessments:
-            valid_scores = [a.quality_score for a in recent_assessments if a.quality_score is not None]
+            valid_scores = [
+                a.quality_score
+                for a in recent_assessments
+                if a.quality_score is not None
+            ]
             if valid_scores:
                 avg_quality = np.mean(valid_scores)
 
         return {
             "status": "healthy",
-            "total_assessments": sum(len(assessments) for assessments in self.quality_assessments.values()),
+            "total_assessments": sum(
+                len(assessments) for assessments in self.quality_assessments.values()
+            ),
             "recent_assessments_30min": len(recent_assessments),
             "total_feedback": len(self.user_feedback),
-            "recent_feedback_30min": len([f for f in self.user_feedback if f.timestamp >= datetime.utcnow() - timedelta(minutes=30)]),
+            "recent_feedback_30min": len(
+                [
+                    f
+                    for f in self.user_feedback
+                    if f.timestamp >= datetime.utcnow() - timedelta(minutes=30)
+                ]
+            ),
             "average_quality_score": avg_quality,
             "recommendations_count": len(self.recommendations),
             "real_time_assessment_enabled": self.enable_real_time_assessment,
-            "feedback_collection_enabled": self.feedback_collection_enabled
+            "feedback_collection_enabled": self.feedback_collection_enabled,
         }
 
 

@@ -4,8 +4,8 @@ import pytest
 
 from packages.bot.cogs import campaign_cog
 from packages.shared.errors import ErrorCode
-from packages.shared.exceptions import CustomException, NotFoundError, ValidationError
-from tests.utils.factories import InteractionFactory, MockInteraction, HttpMockFactory
+from packages.shared.exceptions import CustomException, ValidationError
+from tests.utils.factories import HttpMockFactory, InteractionFactory, MockInteraction
 from tests.utils.mock_api_client import MockApiClient
 
 
@@ -24,7 +24,7 @@ async def test_campaign_new_http_error(cog):
     """Test campaign new command when HTTP request fails."""
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_exception_override('create_campaign', CustomException())
+    cog.api_client.set_exception_override("create_campaign", CustomException())
 
     interaction = InteractionFactory.admin_interaction()
     campaign_name = "test_campaign"
@@ -39,7 +39,7 @@ async def test_campaign_join_http_error(cog):
     """Test campaign join command when HTTP request fails."""
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_exception_override('join_campaign', CustomException())
+    cog.api_client.set_exception_override("join_campaign", CustomException())
 
     interaction = MockInteraction()
     interaction.user.id = 789
@@ -55,7 +55,7 @@ async def test_campaign_continue_http_error(cog):
     """Test campaign continue command when HTTP request fails."""
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_exception_override('continue_campaign', CustomException())
+    cog.api_client.set_exception_override("continue_campaign", CustomException())
 
     interaction = MockInteraction()
     interaction.user.id = 1113
@@ -71,7 +71,7 @@ async def test_campaign_end_http_error(cog):
     """Test campaign end command when HTTP request fails."""
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_exception_override('end_campaign', CustomException())
+    cog.api_client.set_exception_override("end_campaign", CustomException())
 
     interaction = MockInteraction()
     interaction.user.id = 2002

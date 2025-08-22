@@ -14,19 +14,20 @@ Features:
 
 import json
 import time
-from typing import Any, Dict, List, Optional, Union
-from datetime import datetime
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import RulesQuery, RulesResponse, ToolCall, ToolResult
 from packages.backend.components.rules_engine import rules_engine
 from packages.backend.components.srd_audit_service import srd_audit_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import RulesQuery
 
 
 @dataclass
 class ToolPerformanceMetrics:
     """Performance metrics for tool execution."""
+
     tool_name: str
     execution_time: float
     success: bool
@@ -53,10 +54,13 @@ class SRDToolService:
             "query_monster": self._get_monster_tool_definition(),
             "query_spell": self._get_spell_tool_definition(),
             "query_weapon": self._get_weapon_tool_definition(),
-            "compare_entities": self._get_comparison_tool_definition()
+            "compare_entities": self._get_comparison_tool_definition(),
         }
 
-        self.logger.info("SRD Tool Service initialized", available_tools=list(self.tool_definitions.keys()))
+        self.logger.info(
+            "SRD Tool Service initialized",
+            available_tools=list(self.tool_definitions.keys()),
+        )
 
     def _get_monster_tool_definition(self) -> Dict[str, Any]:
         """Get LangGraph tool definition for monster queries."""
@@ -68,21 +72,21 @@ class SRDToolService:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name of the monster to query (e.g., 'Goblin', 'Orc', 'Dragon')"
+                        "description": "Name of the monster to query (e.g., 'Goblin', 'Orc', 'Dragon')",
                     },
                     "include_combat_stats": {
                         "type": "boolean",
                         "description": "Whether to include detailed combat statistics and analysis",
-                        "default": True
+                        "default": True,
                     },
                     "context": {
                         "type": "string",
                         "description": "Context for the query (e.g., 'encounter', 'character creation')",
-                        "default": "general"
-                    }
+                        "default": "general",
+                    },
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         }
 
     def _get_spell_tool_definition(self) -> Dict[str, Any]:
@@ -95,21 +99,21 @@ class SRDToolService:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name of the spell to query (e.g., 'Fire Bolt', 'Cure Wounds', 'Detect Magic')"
+                        "description": "Name of the spell to query (e.g., 'Fire Bolt', 'Cure Wounds', 'Detect Magic')",
                     },
                     "include_mechanics": {
                         "type": "boolean",
                         "description": "Whether to include detailed spell mechanics analysis",
-                        "default": True
+                        "default": True,
                     },
                     "context": {
                         "type": "string",
                         "description": "Context for the query (e.g., 'combat', 'roleplay', 'character building')",
-                        "default": "general"
-                    }
+                        "default": "general",
+                    },
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         }
 
     def _get_weapon_tool_definition(self) -> Dict[str, Any]:
@@ -122,21 +126,21 @@ class SRDToolService:
                 "properties": {
                     "name": {
                         "type": "string",
-                        "description": "Name of the weapon to query (e.g., 'Longsword', 'Shortbow', 'Quarterstaff')"
+                        "description": "Name of the weapon to query (e.g., 'Longsword', 'Shortbow', 'Quarterstaff')",
                     },
                     "include_analysis": {
                         "type": "boolean",
                         "description": "Whether to include weapon effectiveness analysis and recommendations",
-                        "default": True
+                        "default": True,
                     },
                     "context": {
                         "type": "string",
                         "description": "Context for the query (e.g., 'character creation', 'encounter preparation')",
-                        "default": "general"
-                    }
+                        "default": "general",
+                    },
                 },
-                "required": ["name"]
-            }
+                "required": ["name"],
+            },
         }
 
     def _get_comparison_tool_definition(self) -> Dict[str, Any]:
@@ -150,28 +154,30 @@ class SRDToolService:
                     "entity_type": {
                         "type": "string",
                         "enum": ["monster", "spell", "weapon"],
-                        "description": "Type of entities to compare"
+                        "description": "Type of entities to compare",
                     },
                     "names": {
                         "type": "array",
                         "items": {"type": "string"},
                         "description": "Names of entities to compare (2-5 entities)",
                         "minItems": 2,
-                        "maxItems": 5
+                        "maxItems": 5,
                     },
                     "comparison_focus": {
                         "type": "string",
                         "enum": ["combat", "roleplay", "optimization", "general"],
                         "description": "Focus area for comparison analysis",
-                        "default": "general"
-                    }
+                        "default": "general",
+                    },
                 },
-                "required": ["entity_type", "names"]
-            }
+                "required": ["entity_type", "names"],
+            },
         }
 
     # LangGraph Tool Implementations
-    async def query_monster_tool(self, name: str, include_combat_stats: bool = True, context: str = "general") -> Dict[str, Any]:
+    async def query_monster_tool(
+        self, name: str, include_combat_stats: bool = True, context: str = "general"
+    ) -> Dict[str, Any]:
         """LangGraph tool for querying monster information."""
         start_time = time.time()
 
@@ -181,7 +187,9 @@ class SRDToolService:
                 query_type="monster",
                 name=name,
                 context=context,
-                filters={"include_combat_stats": include_combat_stats} if include_combat_stats else {}
+                filters={"include_combat_stats": include_combat_stats}
+                if include_combat_stats
+                else {},
             )
 
             # Execute query
@@ -191,7 +199,9 @@ class SRDToolService:
             execution_time = time.time() - start_time
 
             # Record metrics
-            self._record_tool_metrics("query_monster", execution_time, response.found, False)
+            self._record_tool_metrics(
+                "query_monster", execution_time, response.found, False
+            )
 
             # Format result for LangGraph
             result_data = {
@@ -200,7 +210,7 @@ class SRDToolService:
                 "query": name,
                 "execution_time": execution_time,
                 "data": response.data if response.found else None,
-                "error": response.error if not response.found else None
+                "error": response.error if not response.found else None,
             }
 
             # Log audit event
@@ -213,17 +223,21 @@ class SRDToolService:
 
         except Exception as e:
             execution_time = time.time() - start_time
-            self._record_tool_metrics("query_monster", execution_time, False, False, str(e))
+            self._record_tool_metrics(
+                "query_monster", execution_time, False, False, str(e)
+            )
 
             return {
                 "tool_name": "query_monster",
                 "success": False,
                 "query": name,
                 "execution_time": execution_time,
-                "error": f"Tool execution failed: {str(e)}"
+                "error": f"Tool execution failed: {str(e)}",
             }
 
-    async def query_spell_tool(self, name: str, include_mechanics: bool = True, context: str = "general") -> Dict[str, Any]:
+    async def query_spell_tool(
+        self, name: str, include_mechanics: bool = True, context: str = "general"
+    ) -> Dict[str, Any]:
         """LangGraph tool for querying spell information."""
         start_time = time.time()
 
@@ -233,7 +247,9 @@ class SRDToolService:
                 query_type="spell",
                 name=name,
                 context=context,
-                filters={"include_mechanics": include_mechanics} if include_mechanics else {}
+                filters={"include_mechanics": include_mechanics}
+                if include_mechanics
+                else {},
             )
 
             # Execute query
@@ -243,7 +259,9 @@ class SRDToolService:
             execution_time = time.time() - start_time
 
             # Record metrics
-            self._record_tool_metrics("query_spell", execution_time, response.found, False)
+            self._record_tool_metrics(
+                "query_spell", execution_time, response.found, False
+            )
 
             # Format result for LangGraph
             result_data = {
@@ -252,7 +270,7 @@ class SRDToolService:
                 "query": name,
                 "execution_time": execution_time,
                 "data": response.data if response.found else None,
-                "error": response.error if not response.found else None
+                "error": response.error if not response.found else None,
             }
 
             # Log audit event
@@ -265,17 +283,21 @@ class SRDToolService:
 
         except Exception as e:
             execution_time = time.time() - start_time
-            self._record_tool_metrics("query_spell", execution_time, False, False, str(e))
+            self._record_tool_metrics(
+                "query_spell", execution_time, False, False, str(e)
+            )
 
             return {
                 "tool_name": "query_spell",
                 "success": False,
                 "query": name,
                 "execution_time": execution_time,
-                "error": f"Tool execution failed: {str(e)}"
+                "error": f"Tool execution failed: {str(e)}",
             }
 
-    async def query_weapon_tool(self, name: str, include_analysis: bool = True, context: str = "general") -> Dict[str, Any]:
+    async def query_weapon_tool(
+        self, name: str, include_analysis: bool = True, context: str = "general"
+    ) -> Dict[str, Any]:
         """LangGraph tool for querying weapon information."""
         start_time = time.time()
 
@@ -285,7 +307,9 @@ class SRDToolService:
                 query_type="weapon",
                 name=name,
                 context=context,
-                filters={"include_analysis": include_analysis} if include_analysis else {}
+                filters={"include_analysis": include_analysis}
+                if include_analysis
+                else {},
             )
 
             # Execute query
@@ -295,7 +319,9 @@ class SRDToolService:
             execution_time = time.time() - start_time
 
             # Record metrics
-            self._record_tool_metrics("query_weapon", execution_time, response.found, False)
+            self._record_tool_metrics(
+                "query_weapon", execution_time, response.found, False
+            )
 
             # Format result for LangGraph
             result_data = {
@@ -304,7 +330,7 @@ class SRDToolService:
                 "query": name,
                 "execution_time": execution_time,
                 "data": response.data if response.found else None,
-                "error": response.error if not response.found else None
+                "error": response.error if not response.found else None,
             }
 
             # Log audit event
@@ -317,17 +343,21 @@ class SRDToolService:
 
         except Exception as e:
             execution_time = time.time() - start_time
-            self._record_tool_metrics("query_weapon", execution_time, False, False, str(e))
+            self._record_tool_metrics(
+                "query_weapon", execution_time, False, False, str(e)
+            )
 
             return {
                 "tool_name": "query_weapon",
                 "success": False,
                 "query": name,
                 "execution_time": execution_time,
-                "error": f"Tool execution failed: {str(e)}"
+                "error": f"Tool execution failed: {str(e)}",
             }
 
-    async def compare_entities_tool(self, entity_type: str, names: List[str], comparison_focus: str = "general") -> Dict[str, Any]:
+    async def compare_entities_tool(
+        self, entity_type: str, names: List[str], comparison_focus: str = "general"
+    ) -> Dict[str, Any]:
         """LangGraph tool for comparing multiple entities."""
         start_time = time.time()
 
@@ -336,64 +366,62 @@ class SRDToolService:
 
             if entity_type == "monster":
                 for name in names:
-                    query = RulesQuery(query_type="monster", name=name, context="comparison")
+                    query = RulesQuery(
+                        query_type="monster", name=name, context="comparison"
+                    )
                     response = await rules_engine.query(query)
                     if response.found:
-                        comparison_results.append({
-                            "name": name,
-                            "data": response.data,
-                            "found": True
-                        })
+                        comparison_results.append(
+                            {"name": name, "data": response.data, "found": True}
+                        )
                     else:
-                        comparison_results.append({
-                            "name": name,
-                            "error": response.error,
-                            "found": False
-                        })
+                        comparison_results.append(
+                            {"name": name, "error": response.error, "found": False}
+                        )
 
             elif entity_type == "spell":
                 for name in names:
-                    query = RulesQuery(query_type="spell", name=name, context="comparison")
+                    query = RulesQuery(
+                        query_type="spell", name=name, context="comparison"
+                    )
                     response = await rules_engine.query(query)
                     if response.found:
-                        comparison_results.append({
-                            "name": name,
-                            "data": response.data,
-                            "found": True
-                        })
+                        comparison_results.append(
+                            {"name": name, "data": response.data, "found": True}
+                        )
                     else:
-                        comparison_results.append({
-                            "name": name,
-                            "error": response.error,
-                            "found": False
-                        })
+                        comparison_results.append(
+                            {"name": name, "error": response.error, "found": False}
+                        )
 
             elif entity_type == "weapon":
                 for name in names:
-                    query = RulesQuery(query_type="weapon", name=name, context="comparison")
+                    query = RulesQuery(
+                        query_type="weapon", name=name, context="comparison"
+                    )
                     response = await rules_engine.query(query)
                     if response.found:
-                        comparison_results.append({
-                            "name": name,
-                            "data": response.data,
-                            "found": True
-                        })
+                        comparison_results.append(
+                            {"name": name, "data": response.data, "found": True}
+                        )
                     else:
-                        comparison_results.append({
-                            "name": name,
-                            "error": response.error,
-                            "found": False
-                        })
+                        comparison_results.append(
+                            {"name": name, "error": response.error, "found": False}
+                        )
 
             # Calculate execution time
             execution_time = time.time() - start_time
 
             # Record metrics
             success_count = sum(1 for r in comparison_results if r["found"])
-            self._record_tool_metrics("compare_entities", execution_time, success_count > 0, False)
+            self._record_tool_metrics(
+                "compare_entities", execution_time, success_count > 0, False
+            )
 
             # Generate comparison analysis
-            analysis = self._generate_comparison_analysis(entity_type, comparison_results, comparison_focus)
+            analysis = self._generate_comparison_analysis(
+                entity_type, comparison_results, comparison_focus
+            )
 
             return {
                 "tool_name": "compare_entities",
@@ -402,22 +430,26 @@ class SRDToolService:
                 "comparison_focus": comparison_focus,
                 "execution_time": execution_time,
                 "results": comparison_results,
-                "analysis": analysis
+                "analysis": analysis,
             }
 
         except Exception as e:
             execution_time = time.time() - start_time
-            self._record_tool_metrics("compare_entities", execution_time, False, False, str(e))
+            self._record_tool_metrics(
+                "compare_entities", execution_time, False, False, str(e)
+            )
 
             return {
                 "tool_name": "compare_entities",
                 "success": False,
                 "entity_type": entity_type,
                 "execution_time": execution_time,
-                "error": f"Comparison tool failed: {str(e)}"
+                "error": f"Comparison tool failed: {str(e)}",
             }
 
-    def _generate_comparison_analysis(self, entity_type: str, results: List[Dict], focus: str) -> Dict[str, Any]:
+    def _generate_comparison_analysis(
+        self, entity_type: str, results: List[Dict], focus: str
+    ) -> Dict[str, Any]:
         """Generate analysis for entity comparison."""
         found_results = [r for r in results if r["found"]]
 
@@ -428,33 +460,45 @@ class SRDToolService:
             "total_requested": len(results),
             "total_found": len(found_results),
             "focus": focus,
-            "summary": f"Comparison of {len(found_results)} {entity_type}(s)"
+            "summary": f"Comparison of {len(found_results)} {entity_type}(s)",
         }
 
         if entity_type == "monster" and focus == "combat":
-            analysis["combat_analysis"] = self._analyze_monster_combat_comparison(found_results)
+            analysis["combat_analysis"] = self._analyze_monster_combat_comparison(
+                found_results
+            )
         elif entity_type == "spell" and focus == "optimization":
-            analysis["spell_analysis"] = self._analyze_spell_optimization_comparison(found_results)
+            analysis["spell_analysis"] = self._analyze_spell_optimization_comparison(
+                found_results
+            )
         elif entity_type == "weapon" and focus == "optimization":
-            analysis["weapon_analysis"] = self._analyze_weapon_optimization_comparison(found_results)
+            analysis["weapon_analysis"] = self._analyze_weapon_optimization_comparison(
+                found_results
+            )
 
         return analysis
 
-    def _analyze_monster_combat_comparison(self, monsters: List[Dict]) -> Dict[str, Any]:
+    def _analyze_monster_combat_comparison(
+        self, monsters: List[Dict]
+    ) -> Dict[str, Any]:
         """Analyze monster comparison for combat purposes."""
         if not monsters:
             return {}
 
         # Sort by challenge rating
-        sorted_monsters = sorted(monsters, key=lambda x: x["data"].get("challenge_rating", "0"))
+        sorted_monsters = sorted(
+            monsters, key=lambda x: x["data"].get("challenge_rating", "0")
+        )
 
         return {
             "difficulty_progression": [m["name"] for m in sorted_monsters],
             "cr_range": f"{sorted_monsters[0]['data']['challenge_rating']} to {sorted_monsters[-1]['data']['challenge_rating']}",
-            "recommendations": self._generate_monster_combat_recommendations(monsters)
+            "recommendations": self._generate_monster_combat_recommendations(monsters),
         }
 
-    def _analyze_spell_optimization_comparison(self, spells: List[Dict]) -> Dict[str, Any]:
+    def _analyze_spell_optimization_comparison(
+        self, spells: List[Dict]
+    ) -> Dict[str, Any]:
         """Analyze spell comparison for optimization purposes."""
         if not spells:
             return {}
@@ -469,10 +513,12 @@ class SRDToolService:
 
         return {
             "level_distribution": by_level,
-            "versatility_analysis": self._analyze_spell_versatility(spells)
+            "versatility_analysis": self._analyze_spell_versatility(spells),
         }
 
-    def _analyze_weapon_optimization_comparison(self, weapons: List[Dict]) -> Dict[str, Any]:
+    def _analyze_weapon_optimization_comparison(
+        self, weapons: List[Dict]
+    ) -> Dict[str, Any]:
         """Analyze weapon comparison for optimization purposes."""
         if not weapons:
             return {}
@@ -498,15 +544,21 @@ class SRDToolService:
         return {
             "damage_type_distribution": damage_types,
             "property_analysis": properties,
-            "optimization_recommendations": self._generate_weapon_optimization_recommendations(weapons)
+            "optimization_recommendations": self._generate_weapon_optimization_recommendations(
+                weapons
+            ),
         }
 
-    def _generate_monster_combat_recommendations(self, monsters: List[Dict]) -> List[str]:
+    def _generate_monster_combat_recommendations(
+        self, monsters: List[Dict]
+    ) -> List[str]:
         """Generate combat recommendations for monster comparison."""
         recommendations = []
 
         if len(monsters) >= 2:
-            recommendations.append("Consider encounter difficulty progression based on challenge ratings")
+            recommendations.append(
+                "Consider encounter difficulty progression based on challenge ratings"
+            )
 
         # Check for ability score diversity
         ability_focuses = []
@@ -530,7 +582,7 @@ class SRDToolService:
             "combat_spells": [],
             "utility_spells": [],
             "healing_spells": [],
-            "control_spells": []
+            "control_spells": [],
         }
 
         for spell in spells:
@@ -542,19 +594,26 @@ class SRDToolService:
                 versatility["combat_spells"].append(name)
             if "heal" in json.dumps(data).lower() or "cure" in json.dumps(data).lower():
                 versatility["healing_spells"].append(name)
-            if "control" in json.dumps(data).lower() or "charm" in json.dumps(data).lower():
+            if (
+                "control" in json.dumps(data).lower()
+                or "charm" in json.dumps(data).lower()
+            ):
                 versatility["control_spells"].append(name)
             else:
                 versatility["utility_spells"].append(name)
 
         return versatility
 
-    def _generate_weapon_optimization_recommendations(self, weapons: List[Dict]) -> List[str]:
+    def _generate_weapon_optimization_recommendations(
+        self, weapons: List[Dict]
+    ) -> List[str]:
         """Generate weapon optimization recommendations."""
         recommendations = []
 
         if len(weapons) >= 2:
-            recommendations.append("Consider weapon versatility and property combinations")
+            recommendations.append(
+                "Consider weapon versatility and property combinations"
+            )
 
         # Check for damage type diversity
         damage_types = set()
@@ -564,7 +623,9 @@ class SRDToolService:
                 damage_types.add(data["damage_type"])
 
         if len(damage_types) > 1:
-            recommendations.append(f"Good damage type diversity: {', '.join(damage_types)}")
+            recommendations.append(
+                f"Good damage type diversity: {', '.join(damage_types)}"
+            )
 
         # Check for special properties
         special_props = []
@@ -579,8 +640,14 @@ class SRDToolService:
 
         return recommendations
 
-    def _record_tool_metrics(self, tool_name: str, execution_time: float, success: bool,
-                            cache_hit: bool, error_message: Optional[str] = None) -> None:
+    def _record_tool_metrics(
+        self,
+        tool_name: str,
+        execution_time: float,
+        success: bool,
+        cache_hit: bool,
+        error_message: Optional[str] = None,
+    ) -> None:
         """Record tool execution metrics."""
         metrics = ToolPerformanceMetrics(
             tool_name=tool_name,
@@ -588,14 +655,14 @@ class SRDToolService:
             success=success,
             cache_hit=cache_hit,
             timestamp=datetime.utcnow(),
-            error_message=error_message
+            error_message=error_message,
         )
 
         self._tool_metrics.append(metrics)
 
         # Maintain metrics history limit
         if len(self._tool_metrics) > self.max_metrics_history:
-            self._tool_metrics = self._tool_metrics[-self.max_metrics_history:]
+            self._tool_metrics = self._tool_metrics[-self.max_metrics_history :]
 
         # Log performance
         self.logger.info(
@@ -603,7 +670,7 @@ class SRDToolService:
             tool_name=tool_name,
             execution_time=".4f",
             success=success,
-            cache_hit=cache_hit
+            cache_hit=cache_hit,
         )
 
         # Log slow executions (>100ms)
@@ -611,7 +678,7 @@ class SRDToolService:
             self.logger.warning(
                 "Slow tool execution detected",
                 tool_name=tool_name,
-                execution_time=".4f"
+                execution_time=".4f",
             )
 
     def get_available_tools(self) -> List[Dict[str, Any]]:
@@ -631,7 +698,9 @@ class SRDToolService:
         total_executions = len(self._tool_metrics)
         successful_executions = sum(1 for m in self._tool_metrics if m.success)
         total_execution_time = sum(m.execution_time for m in self._tool_metrics)
-        avg_execution_time = total_execution_time / total_executions if total_executions > 0 else 0
+        avg_execution_time = (
+            total_execution_time / total_executions if total_executions > 0 else 0
+        )
 
         # Tool-specific stats
         tool_stats = {}
@@ -641,7 +710,7 @@ class SRDToolService:
                     "count": 0,
                     "success_count": 0,
                     "total_time": 0.0,
-                    "avg_time": 0.0
+                    "avg_time": 0.0,
                 }
 
             tool_stats[metrics.tool_name]["count"] += 1
@@ -658,10 +727,14 @@ class SRDToolService:
         return {
             "total_executions": total_executions,
             "successful_executions": successful_executions,
-            "success_rate": successful_executions / total_executions if total_executions > 0 else 0,
+            "success_rate": successful_executions / total_executions
+            if total_executions > 0
+            else 0,
             "average_execution_time": avg_execution_time,
             "tool_stats": tool_stats,
-            "slow_executions": sum(1 for m in self._tool_metrics if m.execution_time > 0.1)
+            "slow_executions": sum(
+                1 for m in self._tool_metrics if m.execution_time > 0.1
+            ),
         }
 
     def clear_metrics(self) -> None:
@@ -679,19 +752,21 @@ class SRDToolService:
             perf_stats = self.get_performance_stats()
 
             return {
-                "status": "healthy" if rules_engine_health["status"] == "healthy" else "degraded",
+                "status": "healthy"
+                if rules_engine_health["status"] == "healthy"
+                else "degraded",
                 "rules_engine_connected": rules_engine_health["status"] == "healthy",
                 "available_tools": len(self.tool_definitions),
                 "metrics_recorded": len(self._tool_metrics),
                 "performance_stats": perf_stats,
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
 

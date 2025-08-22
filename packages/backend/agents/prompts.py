@@ -9,14 +9,11 @@ This module provides comprehensive system prompt management including:
 - Token optimization and validation
 """
 
-import json
-import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
-from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from packages.shared.logging_config import get_logger
 
@@ -25,6 +22,7 @@ logger = get_logger(__name__)
 
 class PromptType(Enum):
     """Types of system prompts for different scenarios."""
+
     CORE_DM = "core_dm"
     COMBAT_DM = "combat_dm"
     ROLEPLAY_DM = "roleplay_dm"
@@ -34,10 +32,13 @@ class PromptType(Enum):
 
 class PromptVersion(BaseModel):
     """Version information for prompt templates."""
+
     major: int = Field(..., ge=0, description="Major version number")
     minor: int = Field(..., ge=0, description="Minor version number")
     patch: int = Field(..., ge=0, description="Patch version number")
-    label: Optional[str] = Field(None, description="Version label (e.g., 'beta', 'stable')")
+    label: Optional[str] = Field(
+        None, description="Version label (e.g., 'beta', 'stable')"
+    )
 
     def __str__(self) -> str:
         version_str = f"{self.major}.{self.minor}.{self.patch}"
@@ -56,13 +57,23 @@ class PromptTemplate(BaseModel):
     description: str = Field(..., description="Template description")
 
     content: str = Field(..., description="Prompt template content with variables")
-    variables: List[str] = Field(default_factory=list, description="Available template variables")
+    variables: List[str] = Field(
+        default_factory=list, description="Available template variables"
+    )
 
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Template metadata")
-    tags: List[str] = Field(default_factory=list, description="Template tags for categorization")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Template metadata"
+    )
+    tags: List[str] = Field(
+        default_factory=list, description="Template tags for categorization"
+    )
 
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Creation timestamp"
+    )
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow, description="Last update timestamp"
+    )
 
     estimated_tokens: int = Field(default=0, description="Estimated token count")
     max_tokens: int = Field(default=4000, description="Maximum allowed tokens")
@@ -117,7 +128,9 @@ class PromptManager:
         if template.prompt_type not in self._default_versions:
             self._default_versions[template.prompt_type] = template_id
         else:
-            current_default = self._templates[self._default_versions[template.prompt_type]]
+            current_default = self._templates[
+                self._default_versions[template.prompt_type]
+            ]
             if template.version > current_default.version:
                 self._default_versions[template.prompt_type] = template_id
 
@@ -126,13 +139,11 @@ class PromptManager:
             template_id=template.template_id,
             version=str(template.version),
             type=template.prompt_type.value,
-            variables=template.variables
+            variables=template.variables,
         )
 
     def get_template(
-        self,
-        template_id: str,
-        version: Optional[PromptVersion] = None
+        self, template_id: str, version: Optional[PromptVersion] = None
     ) -> Optional[PromptTemplate]:
         """Get a prompt template by ID and optional version."""
         if version:
@@ -141,7 +152,8 @@ class PromptManager:
         else:
             # Find the latest version
             matching_templates = [
-                template for template in self._templates.values()
+                template
+                for template in self._templates.values()
                 if template.template_id == template_id
             ]
             if not matching_templates:
@@ -157,10 +169,7 @@ class PromptManager:
         return None
 
     def fill_template(
-        self,
-        template: PromptTemplate,
-        variables: Dict[str, Any],
-        validate: bool = True
+        self, template: PromptTemplate, variables: Dict[str, Any], validate: bool = True
     ) -> str:
         """Fill a template with variables and return the rendered prompt."""
         if validate:
@@ -183,7 +192,7 @@ class PromptManager:
                 "prompt_token_limit_exceeded",
                 template_id=template.template_id,
                 estimated_tokens=estimated_tokens,
-                max_tokens=template.max_tokens
+                max_tokens=template.max_tokens,
             )
 
         return filled_content
@@ -193,7 +202,7 @@ class PromptManager:
         campaign_context: Optional[str] = None,
         player_count: int = 4,
         campaign_tone: str = "balanced",
-        safety_level: str = "moderate"
+        safety_level: str = "moderate",
     ) -> str:
         """Create the core DM system prompt with campaign-specific context."""
         template = self.get_default_template(PromptType.CORE_DM)
@@ -201,11 +210,12 @@ class PromptManager:
             raise ValueError("Core DM template not found")
 
         variables = {
-            "campaign_context": campaign_context or "A classic fantasy adventure campaign",
+            "campaign_context": campaign_context
+            or "A classic fantasy adventure campaign",
             "player_count": player_count,
             "campaign_tone": campaign_tone,
             "safety_level": safety_level,
-            "current_date": datetime.utcnow().strftime("%Y-%m-%d")
+            "current_date": datetime.utcnow().strftime("%Y-%m-%d"),
         }
 
         return self.fill_template(template, variables)
@@ -223,7 +233,6 @@ class DungeonMasterPrompts:
             prompt_type=PromptType.CORE_DM,
             name="Core Dungeon Master System Prompt",
             description="Primary system prompt defining AI Dungeon Master personality and behavior",
-
             content="""# AI Dungeon Master System Prompt
 
 You are an expert AI Dungeon Master for Dungeons & Dragons 5th Edition. Your role is to create immersive, engaging, and balanced gaming experiences.
@@ -277,24 +286,21 @@ You are an expert AI Dungeon Master for Dungeons & Dragons 5th Edition. Your rol
 **Social Encounters:** Create meaningful NPC interactions with complex motivations and relationship dynamics.
 
 Remember: Your primary goal is to create memorable, enjoyable experiences that bring the magic of D&D to life for your players.""",
-
             variables=[
                 "campaign_context",
                 "player_count",
                 "campaign_tone",
                 "safety_level",
-                "current_date"
+                "current_date",
             ],
-
             metadata={
                 "author": "AI Dungeon Master System",
                 "optimized_for": "gpt-4",
                 "estimated_tokens": 850,
-                "last_reviewed": "2024-01-01"
+                "last_reviewed": "2024-01-01",
             },
-
             tags=["core", "personality", "behavioral", "narrative"],
-            max_tokens=4000
+            max_tokens=4000,
         )
 
     @staticmethod
@@ -306,7 +312,6 @@ Remember: Your primary goal is to create memorable, enjoyable experiences that b
             prompt_type=PromptType.COMBAT_DM,
             name="Combat Dungeon Master System Prompt",
             description="Specialized prompt for tactical combat encounters",
-
             content="""# Combat DM System Prompt
 
 You are directing an intense tactical combat encounter in Dungeons & Dragons 5th Edition. Focus on creating dynamic, engaging battle scenarios that balance challenge with fun.
@@ -338,22 +343,14 @@ You are directing an intense tactical combat encounter in Dungeons & Dragons 5th
 - **Environmental Factors:** {environment}
 
 Remember: Make combat exciting, fair, and memorable while maintaining tactical depth and player agency.""",
-
-            variables=[
-                "player_count",
-                "difficulty",
-                "combat_style",
-                "environment"
-            ],
-
+            variables=["player_count", "difficulty", "combat_style", "environment"],
             metadata={
                 "author": "AI Dungeon Master System",
                 "optimized_for": "gpt-4",
-                "estimated_tokens": 450
+                "estimated_tokens": 450,
             },
-
             tags=["combat", "tactical", "action"],
-            max_tokens=2000
+            max_tokens=2000,
         )
 
     @staticmethod
@@ -365,7 +362,6 @@ Remember: Make combat exciting, fair, and memorable while maintaining tactical d
             prompt_type=PromptType.ROLEPLAY_DM,
             name="Roleplay Dungeon Master System Prompt",
             description="Specialized prompt for deep character interactions and social encounters",
-
             content="""# Roleplay DM System Prompt
 
 You are facilitating rich character interactions and social encounters in a Dungeons & Dragons campaign. Focus on creating meaningful roleplay opportunities and complex NPC interactions.
@@ -397,22 +393,19 @@ You are facilitating rich character interactions and social encounters in a Dung
 - **Cultural Elements:** {cultural_context}
 
 Remember: Create social encounters that are as engaging and memorable as any combat, with depth and consequence.""",
-
             variables=[
                 "complexity",
                 "personality_type",
                 "relationship_context",
-                "cultural_context"
+                "cultural_context",
             ],
-
             metadata={
                 "author": "AI Dungeon Master System",
                 "optimized_for": "gpt-4",
-                "estimated_tokens": 400
+                "estimated_tokens": 400,
             },
-
             tags=["roleplay", "social", "character", "interaction"],
-            max_tokens=2000
+            max_tokens=2000,
         )
 
 

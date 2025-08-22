@@ -16,20 +16,16 @@ Features:
 - Performance monitoring and error handling
 """
 
-import asyncio
-import io
 import time
-import numpy as np
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import (
-    AudioStreamInfo, AudioProcessingConfig,
-    STTServiceStatus, TTSServiceStatus
-)
+import numpy as np
+
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import AudioProcessingConfig, AudioStreamInfo
 
 logger = get_logger(__name__)
 
@@ -77,8 +73,7 @@ class AudioBuffer:
     def is_full(self) -> bool:
         """Check if buffer is full (by size or duration)."""
         return (
-            len(self._buffer) >= self.buffer_size or
-            self.duration >= self.max_duration
+            len(self._buffer) >= self.buffer_size or self.duration >= self.max_duration
         )
 
     def add_data(self, data: bytes) -> None:
@@ -98,7 +93,7 @@ class AudioBuffer:
         step_size = self.chunk_size - self.overlap_size
 
         for i in range(0, len(self._buffer) - self.chunk_size + 1, step_size):
-            chunk_data = bytes(self._buffer[i:i + self.chunk_size])
+            chunk_data = bytes(self._buffer[i : i + self.chunk_size])
             self._sequence_counter += 1
 
             chunk = AudioChunk(
@@ -109,13 +104,13 @@ class AudioBuffer:
                 timestamp=self._last_activity,
                 duration=self.chunk_size / 16000,  # Duration based on sample rate
                 stream_id=self.stream_id,
-                sequence_number=self._sequence_counter
+                sequence_number=self._sequence_counter,
             )
             chunks.append(chunk)
 
         # Clear processed data (keep overlap for next iteration)
         if len(self._buffer) > self.overlap_size:
-            self._buffer = self._buffer[-(self.overlap_size):]
+            self._buffer = self._buffer[-(self.overlap_size) :]
         else:
             self._buffer.clear()
 
@@ -155,11 +150,11 @@ class AudioProcessor:
 
         # Audio format handlers
         self._format_handlers = {
-            'wav': self._handle_wav_format,
-            'mp3': self._handle_mp3_format,
-            'ogg': self._handle_ogg_format,
-            'flac': self._handle_flac_format,
-            'webm': self._handle_webm_format,
+            "wav": self._handle_wav_format,
+            "mp3": self._handle_mp3_format,
+            "ogg": self._handle_ogg_format,
+            "flac": self._handle_flac_format,
+            "webm": self._handle_webm_format,
         }
 
     async def process_audio_stream(
@@ -169,7 +164,7 @@ class AudioProcessor:
         format: str = "raw",
         sample_rate: int = 16000,
         channels: int = 1,
-        correlation_id: str = None
+        correlation_id: str = None,
     ) -> List[AudioChunk]:
         """
         Process incoming audio stream data.
@@ -191,9 +186,8 @@ class AudioProcessor:
             with observability_service.trace_operation(
                 operation_name="audio_stream_processing",
                 stream_id=stream_id,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
-
                 # Validate and preprocess audio data
                 processed_data = await self._validate_and_preprocess_audio(
                     audio_data, format, sample_rate, channels, correlation_id
@@ -222,9 +216,9 @@ class AudioProcessor:
                     )
 
                     # Update processing metrics
-                    self._processed_chunks[stream_id] = (
-                        self._processed_chunks.get(stream_id, 0) + len(chunks)
-                    )
+                    self._processed_chunks[stream_id] = self._processed_chunks.get(
+                        stream_id, 0
+                    ) + len(chunks)
 
                 # Track performance
                 execution_time = time.time() - start_time
@@ -237,7 +231,7 @@ class AudioProcessor:
                     trace_id=trace_id,
                     chunks_generated=len(chunks),
                     buffer_size=len(buffer._buffer),
-                    execution_time=execution_time
+                    execution_time=execution_time,
                 )
 
                 return chunks
@@ -249,7 +243,7 @@ class AudioProcessor:
                 stream_id=stream_id,
                 correlation_id=correlation_id,
                 execution_time=execution_time,
-                error=str(e)
+                error=str(e),
             )
             return []
 
@@ -259,16 +253,13 @@ class AudioProcessor:
         format: str,
         sample_rate: int,
         channels: int,
-        correlation_id: str
+        correlation_id: str,
     ) -> Optional[bytes]:
         """Validate and preprocess audio data."""
         try:
             # Basic validation
             if len(audio_data) == 0:
-                self.logger.warning(
-                    "empty_audio_data",
-                    correlation_id=correlation_id
-                )
+                self.logger.warning("empty_audio_data", correlation_id=correlation_id)
                 return None
 
             # Validate sample rate
@@ -276,7 +267,7 @@ class AudioProcessor:
                 self.logger.warning(
                     "invalid_sample_rate",
                     sample_rate=sample_rate,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
                 sample_rate = 16000  # Default fallback
 
@@ -285,7 +276,7 @@ class AudioProcessor:
                 self.logger.warning(
                     "invalid_channel_count",
                     channels=channels,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
                 channels = 1  # Default to mono
 
@@ -309,17 +300,12 @@ class AudioProcessor:
 
         except Exception as e:
             self.logger.error(
-                "audio_validation_failed",
-                correlation_id=correlation_id,
-                error=str(e)
+                "audio_validation_failed", correlation_id=correlation_id, error=str(e)
             )
             return None
 
     async def _process_raw_audio(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Process raw audio data."""
         # For raw audio, apply basic normalization
@@ -343,10 +329,7 @@ class AudioProcessor:
             return audio_data
 
     async def _handle_wav_format(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Handle WAV format audio."""
         # WAV processing - extract raw PCM data
@@ -363,10 +346,7 @@ class AudioProcessor:
             return await self._process_raw_audio(audio_data, sample_rate, channels)
 
     async def _handle_mp3_format(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Handle MP3 format audio."""
         # MP3 processing - would need audio library integration
@@ -381,10 +361,7 @@ class AudioProcessor:
             return audio_data
 
     async def _handle_ogg_format(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Handle OGG format audio."""
         try:
@@ -397,15 +374,14 @@ class AudioProcessor:
             return audio_data
 
     async def _handle_flac_format(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Handle FLAC format audio."""
         try:
             # Placeholder for FLAC decoding
-            self.logger.info("flac_format_detected", note="FLAC decoding not implemented")
+            self.logger.info(
+                "flac_format_detected", note="FLAC decoding not implemented"
+            )
             return audio_data  # Return as-is for now
 
         except Exception as e:
@@ -413,15 +389,14 @@ class AudioProcessor:
             return audio_data
 
     async def _handle_webm_format(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int
+        self, audio_data: bytes, sample_rate: int, channels: int
     ) -> bytes:
         """Handle WEBM format audio."""
         try:
             # Placeholder for WEBM decoding
-            self.logger.info("webm_format_detected", note="WEBM decoding not implemented")
+            self.logger.info(
+                "webm_format_detected", note="WEBM decoding not implemented"
+            )
             return audio_data  # Return as-is for now
 
         except Exception as e:
@@ -429,11 +404,7 @@ class AudioProcessor:
             return audio_data
 
     async def _apply_audio_enhancements(
-        self,
-        audio_data: bytes,
-        sample_rate: int,
-        channels: int,
-        correlation_id: str
+        self, audio_data: bytes, sample_rate: int, channels: int, correlation_id: str
     ) -> bytes:
         """Apply audio enhancements like noise reduction."""
         try:
@@ -462,26 +433,26 @@ class AudioProcessor:
                 if fade_length > 0:
                     # Fade in
                     fade_in = np.linspace(0, 1, fade_length)
-                    audio_array[:fade_length] = (audio_array[:fade_length] * fade_in).astype(np.int16)
+                    audio_array[:fade_length] = (
+                        audio_array[:fade_length] * fade_in
+                    ).astype(np.int16)
 
                     # Fade out
                     fade_out = np.linspace(1, 0, fade_length)
-                    audio_array[-fade_length:] = (audio_array[-fade_length:] * fade_out).astype(np.int16)
+                    audio_array[-fade_length:] = (
+                        audio_array[-fade_length:] * fade_out
+                    ).astype(np.int16)
 
             return audio_array.tobytes()
 
         except Exception as e:
             self.logger.warning(
-                "audio_enhancement_failed",
-                correlation_id=correlation_id,
-                error=str(e)
+                "audio_enhancement_failed", correlation_id=correlation_id, error=str(e)
             )
             return audio_data
 
     async def _apply_voice_activity_detection(
-        self,
-        chunks: List[AudioChunk],
-        correlation_id: str
+        self, chunks: List[AudioChunk], correlation_id: str
     ) -> List[AudioChunk]:
         """Apply voice activity detection to filter out silence."""
         try:
@@ -503,7 +474,9 @@ class AudioProcessor:
 
                 if is_speech:
                     chunk.is_speech = True
-                    chunk.confidence = min(1.0, energy / 10000.0)  # Normalize confidence
+                    chunk.confidence = min(
+                        1.0, energy / 10000.0
+                    )  # Normalize confidence
                     filtered_chunks.append(chunk)
                 elif self.config.vad_mode == "light":
                     # In light mode, keep some silence for context
@@ -517,7 +490,7 @@ class AudioProcessor:
             self.logger.warning(
                 "voice_activity_detection_failed",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return chunks
 
@@ -530,10 +503,7 @@ class AudioProcessor:
         return self._buffers[stream_id]
 
     def _update_stream_metrics(
-        self,
-        stream_id: str,
-        data_size: int,
-        sample_rate: int
+        self, stream_id: str, data_size: int, sample_rate: int
     ) -> None:
         """Update audio quality metrics for stream."""
         if stream_id not in self._audio_quality_metrics:
@@ -543,7 +513,7 @@ class AudioProcessor:
                 "start_time": datetime.utcnow(),
                 "last_update": datetime.utcnow(),
                 "buffer_underruns": 0,
-                "buffer_overruns": 0
+                "buffer_overruns": 0,
             }
 
         metrics = self._audio_quality_metrics[stream_id]
@@ -577,7 +547,7 @@ class AudioProcessor:
             buffer_size=len(buffer._buffer),
             processed_chunks=self._processed_chunks.get(stream_id, 0),
             total_transcriptions=0,  # Would be updated by STT service
-            average_confidence=0.0  # Would be updated by STT service
+            average_confidence=0.0,  # Would be updated by STT service
         )
 
     def cleanup_stream(self, stream_id: str) -> bool:
@@ -611,15 +581,16 @@ class AudioProcessor:
             "active_streams": total_streams,
             "total_data_processed": total_data_processed,
             "total_chunks_processed": total_chunks_processed,
-            "average_operation_time": sum(self._operation_times.values()) / max(len(self._operation_times), 1),
+            "average_operation_time": sum(self._operation_times.values())
+            / max(len(self._operation_times), 1),
             "config": {
                 "chunk_size": self.config.chunk_size,
                 "overlap_size": self.config.overlap_size,
                 "silence_threshold": self.config.silence_threshold,
                 "normalize_audio": self.config.normalize_audio,
                 "noise_reduction": self.config.noise_reduction,
-                "vad_mode": self.config.vad_mode
-            }
+                "vad_mode": self.config.vad_mode,
+            },
         }
 
     def reset_stream(self, stream_id: str) -> bool:

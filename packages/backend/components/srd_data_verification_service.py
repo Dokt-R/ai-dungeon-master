@@ -9,24 +9,22 @@ This module provides data verification utilities for SRD data including:
 - Cross-reference validation with official sources
 """
 
-import json
 import hashlib
-import requests
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+import json
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
-from packages.backend.components.srd_compliance_service import srd_compliance_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import DataSource, Monster, Spell, Weapon
 
 logger = get_logger(__name__)
 
 
 class VerificationStatus(Enum):
     """Data verification status."""
+
     VERIFIED = "verified"
     UNVERIFIED = "unverified"
     MODIFIED = "modified"
@@ -36,6 +34,7 @@ class VerificationStatus(Enum):
 
 class SourceType(Enum):
     """Type of data source."""
+
     OFFICIAL_SRD = "official_srd"
     WOTC_PUBLICATION = "wotc_publication"
     THIRD_PARTY_VERIFIED = "third_party_verified"
@@ -46,6 +45,7 @@ class SourceType(Enum):
 @dataclass
 class VerificationResult:
     """Result of data verification."""
+
     status: VerificationStatus
     source_type: SourceType
     checksum_match: bool
@@ -59,6 +59,7 @@ class VerificationResult:
 @dataclass
 class DataVersion:
     """Data version information."""
+
     version_id: str
     source_url: str
     publication_date: datetime
@@ -104,7 +105,7 @@ class SRDDataVerificationService:
                 checksum="a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z",
                 changes_summary="Initial D&D 5.1 SRD release",
                 is_latest=True,
-                compatibility=["5.1", "5.0"]
+                compatibility=["5.1", "5.0"],
             )
         }
 
@@ -132,7 +133,9 @@ class SRDDataVerificationService:
 
             # Generate recommendations
             if not checksum_match:
-                recommendations.append("Update data source checksum to match verified source")
+                recommendations.append(
+                    "Update data source checksum to match verified source"
+                )
             if issues:
                 recommendations.append("Review and correct identified accuracy issues")
 
@@ -146,7 +149,7 @@ class SRDDataVerificationService:
                 issues=issues,
                 recommendations=recommendations,
                 verified_at=datetime.utcnow(),
-                verification_hash=data_hash
+                verification_hash=data_hash,
             )
 
         except Exception as e:
@@ -159,7 +162,7 @@ class SRDDataVerificationService:
                 issues=[f"Verification failed: {str(e)}"],
                 recommendations=["Manual review required"],
                 verified_at=datetime.utcnow(),
-                verification_hash=""
+                verification_hash="",
             )
 
     def verify_spell_data(self, spell: Spell) -> VerificationResult:
@@ -186,7 +189,9 @@ class SRDDataVerificationService:
 
             # Generate recommendations
             if not checksum_match:
-                recommendations.append("Update data source checksum to match verified source")
+                recommendations.append(
+                    "Update data source checksum to match verified source"
+                )
             if issues:
                 recommendations.append("Review and correct identified accuracy issues")
 
@@ -200,7 +205,7 @@ class SRDDataVerificationService:
                 issues=issues,
                 recommendations=recommendations,
                 verified_at=datetime.utcnow(),
-                verification_hash=data_hash
+                verification_hash=data_hash,
             )
 
         except Exception as e:
@@ -213,7 +218,7 @@ class SRDDataVerificationService:
                 issues=[f"Verification failed: {str(e)}"],
                 recommendations=["Manual review required"],
                 verified_at=datetime.utcnow(),
-                verification_hash=""
+                verification_hash="",
             )
 
     def verify_weapon_data(self, weapon: Weapon) -> VerificationResult:
@@ -240,7 +245,9 @@ class SRDDataVerificationService:
 
             # Generate recommendations
             if not checksum_match:
-                recommendations.append("Update data source checksum to match verified source")
+                recommendations.append(
+                    "Update data source checksum to match verified source"
+                )
             if issues:
                 recommendations.append("Review and correct identified accuracy issues")
 
@@ -254,7 +261,7 @@ class SRDDataVerificationService:
                 issues=issues,
                 recommendations=recommendations,
                 verified_at=datetime.utcnow(),
-                verification_hash=data_hash
+                verification_hash=data_hash,
             )
 
         except Exception as e:
@@ -267,7 +274,7 @@ class SRDDataVerificationService:
                 issues=[f"Verification failed: {str(e)}"],
                 recommendations=["Manual review required"],
                 verified_at=datetime.utcnow(),
-                verification_hash=""
+                verification_hash="",
             )
 
     def _classify_source(self, data_source: DataSource) -> SourceType:
@@ -290,7 +297,9 @@ class SRDDataVerificationService:
 
         return SourceType.THIRD_PARTY_VERIFIED
 
-    def _calculate_entity_hash(self, entity: Union[Monster, Spell, Weapon], entity_type: str) -> str:
+    def _calculate_entity_hash(
+        self, entity: Union[Monster, Spell, Weapon], entity_type: str
+    ) -> str:
         """Calculate hash for entity data verification."""
         # Create a normalized representation of the entity
         if isinstance(entity, Monster):
@@ -307,7 +316,7 @@ class SRDDataVerificationService:
                 "challenge_rating": entity.challenge_rating,
                 "actions": entity.actions,
                 "special_abilities": entity.special_abilities,
-                "description": entity.description
+                "description": entity.description,
             }
         elif isinstance(entity, Spell):
             data = {
@@ -320,7 +329,7 @@ class SRDDataVerificationService:
                 "duration": entity.duration,
                 "description": entity.description,
                 "at_higher_levels": entity.at_higher_levels,
-                "classes": entity.classes
+                "classes": entity.classes,
             }
         elif isinstance(entity, Weapon):
             data = {
@@ -330,7 +339,7 @@ class SRDDataVerificationService:
                 "damage": entity.damage,
                 "weight": entity.weight,
                 "properties": entity.properties,
-                "description": entity.description
+                "description": entity.description,
             }
         else:
             raise ValueError(f"Unsupported entity type: {entity_type}")
@@ -350,7 +359,7 @@ class SRDDataVerificationService:
             ("constitution", monster.constitution),
             ("intelligence", monster.intelligence),
             ("wisdom", monster.wisdom),
-            ("charisma", monster.charisma)
+            ("charisma", monster.charisma),
         ]
 
         for ability_name, score in abilities:
@@ -362,8 +371,12 @@ class SRDDataVerificationService:
             issues.append(f"Suspicious armor class: {monster.armor_class}")
 
         # Check challenge rating format
-        if monster.challenge_rating and not self._is_valid_challenge_rating(monster.challenge_rating):
-            issues.append(f"Invalid challenge rating format: {monster.challenge_rating}")
+        if monster.challenge_rating and not self._is_valid_challenge_rating(
+            monster.challenge_rating
+        ):
+            issues.append(
+                f"Invalid challenge rating format: {monster.challenge_rating}"
+            )
 
         # Check for missing critical data
         if not monster.monster_name or monster.monster_name.strip() == "":
@@ -393,8 +406,14 @@ class SRDDataVerificationService:
 
         # Check school validity
         valid_schools = [
-            "Abjuration", "Conjuration", "Divination", "Enchantment",
-            "Evocation", "Illusion", "Necromancy", "Transmutation"
+            "Abjuration",
+            "Conjuration",
+            "Divination",
+            "Enchantment",
+            "Evocation",
+            "Illusion",
+            "Necromancy",
+            "Transmutation",
         ]
         if spell.school not in valid_schools:
             issues.append(f"Invalid spell school: {spell.school}")
@@ -415,8 +434,10 @@ class SRDDataVerificationService:
 
         # Check category validity
         valid_categories = [
-            "Simple Melee Weapons", "Simple Ranged Weapons",
-            "Martial Melee Weapons", "Martial Ranged Weapons"
+            "Simple Melee Weapons",
+            "Simple Ranged Weapons",
+            "Martial Melee Weapons",
+            "Martial Ranged Weapons",
         ]
         if weapon.category not in valid_categories:
             issues.append(f"Invalid weapon category: {weapon.category}")
@@ -440,16 +461,15 @@ class SRDDataVerificationService:
             return False
 
     def _determine_verification_status(
-        self,
-        source_type: SourceType,
-        checksum_match: bool,
-        issues: List[str]
+        self, source_type: SourceType, checksum_match: bool, issues: List[str]
     ) -> VerificationStatus:
         """Determine the verification status based on various factors."""
         if source_type == SourceType.OFFICIAL_SRD and checksum_match and not issues:
             return VerificationStatus.VERIFIED
         elif source_type == SourceType.OFFICIAL_SRD and checksum_match:
-            return VerificationStatus.VERIFIED  # Still verified, but with issues to note
+            return (
+                VerificationStatus.VERIFIED
+            )  # Still verified, but with issues to note
         elif source_type == SourceType.WOTC_PUBLICATION and not issues:
             return VerificationStatus.VERIFIED
         elif checksum_match and not issues:
@@ -461,7 +481,9 @@ class SRDDataVerificationService:
         else:
             return VerificationStatus.INVALID
 
-    def get_source_attribution(self, entity: Union[Monster, Spell, Weapon]) -> Dict[str, Any]:
+    def get_source_attribution(
+        self, entity: Union[Monster, Spell, Weapon]
+    ) -> Dict[str, Any]:
         """Get source attribution information for an entity."""
         if isinstance(entity, Monster):
             entity_type = "monster"
@@ -483,7 +505,7 @@ class SRDDataVerificationService:
             "attribution_required": entity.data_source.attribution_required,
             "attribution_text": self._generate_attribution_text(entity),
             "last_verified": entity.srd_compliance.last_verified.isoformat(),
-            "verification_hash": entity.srd_compliance.verification_hash
+            "verification_hash": entity.srd_compliance.verification_hash,
         }
 
     def _generate_attribution_text(self, entity: Union[Monster, Spell, Weapon]) -> str:
@@ -502,7 +524,9 @@ class SRDDataVerificationService:
         """List all available data versions."""
         return list(self._official_sources.values())
 
-    def validate_data_integrity(self, entities: List[Union[Monster, Spell, Weapon]]) -> Dict[str, Any]:
+    def validate_data_integrity(
+        self, entities: List[Union[Monster, Spell, Weapon]]
+    ) -> Dict[str, Any]:
         """Validate data integrity across a collection of entities."""
         results = {
             "total_entities": len(entities),
@@ -512,7 +536,7 @@ class SRDDataVerificationService:
             "invalid_entities": 0,
             "integrity_score": 0.0,
             "summary_issues": [],
-            "recommendations": []
+            "recommendations": [],
         }
 
         for entity in entities:
@@ -545,10 +569,10 @@ class SRDDataVerificationService:
             invalid_weight = 0.0
 
             weighted_score = (
-                results["verified_entities"] * verified_weight +
-                results["modified_entities"] * modified_weight +
-                results["unverified_entities"] * unverified_weight +
-                results["invalid_entities"] * invalid_weight
+                results["verified_entities"] * verified_weight
+                + results["modified_entities"] * modified_weight
+                + results["unverified_entities"] * unverified_weight
+                + results["invalid_entities"] * invalid_weight
             )
             results["integrity_score"] = weighted_score / results["total_entities"]
 
@@ -565,7 +589,7 @@ class SRDDataVerificationService:
             "known_checksums_loaded": len(self._known_checksums),
             "official_sources_loaded": len(self._official_sources),
             "service_ready": True,
-            "last_check": datetime.utcnow().isoformat()
+            "last_check": datetime.utcnow().isoformat(),
         }
 
 

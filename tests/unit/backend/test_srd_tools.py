@@ -9,15 +9,15 @@ Tests cover:
 - Performance optimization and caching
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from packages.backend.components.srd_tool_service import (
     SRDToolService,
-    ToolPerformanceMetrics
+    ToolPerformanceMetrics,
 )
-from packages.shared.logging_config import get_logger
 
 
 class TestSRDToolService:
@@ -33,20 +33,12 @@ class TestSRDToolService:
     @pytest.fixture
     def sample_monster_query(self):
         """Create a sample monster query for testing."""
-        return {
-            "name": "Goblin",
-            "include_combat_stats": True,
-            "context": "encounter"
-        }
+        return {"name": "Goblin", "include_combat_stats": True, "context": "encounter"}
 
     @pytest.fixture
     def sample_spell_query(self):
         """Create a sample spell query for testing."""
-        return {
-            "name": "Fire Bolt",
-            "include_mechanics": True,
-            "context": "combat"
-        }
+        return {"name": "Fire Bolt", "include_mechanics": True, "context": "combat"}
 
     @pytest.fixture
     def sample_weapon_query(self):
@@ -54,13 +46,15 @@ class TestSRDToolService:
         return {
             "name": "Longsword",
             "include_analysis": True,
-            "context": "character creation"
+            "context": "character creation",
         }
 
     def test_service_initialization(self, tool_service):
         """Test SRD Tool Service initialization."""
         assert isinstance(tool_service, SRDToolService)
-        assert len(tool_service.tool_definitions) == 4  # 4 tools: monster, spell, weapon, compare
+        assert (
+            len(tool_service.tool_definitions) == 4
+        )  # 4 tools: monster, spell, weapon, compare
         assert tool_service.max_metrics_history == 1000
 
     def test_tool_definitions(self, tool_service):
@@ -91,7 +85,9 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_monster_tool_success(self, tool_service, sample_monster_query):
         """Test successful monster query tool execution."""
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock successful query
             mock_result = Mock()
             mock_result.found = True
@@ -109,7 +105,9 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_monster_tool_not_found(self, tool_service):
         """Test monster query tool when monster is not found."""
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock failed query
             mock_result = Mock()
             mock_result.found = False
@@ -126,11 +124,18 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_spell_tool_success(self, tool_service, sample_spell_query):
         """Test successful spell query tool execution."""
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock successful query
             mock_result = Mock()
             mock_result.found = True
-            mock_result.data = {"id": 1, "name": "Fire Bolt", "level": 0, "school": "Evocation"}
+            mock_result.data = {
+                "id": 1,
+                "name": "Fire Bolt",
+                "level": 0,
+                "school": "Evocation",
+            }
             mock_result.query_time = 0.04
             mock_engine.query_spell = AsyncMock(return_value=mock_result)
 
@@ -143,7 +148,9 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_weapon_tool_success(self, tool_service, sample_weapon_query):
         """Test successful weapon query tool execution."""
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock successful query
             mock_result = Mock()
             mock_result.found = True
@@ -163,20 +170,32 @@ class TestSRDToolService:
         comparison_query = {
             "entity_type": "monster",
             "names": ["Goblin", "Orc"],
-            "comparison_focus": "combat"
+            "comparison_focus": "combat",
         }
 
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock monster queries
             goblin_result = Mock()
             goblin_result.found = True
-            goblin_result.data = {"name": "Goblin", "armor_class": 15, "challenge_rating": "1/4"}
+            goblin_result.data = {
+                "name": "Goblin",
+                "armor_class": 15,
+                "challenge_rating": "1/4",
+            }
 
             orc_result = Mock()
             orc_result.found = True
-            orc_result.data = {"name": "Orc", "armor_class": 13, "challenge_rating": "1/2"}
+            orc_result.data = {
+                "name": "Orc",
+                "armor_class": 13,
+                "challenge_rating": "1/2",
+            }
 
-            mock_engine.query_monster = AsyncMock(side_effect=[goblin_result, orc_result])
+            mock_engine.query_monster = AsyncMock(
+                side_effect=[goblin_result, orc_result]
+            )
 
             result = await tool_service.compare_entities_tool(**comparison_query)
 
@@ -205,13 +224,15 @@ class TestSRDToolService:
     def test_clear_metrics(self, tool_service):
         """Test metrics clearing functionality."""
         # Add some mock metrics
-        tool_service._tool_metrics.append(ToolPerformanceMetrics(
-            tool_name="test_tool",
-            execution_time=0.1,
-            success=True,
-            cache_hit=False,
-            timestamp=datetime.utcnow()
-        ))
+        tool_service._tool_metrics.append(
+            ToolPerformanceMetrics(
+                tool_name="test_tool",
+                execution_time=0.1,
+                success=True,
+                cache_hit=False,
+                timestamp=datetime.utcnow(),
+            )
+        )
 
         assert len(tool_service._tool_metrics) > 0
 
@@ -235,9 +256,13 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_tool_execution_error_handling(self, tool_service):
         """Test error handling in tool execution."""
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock engine to raise exception
-            mock_engine.query_monster = AsyncMock(side_effect=Exception("Database connection failed"))
+            mock_engine.query_monster = AsyncMock(
+                side_effect=Exception("Database connection failed")
+            )
 
             result = await tool_service.query_monster_tool(name="Goblin")
 
@@ -256,7 +281,9 @@ class TestSRDToolService:
         """Test concurrent tool execution handling."""
         import asyncio
 
-        with patch('packages.backend.components.srd_tool_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.srd_tool_service.rules_engine"
+        ) as mock_engine:
             # Mock fast responses
             mock_result = Mock()
             mock_result.found = True
@@ -266,8 +293,7 @@ class TestSRDToolService:
 
             # Execute multiple tools concurrently
             tasks = [
-                tool_service.query_monster_tool(name=f"Monster{i}")
-                for i in range(3)
+                tool_service.query_monster_tool(name=f"Monster{i}") for i in range(3)
             ]
 
             results = await asyncio.gather(*tasks)
@@ -279,13 +305,15 @@ class TestSRDToolService:
         """Test that metrics history respects the limit."""
         # Add metrics up to the limit
         for i in range(tool_service.max_metrics_history + 10):
-            tool_service._tool_metrics.append(ToolPerformanceMetrics(
-                tool_name=f"tool_{i}",
-                execution_time=0.1,
-                success=True,
-                cache_hit=False,
-                timestamp=datetime.utcnow()
-            ))
+            tool_service._tool_metrics.append(
+                ToolPerformanceMetrics(
+                    tool_name=f"tool_{i}",
+                    execution_time=0.1,
+                    success=True,
+                    cache_hit=False,
+                    timestamp=datetime.utcnow(),
+                )
+            )
 
         # Should not exceed max history
         assert len(tool_service._tool_metrics) <= tool_service.max_metrics_history
@@ -302,7 +330,7 @@ class TestSRDToolService:
             "success": True,
             "query": "Goblin",
             "execution_time": 0.05,
-            "data": {"name": "Goblin"}
+            "data": {"name": "Goblin"},
         }
 
         for field in expected_fields:
@@ -319,7 +347,7 @@ class TestToolPerformanceMetrics:
             execution_time=0.123,
             success=True,
             cache_hit=False,
-            timestamp=datetime.utcnow()
+            timestamp=datetime.utcnow(),
         )
 
         assert metrics.tool_name == "query_monster"
@@ -337,7 +365,7 @@ class TestToolPerformanceMetrics:
             success=False,
             cache_hit=True,
             timestamp=datetime.utcnow(),
-            error_message="Test error"
+            error_message="Test error",
         )
 
         assert metrics.tool_name == "test_tool"
@@ -359,7 +387,9 @@ class TestToolIntegration:
 
         for tool_name, definition in definitions.items():
             for field in required_fields:
-                assert field in definition, f"Tool {tool_name} missing required field: {field}"
+                assert field in definition, (
+                    f"Tool {tool_name} missing required field: {field}"
+                )
 
             # Parameters should have proper structure
             params = definition["parameters"]
@@ -379,7 +409,9 @@ class TestToolIntegration:
 
         # Required parameters should be defined
         for param in required_params:
-            assert param in properties, f"Required parameter {param} not defined in properties"
+            assert param in properties, (
+                f"Required parameter {param} not defined in properties"
+            )
 
     def test_error_response_consistency(self):
         """Test that error responses have consistent structure."""

@@ -9,20 +9,18 @@ Tests cover:
 - Service initialization and configuration
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch
+
+import pytest
 
 from packages.bot.services.voice_manager import (
+    VoiceConnectionState,
     VoiceManagerService,
-    VoiceConnectionState
 )
 from packages.shared.models import (
     VoiceConnection,
     VoiceSession,
-    VoiceChannelInfo,
-    VoicePermission,
-    AudioStreamInfo
 )
 
 
@@ -46,7 +44,7 @@ class TestVoiceManagerServiceInitialization:
         """Test connection ID generation."""
         service = VoiceManagerService()
 
-        with patch('packages.bot.services.voice_manager.datetime') as mock_datetime:
+        with patch("packages.bot.services.voice_manager.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value.timestamp.return_value = 1234567890.0
 
             connection_id = service._generate_connection_id("123", "456")
@@ -57,7 +55,7 @@ class TestVoiceManagerServiceInitialization:
         """Test session ID generation."""
         service = VoiceManagerService()
 
-        with patch('packages.bot.services.voice_manager.datetime') as mock_datetime:
+        with patch("packages.bot.services.voice_manager.datetime") as mock_datetime:
             mock_datetime.utcnow.return_value.timestamp.return_value = 1234567890.0
 
             session_id = service._generate_session_id("123", "456")
@@ -73,11 +71,9 @@ class TestVoiceConnectionLifecycle:
         """Test successful voice connection start."""
         service = VoiceManagerService()
 
-        with patch.object(service, '_start_heartbeat'):
+        with patch.object(service, "_start_heartbeat"):
             connection = await service.start_connection(
-                guild_id="123",
-                channel_id="456",
-                user_id="789"
+                guild_id="123", channel_id="456", user_id="789"
             )
 
         assert isinstance(connection, VoiceConnection)
@@ -101,7 +97,7 @@ class TestVoiceConnectionLifecycle:
             connection_id="existing_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["existing_conn"] = existing_state
         service._guild_connections["123"] = "existing_conn"
@@ -119,13 +115,12 @@ class TestVoiceConnectionLifecycle:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connecting"
+            status="connecting",
         )
         service._connections["test_conn"] = state
 
         connection = await service.complete_connection(
-            connection_id="test_conn",
-            user_id="789"
+            connection_id="test_conn", user_id="789"
         )
 
         assert connection.status == "connected"
@@ -141,15 +136,13 @@ class TestVoiceConnectionLifecycle:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
         service._guild_connections["123"] = "test_conn"
 
         await service.disconnect_connection(
-            connection_id="test_conn",
-            reason="user_request",
-            user_id="789"
+            connection_id="test_conn", reason="user_request", user_id="789"
         )
 
         assert "test_conn" not in service._connections
@@ -161,9 +154,7 @@ class TestVoiceConnectionLifecycle:
         service = VoiceManagerService()
 
         await service.disconnect_connection(
-            connection_id="nonexistent",
-            reason="test",
-            user_id="789"
+            connection_id="nonexistent", reason="test", user_id="789"
         )
 
         # Should not raise exception
@@ -181,7 +172,7 @@ class TestParticipantManagement:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
 
@@ -207,7 +198,7 @@ class TestParticipantManagement:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         state.participants.add("789")
         service._connections["test_conn"] = state
@@ -234,7 +225,7 @@ class TestParticipantManagement:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
 
@@ -255,7 +246,7 @@ class TestConnectionQueries:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
 
@@ -284,7 +275,7 @@ class TestConnectionQueries:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
         service._guild_connections["123"] = "test_conn"
@@ -312,20 +303,20 @@ class TestConnectionQueries:
                 connection_id="conn_1",
                 guild_id="123",
                 channel_id="456",
-                status="connected"
+                status="connected",
             ),
             VoiceConnectionState(
                 connection_id="conn_2",
                 guild_id="789",
                 channel_id="012",
-                status="connecting"  # Not active
+                status="connecting",  # Not active
             ),
             VoiceConnectionState(
                 connection_id="conn_3",
                 guild_id="345",
                 channel_id="678",
-                status="disconnected"  # Not active
-            )
+                status="disconnected",  # Not active
+            ),
         ]
 
         for state in states:
@@ -351,15 +342,13 @@ class TestErrorHandling:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
 
-        with patch.object(service, '_attempt_reconnection') as mock_reconnect:
+        with patch.object(service, "_attempt_reconnection") as mock_reconnect:
             result = await service.handle_connection_error(
-                connection_id="test_conn",
-                error="Connection timeout",
-                user_id="789"
+                connection_id="test_conn", error="Connection timeout", user_id="789"
             )
 
         assert result is True
@@ -377,16 +366,14 @@ class TestErrorHandling:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         state.error_count = 4  # Near limit
         service._connections["test_conn"] = state
 
-        with patch.object(service, 'disconnect_connection') as mock_disconnect:
+        with patch.object(service, "disconnect_connection") as mock_disconnect:
             result = await service.handle_connection_error(
-                connection_id="test_conn",
-                error="Connection timeout",
-                user_id="789"
+                connection_id="test_conn", error="Connection timeout", user_id="789"
             )
 
         assert result is False
@@ -398,9 +385,7 @@ class TestErrorHandling:
         service = VoiceManagerService()
 
         result = await service.handle_connection_error(
-            connection_id="nonexistent",
-            error="Test error",
-            user_id="789"
+            connection_id="nonexistent", error="Test error", user_id="789"
         )
 
         assert result is False
@@ -415,7 +400,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="disconnected"
+            status="disconnected",
         )
         state.reconnect_attempts = 1  # Under limit
 
@@ -427,7 +412,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="disconnected"
+            status="disconnected",
         )
         state.reconnect_attempts = 3  # At limit
 
@@ -439,7 +424,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"  # Wrong status
+            status="connected",  # Wrong status
         )
         state.reconnect_attempts = 1
 
@@ -452,7 +437,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         state.connected_at = past_time
 
@@ -464,7 +449,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         # connected_at is None by default
 
@@ -477,7 +462,7 @@ class TestReconnectionLogic:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         state.connected_at = recent_time
 
@@ -510,14 +495,14 @@ class TestVoiceStatistics:
                 connection_id="conn_1",
                 guild_id="123",
                 channel_id="456",
-                status="connected"
+                status="connected",
             ),
             VoiceConnectionState(
                 connection_id="conn_2",
                 guild_id="789",
                 channel_id="012",
-                status="connecting"
-            )
+                status="connecting",
+            ),
         ]
 
         for state in states:
@@ -529,14 +514,11 @@ class TestVoiceStatistics:
                 session_id="session_1",
                 guild_id="123",
                 channel_id="456",
-                status="active"
+                status="active",
             ),
             VoiceSession(
-                session_id="session_2",
-                guild_id="789",
-                channel_id="012",
-                status="ended"
-            )
+                session_id="session_2", guild_id="789", channel_id="012", status="ended"
+            ),
         ]
 
         for session in sessions:
@@ -565,16 +547,13 @@ class TestServiceCleanup:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected"
+            status="connected",
         )
         service._connections["test_conn"] = state
         service._guild_connections["123"] = "test_conn"
 
         session = VoiceSession(
-            session_id="test_session",
-            guild_id="123",
-            channel_id="456",
-            status="active"
+            session_id="test_session", guild_id="123", channel_id="456", status="active"
         )
         service._sessions["test_session"] = session
 
@@ -596,12 +575,12 @@ class TestIndexOperations:
         service = VoiceManagerService()
 
         # Indexes should be initialized in __init__
-        assert hasattr(service, '_connections')
-        assert hasattr(service, '_guild_connections')
-        assert hasattr(service, '_sessions')
-        assert hasattr(service, '_audio_streams')
-        assert hasattr(service, '_heartbeat_tasks')
-        assert hasattr(service, '_timeout_tasks')
+        assert hasattr(service, "_connections")
+        assert hasattr(service, "_guild_connections")
+        assert hasattr(service, "_sessions")
+        assert hasattr(service, "_audio_streams")
+        assert hasattr(service, "_heartbeat_tasks")
+        assert hasattr(service, "_timeout_tasks")
 
         # Verify index structures exist
         assert isinstance(service._connections, dict)

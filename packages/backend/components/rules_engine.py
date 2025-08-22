@@ -13,21 +13,21 @@ Features:
 """
 
 import time
-import asyncio
-from typing import Any, Dict, List, Optional, Union
-from datetime import datetime, timedelta
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import Monster, Spell, Weapon, RulesQuery, RulesResponse
-from packages.backend.components.srd_database_manager import srd_database_manager
-from packages.backend.components.srd_compliance_service import srd_compliance_service
 from packages.backend.components.srd_audit_service import srd_audit_service
+from packages.backend.components.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
+from packages.shared.models import RulesQuery, RulesResponse
 
 
 class RuleProviderType(Enum):
     """Types of rule providers."""
+
     MONSTER = "monster"
     SPELL = "spell"
     WEAPON = "weapon"
@@ -37,6 +37,7 @@ class RuleProviderType(Enum):
 @dataclass
 class CacheEntry:
     """Cache entry with TTL."""
+
     data: Any
     timestamp: datetime
     ttl_seconds: int
@@ -49,6 +50,7 @@ class CacheEntry:
 @dataclass
 class QueryMetrics:
     """Performance metrics for queries."""
+
     query_type: str
     provider_type: str
     query_time: float
@@ -101,7 +103,7 @@ class BaseRuleProvider:
                 name=query.name,
                 found=False,
                 error=f"Query failed: {str(e)}",
-                query_time=query_time
+                query_time=query_time,
             )
 
     async def _perform_query(self, query: RulesQuery) -> RulesResponse:
@@ -127,13 +129,17 @@ class BaseRuleProvider:
     def _set_cache(self, key: str, data: RulesResponse) -> None:
         """Set item in cache."""
         self.cache[key] = CacheEntry(
-            data=data,
-            timestamp=datetime.utcnow(),
-            ttl_seconds=self.default_ttl
+            data=data, timestamp=datetime.utcnow(), ttl_seconds=self.default_ttl
         )
 
-    def _record_metrics(self, query_type: str, cache_hit: bool, query_time: float,
-                       success: bool, error_message: Optional[str] = None) -> None:
+    def _record_metrics(
+        self,
+        query_type: str,
+        cache_hit: bool,
+        query_time: float,
+        success: bool,
+        error_message: Optional[str] = None,
+    ) -> None:
         """Record performance metrics."""
         metrics = QueryMetrics(
             query_type=query_type,
@@ -142,7 +148,7 @@ class BaseRuleProvider:
             cache_hit=cache_hit,
             timestamp=datetime.utcnow(),
             success=success,
-            error_message=error_message
+            error_message=error_message,
         )
 
         # Log metrics
@@ -152,7 +158,7 @@ class BaseRuleProvider:
             provider_type=self.provider_type.value,
             query_time=f"{query_time:.4f}s",
             cache_hit=cache_hit,
-            success=success
+            success=success,
         )
 
     def clear_cache(self) -> None:
@@ -162,18 +168,17 @@ class BaseRuleProvider:
 
     def cleanup_expired_cache(self) -> int:
         """Remove expired cache entries. Returns number of entries removed."""
-        expired_keys = [
-            key for key, entry in self.cache.items()
-            if entry.is_expired()
-        ]
+        expired_keys = [key for key, entry in self.cache.items() if entry.is_expired()]
 
         for key in expired_keys:
             del self.cache[key]
 
         if expired_keys:
-            self.logger.info("Expired cache entries removed",
-                           provider_type=self.provider_type.value,
-                           removed_count=len(expired_keys))
+            self.logger.info(
+                "Expired cache entries removed",
+                provider_type=self.provider_type.value,
+                removed_count=len(expired_keys),
+            )
 
         return len(expired_keys)
 
@@ -207,7 +212,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=True,
                         data=monster,
-                        query_time=0.0  # Will be set by parent method
+                        query_time=0.0,  # Will be set by parent method
                     )
                 else:
                     return RulesResponse(
@@ -215,7 +220,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=False,
                         error="Data compliance check failed",
-                        query_time=0.0
+                        query_time=0.0,
                     )
             else:
                 return RulesResponse(
@@ -223,7 +228,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Monster not found in SRD database",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
         except Exception as e:
@@ -232,7 +237,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Database query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
 
@@ -273,7 +278,7 @@ class SpellRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=True,
                         data=spell,
-                        query_time=0.0  # Will be set by parent method
+                        query_time=0.0,  # Will be set by parent method
                     )
                 else:
                     return RulesResponse(
@@ -281,7 +286,7 @@ class SpellRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=False,
                         error="Data compliance check failed",
-                        query_time=0.0
+                        query_time=0.0,
                     )
             else:
                 return RulesResponse(
@@ -289,7 +294,7 @@ class SpellRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Spell not found in SRD database",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
         except Exception as e:
@@ -298,7 +303,7 @@ class SpellRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Database query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
 
@@ -313,8 +318,12 @@ class WeaponRuleProvider(BaseRuleProvider):
         try:
             # Search for weapon by name across all categories
             weapon = None
-            categories = ["Simple Melee Weapons", "Simple Ranged Weapons",
-                         "Martial Melee Weapons", "Martial Ranged Weapons"]
+            categories = [
+                "Simple Melee Weapons",
+                "Simple Ranged Weapons",
+                "Martial Melee Weapons",
+                "Martial Ranged Weapons",
+            ]
 
             for category in categories:
                 weapons = srd_database_manager.get_weapons_by_category(category)
@@ -342,7 +351,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=True,
                         data=weapon,
-                        query_time=0.0  # Will be set by parent method
+                        query_time=0.0,  # Will be set by parent method
                     )
                 else:
                     return RulesResponse(
@@ -350,7 +359,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                         name=query.name,
                         found=False,
                         error="Data compliance check failed",
-                        query_time=0.0
+                        query_time=0.0,
                     )
             else:
                 return RulesResponse(
@@ -358,7 +367,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Weapon not found in SRD database",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
         except Exception as e:
@@ -367,7 +376,7 @@ class WeaponRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Database query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
 
@@ -403,7 +412,9 @@ class RulesEngine:
         self.providers[RuleProviderType.SPELL] = SpellRuleProvider()
         self.providers[RuleProviderType.WEAPON] = WeaponRuleProvider()
 
-        self.logger.info("Rule providers initialized", provider_count=len(self.providers))
+        self.logger.info(
+            "Rule providers initialized", provider_count=len(self.providers)
+        )
 
     def _start_cache_cleanup_task(self) -> None:
         """Start background task for cache cleanup."""
@@ -423,7 +434,7 @@ class RulesEngine:
                     name=query.name,
                     found=False,
                     error="Query name cannot be empty",
-                    query_time=time.time() - start_time
+                    query_time=time.time() - start_time,
                 )
 
             # Get appropriate provider
@@ -434,7 +445,7 @@ class RulesEngine:
                     name=query.name,
                     found=False,
                     error=f"No provider available for query type: {query.query_type}",
-                    query_time=time.time() - start_time
+                    query_time=time.time() - start_time,
                 )
 
             provider = self.providers[provider_type]
@@ -458,7 +469,7 @@ class RulesEngine:
                 name=query.name,
                 found=False,
                 error=f"RulesEngine error: {str(e)}",
-                query_time=query_time
+                query_time=query_time,
             )
 
     def _record_query_metrics(self, query: RulesQuery, result: RulesResponse) -> None:
@@ -470,34 +481,28 @@ class RulesEngine:
                 "Slow query detected",
                 query_type=query.query_type,
                 query_name=query.name,
-                query_time=f"{result.query_time:.4f}s"
+                query_time=f"{result.query_time:.4f}s",
             )
 
-    async def query_monster(self, name: str, context: Optional[str] = None) -> RulesResponse:
+    async def query_monster(
+        self, name: str, context: Optional[str] = None
+    ) -> RulesResponse:
         """Query monster data by name."""
-        query = RulesQuery(
-            query_type="monster",
-            name=name,
-            context=context
-        )
+        query = RulesQuery(query_type="monster", name=name, context=context)
         return await self.query(query)
 
-    async def query_spell(self, name: str, context: Optional[str] = None) -> RulesResponse:
+    async def query_spell(
+        self, name: str, context: Optional[str] = None
+    ) -> RulesResponse:
         """Query spell data by name."""
-        query = RulesQuery(
-            query_type="spell",
-            name=name,
-            context=context
-        )
+        query = RulesQuery(query_type="spell", name=name, context=context)
         return await self.query(query)
 
-    async def query_weapon(self, name: str, context: Optional[str] = None) -> RulesResponse:
+    async def query_weapon(
+        self, name: str, context: Optional[str] = None
+    ) -> RulesResponse:
         """Query weapon data by name."""
-        query = RulesQuery(
-            query_type="weapon",
-            name=name,
-            context=context
-        )
+        query = RulesQuery(query_type="weapon", name=name, context=context)
         return await self.query(query)
 
     def clear_all_caches(self) -> Dict[str, int]:
@@ -521,7 +526,9 @@ class RulesEngine:
             cleanup_counts[provider_type.value] = removed_count
 
         if any(count > 0 for count in cleanup_counts.values()):
-            self.logger.info("Expired cache entries cleaned up", cleanup_counts=cleanup_counts)
+            self.logger.info(
+                "Expired cache entries cleaned up", cleanup_counts=cleanup_counts
+            )
 
         return cleanup_counts
 
@@ -532,7 +539,7 @@ class RulesEngine:
         for provider_type, provider in self.providers.items():
             stats[provider_type.value] = {
                 "cache_entries": len(provider.cache),
-                "default_ttl": provider.default_ttl
+                "default_ttl": provider.default_ttl,
             }
 
         return stats
@@ -553,7 +560,7 @@ class RulesEngine:
             "providers": list(self.providers.keys()),
             "cache_stats": self.get_cache_stats(),
             "average_query_times": query_times,
-            "cache_hit_rates": cache_hits
+            "cache_hit_rates": cache_hits,
         }
 
     def health_check(self) -> Dict[str, Any]:
@@ -563,7 +570,7 @@ class RulesEngine:
             for provider_type, provider in self.providers.items():
                 provider_status[provider_type.value] = {
                     "healthy": True,
-                    "cache_entries": len(provider.cache)
+                    "cache_entries": len(provider.cache),
                 }
 
             # Test database connectivity
@@ -574,14 +581,14 @@ class RulesEngine:
                 "providers": provider_status,
                 "database_connected": db_health["status"] == "healthy",
                 "cache_stats": self.get_cache_stats(),
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "last_check": datetime.utcnow().isoformat()
+                "last_check": datetime.utcnow().isoformat(),
             }
 
 

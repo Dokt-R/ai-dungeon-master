@@ -1,10 +1,10 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from packages.bot.cogs import campaign_cog
+from tests.utils.factories import MockInteraction
 from tests.utils.mock_api_client import MockApiClient
-from tests.utils.factories import MockInteraction, MockMember
 
 
 @pytest.fixture
@@ -36,7 +36,9 @@ async def test_campaign_delete_button_confirm_success(cog):
 
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_response_override('delete_campaign', {"message": "Campaign deleted successfully"})
+    cog.api_client.set_response_override(
+        "delete_campaign", {"message": "Campaign deleted successfully"}
+    )
 
     # Create the button callback function
     await cog._handle_campaign_delete(interaction, "test_campaign")
@@ -67,7 +69,9 @@ async def test_campaign_delete_button_confirm_error(cog):
 
     # Replace API client with mock
     cog.api_client = MockApiClient()
-    cog.api_client.set_exception_override('delete_campaign', Exception("Deletion failed"))
+    cog.api_client.set_exception_override(
+        "delete_campaign", Exception("Deletion failed")
+    )
 
     # Create the button callback function
     await cog._handle_campaign_delete(interaction, "test_campaign")

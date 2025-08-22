@@ -39,7 +39,7 @@ async def test_on_ready_success(mock_print):
         mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
         # Mock bot.user directly
-        with patch.object(bot, 'user', mock_user):
+        with patch.object(bot, "user", mock_user):
             # Call the on_ready function
             await on_ready()
 
@@ -64,7 +64,7 @@ async def test_on_ready_sync_failure(mock_print):
         mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
         # Mock bot.user directly
-        with patch.object(bot, 'user', mock_user):
+        with patch.object(bot, "user", mock_user):
             # Call the on_ready function
             await on_ready()
 

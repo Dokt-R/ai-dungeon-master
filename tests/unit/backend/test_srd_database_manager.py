@@ -10,18 +10,19 @@ Tests cover:
 - Error handling and edge cases
 """
 
-import pytest
-import tempfile
 import sqlite3
+import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
+import pytest
+
 from packages.backend.components.srd_database_manager import (
+    DatabaseStats,
     SRDDatabaseManager,
-    DatabaseStats
 )
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 
 class TestSRDDatabaseManager:
@@ -30,7 +31,7 @@ class TestSRDDatabaseManager:
     @pytest.fixture
     def temp_db_path(self):
         """Create a temporary database path for testing."""
-        with tempfile.NamedTemporaryFile(suffix='.sqlite', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
             temp_path = f.name
         yield temp_path
         # Cleanup
@@ -52,7 +53,7 @@ class TestSRDDatabaseManager:
             version="5.1",
             checksum="test_checksum_123",
             is_official=True,
-            attribution_required=True
+            attribution_required=True,
         )
 
     @pytest.fixture
@@ -63,12 +64,12 @@ class TestSRDDatabaseManager:
             license_version="5.1",
             usage_restrictions=[
                 "Must include Wizards of the Coast attribution",
-                "Cannot be used in commercial products"
+                "Cannot be used in commercial products",
             ],
             last_verified=datetime.utcnow(),
             verification_hash="test_hash_123",
             compliance_officer="Test Officer",
-            audit_trail=["Initial import"]
+            audit_trail=["Initial import"],
         )
 
     @pytest.fixture
@@ -92,7 +93,7 @@ class TestSRDDatabaseManager:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
     def test_database_initialization(self, temp_db_path):
@@ -141,7 +142,7 @@ class TestSRDDatabaseManager:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         spell_id = db_manager.create_spell(spell, "test_user")
@@ -163,7 +164,7 @@ class TestSRDDatabaseManager:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         weapon_id = db_manager.create_weapon(weapon, "test_user")
@@ -183,7 +184,9 @@ class TestSRDDatabaseManager:
         assert len(monsters) > 0
         assert monsters[0].monster_name == sample_monster.monster_name
 
-    def test_get_spells_by_level(self, db_manager, sample_compliance, sample_data_source):
+    def test_get_spells_by_level(
+        self, db_manager, sample_compliance, sample_data_source
+    ):
         """Test getting spells by level."""
         spell = Spell(
             spell_name="Fire Bolt",
@@ -200,7 +203,7 @@ class TestSRDDatabaseManager:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         # Create the spell first
@@ -214,7 +217,9 @@ class TestSRDDatabaseManager:
         assert spells[0].spell_name == spell.spell_name
         assert spells[0].level == 0
 
-    def test_get_weapons_by_category(self, db_manager, sample_compliance, sample_data_source):
+    def test_get_weapons_by_category(
+        self, db_manager, sample_compliance, sample_data_source
+    ):
         """Test getting weapons by category."""
         weapon = Weapon(
             weapon_name="Longsword",
@@ -228,7 +233,7 @@ class TestSRDDatabaseManager:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         # Create the weapon first
@@ -304,7 +309,6 @@ class TestSRDDatabaseManager:
     def test_concurrent_access(self, db_manager, sample_monster):
         """Test concurrent database access."""
         import threading
-        import time
 
         results = []
         errors = []
@@ -330,7 +334,7 @@ class TestSRDDatabaseManager:
                     data_source=sample_monster.data_source,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
-                    is_active=True
+                    is_active=True,
                 )
                 monster_id = db_manager.create_monster(monster, f"user_{index}")
                 results.append(monster_id)
@@ -350,9 +354,9 @@ class TestSRDDatabaseManager:
 
         # Check results
         assert len(results) == 5  # All monsters should be created
-        assert len(errors) == 0    # No errors should occur
+        assert len(errors) == 0  # No errors should occur
 
-    @patch('packages.backend.components.srd_database_manager.sqlite3.connect')
+    @patch("packages.backend.components.srd_database_manager.sqlite3.connect")
     def test_database_connection_failure(self, mock_connect, db_manager):
         """Test handling of database connection failures."""
         mock_connect.side_effect = sqlite3.Error("Connection failed")
@@ -374,7 +378,7 @@ class TestDatabaseStats:
             database_size=1024000,
             last_backup=datetime.utcnow(),
             schema_version="1.0",
-            connection_healthy=True
+            connection_healthy=True,
         )
 
         assert stats.total_monsters == 10

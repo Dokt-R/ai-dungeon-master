@@ -11,12 +11,9 @@ Tests cover:
 """
 
 import pytest
-from unittest.mock import patch, AsyncMock
 from fastapi.testclient import TestClient
-from fastapi import status
 
 from packages.backend.main import app
-from packages.shared.models import ActionRequest, ActionResponse
 
 
 @pytest.fixture
@@ -32,7 +29,7 @@ class TestActionEndpoint:
         """Test POST /action with valid minimal request."""
         request_data = {
             "prompt": "I want to investigate the room",
-            "session_id": "session_123"
+            "session_id": "session_123",
         }
 
         response = client.post("/api/action", json=request_data)
@@ -57,15 +54,9 @@ class TestActionEndpoint:
         request_data = {
             "prompt": "I attack the goblin with my sword",
             "session_id": "session_456",
-            "campaign_context": {
-                "campaign_name": "Test Campaign",
-                "level": 3
-            },
+            "campaign_context": {"campaign_name": "Test Campaign", "level": 3},
             "user_id": "user_789",
-            "metadata": {
-                "source": "discord",
-                "channel_id": "123456789"
-            }
+            "metadata": {"source": "discord", "channel_id": "123456789"},
         }
 
         response = client.post("/api/action", json=request_data)
@@ -103,7 +94,10 @@ class TestActionEndpoint:
         assert "detail" in data
         assert "error" in data["detail"]
         assert "correlation_id" in data["detail"]
-        assert "missing" in data["detail"]["error"].lower() or "required" in data["detail"]["error"].lower()
+        assert (
+            "missing" in data["detail"]["error"].lower()
+            or "required" in data["detail"]["error"].lower()
+        )
 
     def test_invalid_request_missing_session_id(self, client):
         """Test POST /action with missing session_id field."""
@@ -123,10 +117,7 @@ class TestActionEndpoint:
 
     def test_invalid_request_empty_prompt(self, client):
         """Test POST /action with empty prompt."""
-        request_data = {
-            "prompt": "",
-            "session_id": "session_123"
-        }
+        request_data = {"prompt": "", "session_id": "session_123"}
 
         response = client.post("/api/action", json=request_data)
 
@@ -139,10 +130,7 @@ class TestActionEndpoint:
     def test_invalid_request_prompt_too_long(self, client):
         """Test POST /action with prompt exceeding maximum length."""
         long_prompt = "x" * 2001  # Exceeds 2000 character limit
-        request_data = {
-            "prompt": long_prompt,
-            "session_id": "session_123"
-        }
+        request_data = {"prompt": long_prompt, "session_id": "session_123"}
 
         response = client.post("/api/action", json=request_data)
 
@@ -162,10 +150,7 @@ class TestActionEndpoint:
         ]
 
         for invalid_id in invalid_session_ids:
-            request_data = {
-                "prompt": "I want to investigate",
-                "session_id": invalid_id
-            }
+            request_data = {"prompt": "I want to investigate", "session_id": invalid_id}
 
             response = client.post("/api/action", json=request_data)
 
@@ -177,15 +162,12 @@ class TestActionEndpoint:
     def test_request_with_correlation_id_header(self, client):
         """Test POST /action with custom correlation ID header."""
         custom_correlation_id = "550e8400-e29b-41d4-a716-446655440000"
-        request_data = {
-            "prompt": "I want to explore",
-            "session_id": "session_123"
-        }
+        request_data = {"prompt": "I want to explore", "session_id": "session_123"}
 
         response = client.post(
             "/api/action",
             json=request_data,
-            headers={"X-Correlation-ID": custom_correlation_id}
+            headers={"X-Correlation-ID": custom_correlation_id},
         )
 
         assert response.status_code == 200
@@ -198,7 +180,7 @@ class TestActionEndpoint:
         request_data = {
             "prompt": "I want to start a campaign",
             "session_id": "session_123",
-            "campaign_context": {"campaign_name": "Test Campaign"}
+            "campaign_context": {"campaign_name": "Test Campaign"},
         }
 
         response = client.post("/api/action", json=request_data)
@@ -213,7 +195,7 @@ class TestActionEndpoint:
         request_data = {
             "prompt": "I want to join as a player",
             "session_id": "session_123",
-            "user_id": "player_456"
+            "user_id": "player_456",
         }
 
         response = client.post("/api/action", json=request_data)
@@ -228,7 +210,7 @@ class TestActionEndpoint:
         request_data = {
             "prompt": "I want to send a message",
             "session_id": "session_123",
-            "metadata": {"source": "discord", "channel": "123"}
+            "metadata": {"source": "discord", "channel": "123"},
         }
 
         response = client.post("/api/action", json=request_data)
@@ -243,7 +225,7 @@ class TestActionEndpoint:
         response = client.post(
             "/api/action",
             content="invalid json {",
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 422
@@ -253,7 +235,7 @@ class TestActionEndpoint:
         request_data = {
             "prompt": "I want to investigate",
             "session_id": "session_123",
-            "unexpected_field": "should_be_ignored"
+            "unexpected_field": "should_be_ignored",
         }
 
         response = client.post("/api/action", json=request_data)
@@ -269,10 +251,7 @@ class TestActionEndpointResponseFormats:
 
     def test_response_format_minimal(self, client):
         """Test minimal response format."""
-        request_data = {
-            "prompt": "I look around",
-            "session_id": "session_123"
-        }
+        request_data = {"prompt": "I look around", "session_id": "session_123"}
 
         response = client.post("/api/action", json=request_data)
 
@@ -297,7 +276,7 @@ class TestActionEndpointResponseFormats:
             "session_id": "session_456",
             "campaign_context": {"spell_level": 3},
             "user_id": "wizard_123",
-            "metadata": {"spell_slot": 3}
+            "metadata": {"spell_slot": 3},
         }
 
         response = client.post("/api/action", json=request_data)
@@ -325,7 +304,7 @@ class TestActionEndpointResponseFormats:
         # Send invalid request to trigger error
         request_data = {
             "prompt": "",  # Invalid: empty prompt
-            "session_id": "session_123"
+            "session_id": "session_123",
         }
 
         response = client.post("/api/action", json=request_data)
@@ -345,11 +324,13 @@ class TestActionEndpointIntegration:
     def test_endpoint_registration(self, client):
         """Test that the action endpoint is properly registered."""
         # Test main endpoint
-        response = client.post("/api/action", json={
-            "prompt": "test",
-            "session_id": "session_123"
-        })
-        assert response.status_code in [200, 422]  # 422 for validation error, but endpoint exists
+        response = client.post(
+            "/api/action", json={"prompt": "test", "session_id": "session_123"}
+        )
+        assert response.status_code in [
+            200,
+            422,
+        ]  # 422 for validation error, but endpoint exists
 
         # Test test endpoint
         response = client.get("/api/action/test")
@@ -363,10 +344,7 @@ class TestActionEndpointIntegration:
         session_id = "session_multi_test"
 
         for i in range(3):
-            request_data = {
-                "prompt": f"I perform action {i}",
-                "session_id": session_id
-            }
+            request_data = {"prompt": f"I perform action {i}", "session_id": session_id}
 
             response = client.post("/api/action", json=request_data)
 
@@ -382,7 +360,7 @@ class TestActionEndpointIntegration:
         for session_id in sessions:
             request_data = {
                 "prompt": "I want to test concurrent sessions",
-                "session_id": session_id
+                "session_id": session_id,
             }
 
             response = client.post("/api/action", json=request_data)
@@ -395,7 +373,7 @@ class TestActionEndpointIntegration:
         """Test that processing time is properly measured."""
         request_data = {
             "prompt": "I want to test response timing",
-            "session_id": "session_timing"
+            "session_id": "session_timing",
         }
 
         response = client.post("/api/action", json=request_data)
@@ -413,13 +391,13 @@ class TestActionEndpointIntegration:
 
         request_data = {
             "prompt": "I want to test correlation",
-            "session_id": "session_corr"
+            "session_id": "session_corr",
         }
 
         response = client.post(
             "/api/action",
             json=request_data,
-            headers={"X-Correlation-ID": custom_correlation_id}
+            headers={"X-Correlation-ID": custom_correlation_id},
         )
 
         assert response.status_code == 200
@@ -442,10 +420,7 @@ class TestActionEndpointEdgeCases:
         ]
 
         for prompt in special_prompts:
-            request_data = {
-                "prompt": prompt,
-                "session_id": "session_special"
-            }
+            request_data = {"prompt": prompt, "session_id": "session_special"}
 
             response = client.post("/api/action", json=request_data)
 
@@ -463,10 +438,7 @@ class TestActionEndpointEdgeCases:
         ]
 
         for prompt in unicode_prompts:
-            request_data = {
-                "prompt": prompt,
-                "session_id": "session_unicode"
-            }
+            request_data = {"prompt": prompt, "session_id": "session_unicode"}
 
             response = client.post("/api/action", json=request_data)
 
@@ -486,14 +458,14 @@ class TestActionEndpointEdgeCases:
                 "discriminator": "1234",
                 "avatar": "a_very_long_avatar_hash_string_that_goes_on_and_on",
                 "roles": ["role1", "role2", "role3", "role4", "role5"],
-                "permissions": ["read", "write", "admin", "moderate"]
-            }
+                "permissions": ["read", "write", "admin", "moderate"],
+            },
         }
 
         request_data = {
             "prompt": "I want to test large metadata",
             "session_id": "session_large_meta",
-            "metadata": large_metadata
+            "metadata": large_metadata,
         }
 
         response = client.post("/api/action", json=request_data)
@@ -507,17 +479,14 @@ class TestActionEndpointEdgeCases:
         # Test minimum length
         request_data = {
             "prompt": "a",  # 1 character
-            "session_id": "session_boundary"
+            "session_id": "session_boundary",
         }
         response = client.post("/api/action", json=request_data)
         assert response.status_code == 200
 
         # Test maximum length
         max_prompt = "a" * 2000
-        request_data = {
-            "prompt": max_prompt,
-            "session_id": "session_boundary"
-        }
+        request_data = {"prompt": max_prompt, "session_id": "session_boundary"}
         response = client.post("/api/action", json=request_data)
         assert response.status_code == 200
 
@@ -528,7 +497,7 @@ class TestActionEndpointEdgeCases:
             "session_id": "session_empty",
             "campaign_context": None,
             "user_id": None,
-            "metadata": None
+            "metadata": None,
         }
 
         response = client.post("/api/action", json=request_data)

@@ -9,17 +9,20 @@ This module provides comprehensive unit tests for the TTS service including:
 - Performance and health monitoring
 """
 
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 
-from packages.shared.models import TextToSpeechRequest, SpeechSynthesisResult
+import pytest
+
 from packages.backend.components.tts_service import (
-    TTSService, OpenAITTSProvider, ElevenLabsTTSProvider,
-    VoiceInfo, TTSCache, ProviderHealthStatus
+    ElevenLabsTTSProvider,
+    OpenAITTSProvider,
+    ProviderHealthStatus,
+    TTSCache,
+    TTSService,
+    VoiceInfo,
 )
 from packages.shared.logging_config import get_logger
+from packages.shared.models import SpeechSynthesisResult, TextToSpeechRequest
 
 logger = get_logger(__name__)
 
@@ -39,7 +42,7 @@ class TestVoiceInfo:
             quality="high",
             sample_rate=22050,
             supported_formats=["wav", "mp3"],
-            description="A test voice for unit testing"
+            description="A test voice for unit testing",
         )
 
         assert voice.voice_id == "test_voice_001"
@@ -58,7 +61,7 @@ class TestVoiceInfo:
             voice_id="minimal_voice",
             name="Minimal Voice",
             language="en-US",
-            gender="neutral"
+            gender="neutral",
         )
 
         assert voice.quality == "standard"  # Default value
@@ -174,7 +177,7 @@ class TestOpenAITTSProvider:
             "api_key": "test_openai_key",
             "base_url": "https://api.openai.com/v1",
             "model": "tts-1",
-            "default_voice": "alloy"
+            "default_voice": "alloy",
         }
         self.provider = OpenAITTSProvider(self.config)
 
@@ -229,15 +232,11 @@ class TestOpenAITTSProvider:
     async def test_synthesize_speech_success(self):
         """Test successful speech synthesis."""
         request = TextToSpeechRequest(
-            text="Hello world",
-            voice="alloy",
-            language="en-US"
+            text="Hello world", voice="alloy", language="en-US"
         )
 
         result = await self.provider.synthesize_speech(
-            text=request.text,
-            voice_id=request.voice,
-            language=request.language
+            text=request.text, voice_id=request.voice, language=request.language
         )
 
         assert isinstance(result, SpeechSynthesisResult)
@@ -273,7 +272,7 @@ class TestElevenLabsTTSProvider:
             "api_key": "test_elevenlabs_key",
             "base_url": "https://api.elevenlabs.io/v1",
             "model": "eleven_monolingual_v1",
-            "default_voice": "21m00Tcm4TlvDq8ikWAM"
+            "default_voice": "21m00Tcm4TlvDq8ikWAM",
         }
         self.provider = ElevenLabsTTSProvider(self.config)
 
@@ -318,17 +317,14 @@ class TestTTSService:
         """Set up test environment."""
         self.config = {
             "providers": {
-                "openai": {
-                    "api_key": "test_openai_key",
-                    "model": "tts-1"
-                },
+                "openai": {"api_key": "test_openai_key", "model": "tts-1"},
                 "elevenlabs": {
                     "api_key": "test_elevenlabs_key",
-                    "model": "eleven_monolingual_v1"
-                }
+                    "model": "eleven_monolingual_v1",
+                },
             },
             "cache_size": 50,
-            "cache_age_hours": 2
+            "cache_age_hours": 2,
         }
         self.service = TTSService(self.config)
 
@@ -362,7 +358,7 @@ class TestTTSService:
             speed=1.0,
             pitch=1.0,
             volume=1.0,
-            output_format="wav"
+            output_format="wav",
         )
 
         key1 = self.service._generate_cache_key(request)
@@ -394,9 +390,7 @@ class TestTTSService:
     async def test_synthesize_speech_success(self):
         """Test successful speech synthesis."""
         request = TextToSpeechRequest(
-            text="Hello world",
-            voice="default",
-            language="en-US"
+            text="Hello world", voice="default", language="en-US"
         )
 
         result = await self.service.synthesize_speech(request, "test_correlation_id")
@@ -410,9 +404,7 @@ class TestTTSService:
     async def test_synthesize_speech_caching(self):
         """Test TTS caching functionality."""
         request = TextToSpeechRequest(
-            text="Cache test message",
-            voice="alloy",
-            language="en-US"
+            text="Cache test message", voice="alloy", language="en-US"
         )
 
         # First synthesis
@@ -437,10 +429,7 @@ class TestTTSService:
         self.service.providers["openai"].synthesize_speech = failing_synthesis
 
         try:
-            request = TextToSpeechRequest(
-                text="Fallback test",
-                voice="default"
-            )
+            request = TextToSpeechRequest(text="Fallback test", voice="default")
 
             result = await self.service.synthesize_speech(request, "fallback_test")
 
@@ -464,7 +453,9 @@ class TestTTSService:
     def test_cache_operations(self):
         """Test cache management operations."""
         # Add some test data
-        self.service.cache.put("test_key", b"test_data", "test_voice", "test_text", "wav")
+        self.service.cache.put(
+            "test_key", b"test_data", "test_voice", "test_text", "wav"
+        )
 
         assert self.service.cache.get("test_key") is not None
 

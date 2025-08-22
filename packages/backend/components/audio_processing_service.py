@@ -17,22 +17,15 @@ Features:
 - Comprehensive error handling and logging
 """
 
-import asyncio
 import time
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Callable
 from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
-from packages.shared.models import (
-    AudioProcessingConfig, AudioStreamInfo,
-    AudioTranscriptionRequest, TextToSpeechRequest,
-    TranscriptionResult, SpeechSynthesisResult
-)
-from packages.backend.components.observability_service import observability_service
-from packages.backend.components.audio_processor import audio_processor, AudioChunk
+from packages.backend.components.audio_processor import AudioChunk, audio_processor
 from packages.backend.components.audio_utils import audio_utils
-from packages.backend.components.tts_service import tts_service
+from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import AudioProcessingConfig
 
 logger = get_logger(__name__)
 
@@ -104,13 +97,13 @@ class AudioProcessingService:
 
         # Audio format conversion mappings
         self._format_conversion_paths = {
-            ('wav', 'mp3'): self._convert_wav_to_mp3,
-            ('wav', 'ogg'): self._convert_wav_to_ogg,
-            ('wav', 'flac'): self._convert_wav_to_flac,
-            ('mp3', 'wav'): self._convert_mp3_to_wav,
-            ('ogg', 'wav'): self._convert_ogg_to_wav,
-            ('flac', 'wav'): self._convert_flac_to_wav,
-            ('webm', 'wav'): self._convert_webm_to_wav,
+            ("wav", "mp3"): self._convert_wav_to_mp3,
+            ("wav", "ogg"): self._convert_wav_to_ogg,
+            ("wav", "flac"): self._convert_wav_to_flac,
+            ("mp3", "wav"): self._convert_mp3_to_wav,
+            ("ogg", "wav"): self._convert_ogg_to_wav,
+            ("flac", "wav"): self._convert_flac_to_wav,
+            ("webm", "wav"): self._convert_webm_to_wav,
         }
 
         # Quality enhancement pipeline
@@ -118,7 +111,7 @@ class AudioProcessingService:
             self._apply_noise_reduction,
             self._apply_normalization,
             self._apply_compression,
-            self._apply_equalization
+            self._apply_equalization,
         ]
 
     async def process_audio_data(
@@ -129,7 +122,7 @@ class AudioProcessingService:
         target_sample_rate: Optional[int] = None,
         target_channels: Optional[int] = None,
         correlation_id: str = None,
-        enhance_quality: bool = True
+        enhance_quality: bool = True,
     ) -> AudioProcessingResult:
         """
         Process audio data through the unified pipeline.
@@ -153,14 +146,15 @@ class AudioProcessingService:
                 operation_name="audio_data_processing",
                 input_format=input_format,
                 target_format=target_format,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
-
                 # Update metrics
                 self.metrics.total_operations += 1
 
                 # Validate input audio
-                validation_result = audio_utils.validate_audio_format(audio_data, input_format)
+                validation_result = audio_utils.validate_audio_format(
+                    audio_data, input_format
+                )
                 if not validation_result[0]:
                     error_msg = validation_result[2]
                     self._record_error("validation_failed")
@@ -173,14 +167,18 @@ class AudioProcessingService:
                         output_duration=0.0,
                         processing_time=time.time() - start_time,
                         quality_score=0.0,
-                        error=error_msg
+                        error=error_msg,
                     )
 
                 detected_format = validation_result[1]
 
                 # Extract audio info for metrics
-                audio_info = audio_utils.extract_wav_info(audio_data) if detected_format == 'wav' else {}
-                input_duration = audio_info.get('duration', 0.0)
+                audio_info = (
+                    audio_utils.extract_wav_info(audio_data)
+                    if detected_format == "wav"
+                    else {}
+                )
+                input_duration = audio_info.get("duration", 0.0)
 
                 # Apply format conversion if needed
                 processed_data = audio_data
@@ -188,15 +186,25 @@ class AudioProcessingService:
 
                 if target_format and target_format != detected_format:
                     conversion_result = await self._convert_audio_format(
-                        audio_data, detected_format, target_format,
-                        target_sample_rate, target_channels, correlation_id
+                        audio_data,
+                        detected_format,
+                        target_format,
+                        target_sample_rate,
+                        target_channels,
+                        correlation_id,
                     )
 
                     if conversion_result[0]:
                         processed_data = conversion_result[1]
                         output_format = target_format
-                        self.metrics.format_conversions[f"{detected_format}->{target_format}"] = \
-                            self.metrics.format_conversions.get(f"{detected_format}->{target_format}", 0) + 1
+                        self.metrics.format_conversions[
+                            f"{detected_format}->{target_format}"
+                        ] = (
+                            self.metrics.format_conversions.get(
+                                f"{detected_format}->{target_format}", 0
+                            )
+                            + 1
+                        )
                     else:
                         # Conversion failed, use original
                         processed_data = audio_data
@@ -210,13 +218,16 @@ class AudioProcessingService:
 
                 # Calculate quality score
                 quality_score = audio_utils.calculate_audio_quality_score(
-                    processed_data, output_format,
+                    processed_data,
+                    output_format,
                     target_sample_rate or 22050,
-                    target_channels or 1
+                    target_channels or 1,
                 )
 
                 # Calculate output duration (approximate)
-                output_duration = input_duration  # Would need format-specific calculation
+                output_duration = (
+                    input_duration  # Would need format-specific calculation
+                )
 
                 processing_time = time.time() - start_time
 
@@ -237,7 +248,7 @@ class AudioProcessingService:
                     quality_score=quality_score,
                     processing_time=processing_time,
                     correlation_id=correlation_id,
-                    trace_id=trace_id
+                    trace_id=trace_id,
                 )
 
                 return AudioProcessingResult(
@@ -248,7 +259,7 @@ class AudioProcessingService:
                     input_duration=input_duration,
                     output_duration=output_duration,
                     processing_time=processing_time,
-                    quality_score=quality_score
+                    quality_score=quality_score,
                 )
 
         except Exception as e:
@@ -261,7 +272,7 @@ class AudioProcessingService:
                 target_format=target_format,
                 correlation_id=correlation_id,
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
 
             return AudioProcessingResult(
@@ -273,7 +284,7 @@ class AudioProcessingService:
                 output_duration=0.0,
                 processing_time=processing_time,
                 quality_score=0.0,
-                error=str(e)
+                error=str(e),
             )
 
     async def process_stream_audio(
@@ -283,7 +294,7 @@ class AudioProcessingService:
         format: str = "raw",
         sample_rate: int = 16000,
         channels: int = 1,
-        correlation_id: str = None
+        correlation_id: str = None,
     ) -> List[AudioChunk]:
         """
         Process audio stream data for real-time applications.
@@ -307,18 +318,18 @@ class AudioProcessingService:
                 format=format,
                 sample_rate=sample_rate,
                 channels=channels,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             # Apply additional processing to chunks if needed
             processed_chunks = []
             for chunk in chunks:
                 # Apply format conversion if needed
-                if format != 'wav':  # Convert to WAV for consistency
-                    converted_data = await self._convert_chunk_format(chunk, 'wav')
+                if format != "wav":  # Convert to WAV for consistency
+                    converted_data = await self._convert_chunk_format(chunk, "wav")
                     if converted_data:
                         chunk.data = converted_data
-                        chunk.format = 'wav'
+                        chunk.format = "wav"
 
                 # Apply quality enhancement
                 enhanced_data = await self._enhance_chunk_quality(chunk, correlation_id)
@@ -334,15 +345,12 @@ class AudioProcessingService:
                 "stream_audio_processing_failed",
                 stream_id=stream_id,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return []
 
     async def convert_for_stt(
-        self,
-        audio_data: bytes,
-        input_format: str,
-        correlation_id: str = None
+        self, audio_data: bytes, input_format: str, correlation_id: str = None
     ) -> Tuple[bytes, str]:
         """
         Convert audio data to optimal format for STT processing.
@@ -357,7 +365,7 @@ class AudioProcessingService:
         """
         try:
             # Optimal STT format is typically 16kHz mono WAV
-            target_format = 'wav'
+            target_format = "wav"
             target_sample_rate = 16000
             target_channels = 1
 
@@ -368,7 +376,7 @@ class AudioProcessingService:
                 target_sample_rate=target_sample_rate,
                 target_channels=target_channels,
                 correlation_id=correlation_id,
-                enhance_quality=True
+                enhance_quality=True,
             )
 
             if result.success:
@@ -382,7 +390,7 @@ class AudioProcessingService:
                 "stt_conversion_failed",
                 input_format=input_format,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return audio_data, input_format
 
@@ -390,8 +398,8 @@ class AudioProcessingService:
         self,
         audio_data: bytes,
         input_format: str,
-        target_format: str = 'wav',
-        correlation_id: str = None
+        target_format: str = "wav",
+        correlation_id: str = None,
     ) -> Tuple[bytes, str]:
         """
         Convert audio data from TTS to desired format.
@@ -411,7 +419,7 @@ class AudioProcessingService:
                 input_format=input_format,
                 target_format=target_format,
                 correlation_id=correlation_id,
-                enhance_quality=True
+                enhance_quality=True,
             )
 
             if result.success:
@@ -425,7 +433,7 @@ class AudioProcessingService:
                 input_format=input_format,
                 target_format=target_format,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return audio_data, input_format
 
@@ -436,7 +444,7 @@ class AudioProcessingService:
         target_format: str,
         target_sample_rate: Optional[int] = None,
         target_channels: Optional[int] = None,
-        correlation_id: str = None
+        correlation_id: str = None,
     ) -> Tuple[bool, bytes]:
         """Convert audio between formats."""
         try:
@@ -450,18 +458,29 @@ class AudioProcessingService:
                     # Apply sample rate and channel conversion if needed
                     if target_sample_rate:
                         converted_data = audio_utils.convert_sample_rate(
-                            converted_data, target_format, 16000, target_sample_rate, target_channels or 1
+                            converted_data,
+                            target_format,
+                            16000,
+                            target_sample_rate,
+                            target_channels or 1,
                         )
                     if target_channels:
                         converted_data = audio_utils.convert_channels(
-                            converted_data, 1, target_channels, target_sample_rate or 16000
+                            converted_data,
+                            1,
+                            target_channels,
+                            target_sample_rate or 16000,
                         )
                     return True, converted_data
 
             # Fallback to basic conversion if specific path not available
             return await self._basic_format_conversion(
-                audio_data, input_format, target_format,
-                target_sample_rate, target_channels, correlation_id
+                audio_data,
+                input_format,
+                target_format,
+                target_sample_rate,
+                target_channels,
+                correlation_id,
             )
 
         except Exception as e:
@@ -470,7 +489,7 @@ class AudioProcessingService:
                 input_format=input_format,
                 target_format=target_format,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return False, audio_data
 
@@ -481,19 +500,19 @@ class AudioProcessingService:
         target_format: str,
         target_sample_rate: Optional[int] = None,
         target_channels: Optional[int] = None,
-        correlation_id: str = None
+        correlation_id: str = None,
     ) -> Tuple[bool, bytes]:
         """Basic format conversion fallback."""
         try:
             # For basic conversion, try to convert to WAV first, then to target
-            if input_format != 'wav':
+            if input_format != "wav":
                 # This would need actual audio library integration
                 # For now, return original data with warning
                 self.logger.info(
                     "basic_format_conversion_not_implemented",
                     input_format=input_format,
                     target_format=target_format,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
                 return True, audio_data  # Return original as "converted"
 
@@ -503,51 +522,76 @@ class AudioProcessingService:
             self.logger.error(
                 "basic_format_conversion_error",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return False, audio_data
 
     # Format-specific conversion methods (placeholders for actual implementations)
-    async def _convert_wav_to_mp3(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_wav_to_mp3(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert WAV to MP3."""
-        self.logger.info("wav_to_mp3_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "wav_to_mp3_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_wav_to_ogg(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_wav_to_ogg(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert WAV to OGG."""
-        self.logger.info("wav_to_ogg_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "wav_to_ogg_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_wav_to_flac(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_wav_to_flac(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert WAV to FLAC."""
-        self.logger.info("wav_to_flac_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "wav_to_flac_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_mp3_to_wav(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_mp3_to_wav(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert MP3 to WAV."""
-        self.logger.info("mp3_to_wav_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "mp3_to_wav_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_ogg_to_wav(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_ogg_to_wav(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert OGG to WAV."""
-        self.logger.info("ogg_to_wav_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "ogg_to_wav_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_flac_to_wav(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_flac_to_wav(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert FLAC to WAV."""
-        self.logger.info("flac_to_wav_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "flac_to_wav_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
-    async def _convert_webm_to_wav(self, audio_data: bytes, correlation_id: str) -> Optional[bytes]:
+    async def _convert_webm_to_wav(
+        self, audio_data: bytes, correlation_id: str
+    ) -> Optional[bytes]:
         """Convert WebM to WAV."""
-        self.logger.info("webm_to_wav_conversion_requested", correlation_id=correlation_id)
+        self.logger.info(
+            "webm_to_wav_conversion_requested", correlation_id=correlation_id
+        )
         return audio_data  # Placeholder
 
     async def _enhance_audio_quality(
-        self,
-        audio_data: bytes,
-        format: str,
-        correlation_id: str
+        self, audio_data: bytes, format: str, correlation_id: str
     ) -> bytes:
         """Apply quality enhancement to audio data."""
         try:
@@ -563,51 +607,41 @@ class AudioProcessingService:
             self.logger.warning(
                 "audio_quality_enhancement_failed",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return audio_data
 
     async def _apply_noise_reduction(
-        self,
-        audio_data: bytes,
-        format: str,
-        correlation_id: str
+        self, audio_data: bytes, format: str, correlation_id: str
     ) -> bytes:
         """Apply noise reduction to audio."""
         # Placeholder for noise reduction implementation
         return audio_data
 
     async def _apply_normalization(
-        self,
-        audio_data: bytes,
-        format: str,
-        correlation_id: str
+        self, audio_data: bytes, format: str, correlation_id: str
     ) -> bytes:
         """Apply audio normalization."""
         # Placeholder for normalization implementation
         return audio_data
 
     async def _apply_compression(
-        self,
-        audio_data: bytes,
-        format: str,
-        correlation_id: str
+        self, audio_data: bytes, format: str, correlation_id: str
     ) -> bytes:
         """Apply audio compression."""
         # Placeholder for compression implementation
         return audio_data
 
     async def _apply_equalization(
-        self,
-        audio_data: bytes,
-        format: str,
-        correlation_id: str
+        self, audio_data: bytes, format: str, correlation_id: str
     ) -> bytes:
         """Apply audio equalization."""
         # Placeholder for equalization implementation
         return audio_data
 
-    async def _convert_chunk_format(self, chunk: AudioChunk, target_format: str) -> Optional[bytes]:
+    async def _convert_chunk_format(
+        self, chunk: AudioChunk, target_format: str
+    ) -> Optional[bytes]:
         """Convert audio chunk format."""
         if chunk.format == target_format:
             return chunk.data
@@ -615,7 +649,9 @@ class AudioProcessingService:
         # Placeholder for chunk format conversion
         return chunk.data
 
-    async def _enhance_chunk_quality(self, chunk: AudioChunk, correlation_id: str) -> Optional[bytes]:
+    async def _enhance_chunk_quality(
+        self, chunk: AudioChunk, correlation_id: str
+    ) -> Optional[bytes]:
         """Enhance audio chunk quality."""
         # Placeholder for chunk quality enhancement
         return chunk.data
@@ -623,7 +659,9 @@ class AudioProcessingService:
     def _record_error(self, error_type: str) -> None:
         """Record an error in metrics."""
         self.metrics.failed_operations += 1
-        self.metrics.error_counts[error_type] = self.metrics.error_counts.get(error_type, 0) + 1
+        self.metrics.error_counts[error_type] = (
+            self.metrics.error_counts.get(error_type, 0) + 1
+        )
 
     def get_pipeline_metrics(self) -> AudioPipelineMetrics:
         """Get current pipeline metrics."""
@@ -640,14 +678,14 @@ class AudioProcessingService:
                 "processing_efficiency": self.metrics.processing_efficiency,
                 "total_operations": self.metrics.total_operations,
                 "format_conversions": self.metrics.format_conversions,
-                "error_counts": self.metrics.error_counts
+                "error_counts": self.metrics.error_counts,
             },
             "config": {
                 "noise_reduction": self.config.noise_reduction,
                 "normalize_audio": self.config.normalize_audio,
                 "chunk_size": self.config.chunk_size,
-                "silence_threshold": self.config.silence_threshold
-            }
+                "silence_threshold": self.config.silence_threshold,
+            },
         }
 
     def reset_metrics(self) -> None:

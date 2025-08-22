@@ -71,7 +71,9 @@ async def test_update_character_not_found(client, player_id):
 
 async def test_update_character_duplicate_name(client, player_id):
     # Add two characters
-    await client.post(ROUTES.character_add(), json={"player_id": player_id, "name": "Char1"})
+    await client.post(
+        ROUTES.character_add(), json={"player_id": player_id, "name": "Char1"}
+    )
     resp2 = await client.post(
         ROUTES.character_add(), json={"player_id": player_id, "name": "Char2"}
     )
@@ -115,7 +117,9 @@ async def test_update_character(client, player_id):
         ROUTES.character_update(), json={"character_id": char_id, "name": "UpdatedChar"}
     )
     assert response.status_code == 200
-    list_resp = await client.post(ROUTES.character_list(), json={"player_id": player_id})
+    list_resp = await client.post(
+        ROUTES.character_list(), json={"player_id": player_id}
+    )
     chars = list_resp.json()["characters"]
     assert any(c["name"] == "UpdatedChar" for c in chars)
 
@@ -123,9 +127,13 @@ async def test_update_character(client, player_id):
 async def test_remove_character(client, player_id):
     add_resp = await add_character(client, player_id, "RemovableChar")
     char_id = add_resp.json()["character_id"]
-    response = await client.post(ROUTES.character_remove(), json={"character_id": char_id})
+    response = await client.post(
+        ROUTES.character_remove(), json={"character_id": char_id}
+    )
     assert response.status_code == 200
-    list_resp = await client.post(ROUTES.character_list(), json={"player_id": player_id})
+    list_resp = await client.post(
+        ROUTES.character_list(), json={"player_id": player_id}
+    )
     chars = list_resp.json()["characters"]
     assert not any(c["character_id"] == char_id for c in chars)
     # TODO: Further update to assert not in any other command listing characters
@@ -137,7 +145,9 @@ async def test_remove_already_removed_character(client, player_id):
     char_id = add_resp.json()["character_id"]
     resp1 = await client.post(ROUTES.character_remove(), json={"character_id": char_id})
     assert resp1.status_code == 200
-    list_resp = await client.post(ROUTES.character_list(), json={"player_id": player_id})
+    list_resp = await client.post(
+        ROUTES.character_list(), json={"player_id": player_id}
+    )
     chars = list_resp.json()["characters"]
     assert not any(c["character_id"] == char_id for c in chars)
     resp2 = await client.post(ROUTES.character_remove(), json={"character_id": char_id})

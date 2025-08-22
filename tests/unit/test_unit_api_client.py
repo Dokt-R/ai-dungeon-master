@@ -11,11 +11,7 @@ import pytest_asyncio
 
 from packages.shared.api_client import ApiClient
 from packages.shared.exceptions import (
-    AIAPIError,
     CustomException,
-    NotFoundError,
-    PermissionDeniedError,
-    ValidationError,
 )
 from packages.shared.models import AddCharacterRequest, ListCharactersRequest
 
@@ -48,14 +44,14 @@ class TestApiClient:
             "error": {
                 "error_code": "VALIDATION_ERROR",
                 "message": "Invalid input",
-                "details": {"field": "name"}
+                "details": {"field": "name"},
             }
         }
         return response
 
     async def test_successful_response_handling(self, api_client, mock_response):
         """Test successful response handling."""
-        with patch.object(api_client.client, 'post', return_value=mock_response):
+        with patch.object(api_client.client, "post", return_value=mock_response):
             result = await api_client._handle_response(mock_response)
             assert result == {"success": True}
 
@@ -63,9 +59,10 @@ class TestApiClient:
         """Test validation error handling."""
         with pytest.raises(CustomException) as exc_info:
             await api_client._handle_response(mock_error_response)
-        
+
         # The error code should be converted to ErrorCode enum
         from packages.shared.errors import ErrorCode
+
         assert exc_info.value.error_code == ErrorCode.VALIDATION_ERROR
 
     async def test_not_found_error_handling(self, api_client):
@@ -76,10 +73,10 @@ class TestApiClient:
             "error": {
                 "error_code": "CHARACTER_NOT_FOUND",
                 "message": "Character not found",
-                "details": {}
+                "details": {},
             }
         }
-        
+
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
 
@@ -91,10 +88,10 @@ class TestApiClient:
             "error": {
                 "error_code": "PERMISSION_DENIED_ERROR",
                 "message": "Access denied",
-                "details": {}
+                "details": {},
             }
         }
-        
+
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
 
@@ -106,10 +103,10 @@ class TestApiClient:
             "error": {
                 "error_code": "AI_API_ERROR",
                 "message": "AI service unavailable",
-                "details": {}
+                "details": {},
             }
         }
-        
+
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
 
@@ -121,10 +118,10 @@ class TestApiClient:
             "error": {
                 "error_code": "UNKNOWN",
                 "message": "Internal server error",
-                "details": {}
+                "details": {},
             }
         }
-        
+
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
 
@@ -134,10 +131,9 @@ class TestApiClient:
         response.status_code = 400
         response.json.side_effect = ValueError("Invalid JSON")
         response.text = "Invalid JSON response"
-        
+
         with pytest.raises(CustomException):
             await api_client._handle_response(response)
-
 
     async def test_add_character_success(self, api_client):
         """Test successful character addition."""
@@ -146,17 +142,15 @@ class TestApiClient:
         mock_response.json.return_value = {
             "character_id": 123,
             "name": "Test Character",
-            "player_id": "12345"
+            "player_id": "12345",
         }
-        
-        with patch.object(api_client.client, 'post', return_value=mock_response):
+
+        with patch.object(api_client.client, "post", return_value=mock_response):
             req = AddCharacterRequest(
-                player_id="12345",
-                name="Test Character",
-                character_url=None
+                player_id="12345", name="Test Character", character_url=None
             )
             result = await api_client.add_character(req)
-            
+
             assert result["character_id"] == 123
             assert result["name"] == "Test Character"
 
@@ -167,14 +161,14 @@ class TestApiClient:
         mock_response.json.return_value = {
             "characters": [
                 {"character_id": 1, "name": "Character 1", "player_id": "12345"},
-                {"character_id": 2, "name": "Character 2", "player_id": "12345"}
+                {"character_id": 2, "name": "Character 2", "player_id": "12345"},
             ]
         }
-        
-        with patch.object(api_client.client, 'post', return_value=mock_response):
+
+        with patch.object(api_client.client, "post", return_value=mock_response):
             req = ListCharactersRequest(player_id="12345")
             result = await api_client.list_characters(req)
-            
+
             assert len(result["characters"]) == 2
             assert result["characters"][0]["name"] == "Character 1"
 
@@ -182,7 +176,7 @@ class TestApiClient:
         """Test async context manager support."""
         async with ApiClient(base_url="http://localhost:8000") as client:
             assert client is not None
-            assert hasattr(client, 'client')
+            assert hasattr(client, "client")
 
     async def test_connection_pooling_configuration(self, api_client):
         """Test that connection pooling is properly configured."""
@@ -205,7 +199,7 @@ class TestApiClient:
 @pytest.mark.asyncio
 class TestApiClientIntegration:
     """Integration tests for API client (requires running backend)."""
-    
+
     @pytest_asyncio.fixture
     async def api_client(self):
         """Create an API client for integration testing."""

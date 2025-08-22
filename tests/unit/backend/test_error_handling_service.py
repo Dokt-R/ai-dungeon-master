@@ -9,15 +9,18 @@ This module provides comprehensive unit tests for the error handling service inc
 - Performance tracking and analytics
 """
 
-import pytest
 import asyncio
-import time
-from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 
+import pytest
+
 from packages.backend.components.error_handling_service import (
-    ErrorHandlingService, CircuitBreaker, ErrorInfo,
-    ErrorCategory, ErrorSeverity, FallbackStrategy
+    CircuitBreaker,
+    ErrorCategory,
+    ErrorHandlingService,
+    ErrorInfo,
+    ErrorSeverity,
+    FallbackStrategy,
 )
 from packages.shared.logging_config import get_logger
 
@@ -38,7 +41,7 @@ class TestErrorInfo:
             operation="network_request",
             correlation_id="corr_123",
             retry_count=2,
-            max_retries=3
+            max_retries=3,
         )
 
         assert error_info.error_id == "test_error_001"
@@ -57,7 +60,7 @@ class TestErrorInfo:
             error_id="minimal_error",
             category=ErrorCategory.UNKNOWN,
             severity=ErrorSeverity.LOW,
-            message="Minimal error"
+            message="Minimal error",
         )
 
         assert error_info.retry_count == 0
@@ -75,7 +78,7 @@ class TestErrorInfo:
             severity=ErrorSeverity.MEDIUM,
             message="Network error",
             retry_count=0,
-            max_retries=3
+            max_retries=3,
         )
         assert error_info.is_retryable is True
 
@@ -95,9 +98,9 @@ class TestCircuitBreaker:
     def setup_method(self):
         """Set up test environment."""
         self.config = {
-            'failure_threshold': 3,
-            'recovery_timeout': 30,
-            'success_threshold': 2
+            "failure_threshold": 3,
+            "recovery_timeout": 30,
+            "success_threshold": 2,
         }
         self.circuit_breaker = CircuitBreaker("test_service", self.config)
 
@@ -162,7 +165,9 @@ class TestCircuitBreaker:
         assert self.circuit_breaker.can_execute() is False
 
         # Simulate timeout passage
-        self.circuit_breaker.state.next_retry_time = datetime.utcnow() - timedelta(seconds=1)
+        self.circuit_breaker.state.next_retry_time = datetime.utcnow() - timedelta(
+            seconds=1
+        )
 
         # Should allow execution after timeout
         assert self.circuit_breaker.can_execute() is True
@@ -186,9 +191,9 @@ class TestErrorHandlingService:
     def test_register_circuit_breaker(self):
         """Test circuit breaker registration."""
         config = {
-            'failure_threshold': 5,
-            'recovery_timeout': 60,
-            'success_threshold': 3
+            "failure_threshold": 5,
+            "recovery_timeout": 60,
+            "success_threshold": 3,
         }
 
         cb = self.service.register_circuit_breaker("test_cb", config)
@@ -214,6 +219,7 @@ class TestErrorHandlingService:
     @pytest.mark.asyncio
     async def test_execute_with_fallback_success(self):
         """Test successful operation execution with fallback."""
+
         async def successful_operation(x, y):
             return x + y
 
@@ -222,7 +228,7 @@ class TestErrorHandlingService:
             operation=successful_operation,
             fallback_scenarios=[],
             correlation_id="test_success",
-            args=(5, 3)
+            args=(5, 3),
         )
 
         assert result == 8
@@ -231,6 +237,7 @@ class TestErrorHandlingService:
     @pytest.mark.asyncio
     async def test_execute_with_fallback_failure(self):
         """Test operation execution with fallback on failure."""
+
         async def failing_operation():
             raise Exception("Operation failed")
 
@@ -238,7 +245,7 @@ class TestErrorHandlingService:
             operation_name="failing_operation",
             operation=failing_operation,
             fallback_scenarios=["tts_synthesis_failed"],
-            correlation_id="test_failure"
+            correlation_id="test_failure",
         )
 
         # Should return fallback response
@@ -254,9 +261,7 @@ class TestErrorHandlingService:
         error = Exception("Test error")
 
         error_info = self.service._create_error_info(
-            operation_name="test_op",
-            error=error,
-            correlation_id="test_corr"
+            operation_name="test_op", error=error, correlation_id="test_corr"
         )
 
         assert isinstance(error_info, ErrorInfo)
@@ -310,7 +315,7 @@ class TestErrorHandlingService:
                 category=ErrorCategory.NETWORK,
                 severity=ErrorSeverity.MEDIUM,
                 message=f"Error {i}",
-                operation="test_op"
+                operation="test_op",
             )
             self.service._store_error(error_info)
 
@@ -331,7 +336,7 @@ class TestErrorHandlingService:
                     category=ErrorCategory.UNKNOWN,
                     severity=ErrorSeverity.LOW,
                     message=f"Error {i}",
-                    operation="test_op"
+                    operation="test_op",
                 )
                 self.service._store_error(error_info)
 
@@ -343,6 +348,7 @@ class TestErrorHandlingService:
 
     def test_retry_operation_success(self):
         """Test successful operation retry."""
+
         async def operation(success_on_retry=False):
             if not success_on_retry:
                 raise Exception("Initial failure")
@@ -355,16 +361,14 @@ class TestErrorHandlingService:
             message="Network error",
             operation="test_op",
             retry_count=0,
-            max_retries=3
+            max_retries=3,
         )
 
         # Mock the operation to succeed on retry
         async def mock_operation():
             return "success"
 
-        retry_future = self.service.retry_operation(
-            error_info, mock_operation
-        )
+        retry_future = self.service.retry_operation(error_info, mock_operation)
 
         # Should complete without exception
         result = asyncio.run(retry_future)
@@ -372,6 +376,7 @@ class TestErrorHandlingService:
 
     def test_retry_operation_exhausted(self):
         """Test retry exhaustion."""
+
         async def always_failing_operation():
             raise Exception("Always fails")
 
@@ -382,13 +387,13 @@ class TestErrorHandlingService:
             message="Network error",
             operation="test_op",
             retry_count=3,  # Already at max retries
-            max_retries=3
+            max_retries=3,
         )
 
         with pytest.raises(Exception, match="Always fails"):
-            asyncio.run(self.service.retry_operation(
-                error_info, always_failing_operation
-            ))
+            asyncio.run(
+                self.service.retry_operation(error_info, always_failing_operation)
+            )
 
     def test_get_error_statistics(self):
         """Test error statistics retrieval."""
@@ -400,7 +405,7 @@ class TestErrorHandlingService:
                 severity=ErrorSeverity.HIGH,
                 message=f"Error {i}",
                 operation="test_op",
-                timestamp=datetime.utcnow() - timedelta(minutes=i*30)
+                timestamp=datetime.utcnow() - timedelta(minutes=i * 30),
             )
             self.service._store_error(error_info)
 
@@ -431,7 +436,7 @@ class TestErrorHandlingService:
                 category=ErrorCategory.UNKNOWN,
                 severity=ErrorSeverity.LOW,
                 message=f"Error {i}",
-                operation="test_op"
+                operation="test_op",
             )
             self.service._store_error(error_info)
 
@@ -493,7 +498,7 @@ class TestFallbackStrategies:
             name="test_strategy",
             priority=1,
             conditions=[{"category": ErrorCategory.PROVIDER_ERROR}],
-            action="test_action"
+            action="test_action",
         )
 
         # Matching error
@@ -501,7 +506,7 @@ class TestFallbackStrategies:
             error_id="test_error",
             category=ErrorCategory.PROVIDER_ERROR,
             severity=ErrorSeverity.HIGH,
-            message="Provider error"
+            message="Provider error",
         )
 
         assert self.service._should_execute_strategy(strategy, error_info) is True
@@ -518,14 +523,12 @@ class TestFallbackStrategies:
             category=ErrorCategory.PROVIDER_ERROR,
             severity=ErrorSeverity.HIGH,
             message="Provider failed",
-            operation="tts_synthesis"
+            operation="tts_synthesis",
         )
 
         # Execute a fallback scenario
         result = await self.service._execute_fallback_scenario(
-            "tts_synthesis_failed",
-            error_info,
-            None, [], {}
+            "tts_synthesis_failed", error_info, None, [], {}
         )
 
         # Should return some result (may be None if no strategies match perfectly)

@@ -9,17 +9,15 @@ This module provides comprehensive unit tests for the audio processing service i
 - Performance and quality metrics
 """
 
-import pytest
 import numpy as np
-from unittest.mock import patch, MagicMock, AsyncMock
-from datetime import datetime
+import pytest
 
 from packages.backend.components.audio_processing_service import (
-    AudioProcessingService, AudioProcessingResult,
-    AudioPipelineMetrics
+    AudioPipelineMetrics,
+    AudioProcessingResult,
+    AudioProcessingService,
 )
 from packages.shared.models import AudioProcessingConfig
-from packages.backend.components.audio_processor import AudioChunk
 
 
 class TestAudioProcessingResult:
@@ -35,7 +33,7 @@ class TestAudioProcessingResult:
             input_duration=5.0,
             output_duration=4.8,
             processing_time=0.5,
-            quality_score=0.95
+            quality_score=0.95,
         )
 
         assert result.success is True
@@ -59,7 +57,7 @@ class TestAudioProcessingResult:
             output_duration=0.0,
             processing_time=0.1,
             quality_score=0.0,
-            error="Unsupported format"
+            error="Unsupported format",
         )
 
         assert result.success is False
@@ -129,7 +127,7 @@ class TestAudioProcessingService:
             chunk_size=1024,
             silence_threshold=0.01,
             normalize_audio=True,
-            noise_reduction=True
+            noise_reduction=True,
         )
         self.service = AudioProcessingService(self.config)
 
@@ -165,7 +163,7 @@ class TestAudioProcessingService:
             audio_data=wav_data,
             input_format="wav",
             target_format="wav",
-            correlation_id="test_success"
+            correlation_id="test_success",
         )
 
         assert result.success is True
@@ -183,9 +181,7 @@ class TestAudioProcessingService:
     async def test_process_empty_audio_data(self):
         """Test processing empty audio data."""
         result = await self.service.process_audio_data(
-            audio_data=b"",
-            input_format="wav",
-            correlation_id="test_empty"
+            audio_data=b"", input_format="wav", correlation_id="test_empty"
         )
 
         assert result.success is False
@@ -198,9 +194,7 @@ class TestAudioProcessingService:
         invalid_data = b"This is not audio data"
 
         result = await self.service.process_audio_data(
-            audio_data=invalid_data,
-            input_format="wav",
-            correlation_id="test_invalid"
+            audio_data=invalid_data, input_format="wav", correlation_id="test_invalid"
         )
 
         assert result.success is False
@@ -243,15 +237,17 @@ class TestAudioProcessingService:
         assert self.service.metrics.successful_operations == 0
         assert len(self.service.metrics.format_conversions) == 0
 
-    def _create_wav_header(self, sample_rate: int, channels: int, bits_per_sample: int, data_size: int) -> bytes:
+    def _create_wav_header(
+        self, sample_rate: int, channels: int, bits_per_sample: int, data_size: int
+    ) -> bytes:
         """Create a minimal WAV header for testing."""
         import struct
 
         # WAV header structure
-        riff_id = b'RIFF'
-        wave_id = b'WAVE'
-        fmt_id = b'fmt '
-        data_id = b'data'
+        riff_id = b"RIFF"
+        wave_id = b"WAVE"
+        fmt_id = b"fmt "
+        data_id = b"data"
 
         # Calculate sizes
         fmt_chunk_size = 16
@@ -263,25 +259,25 @@ class TestAudioProcessingService:
         byte_rate = sample_rate * block_align
 
         fmt_chunk = struct.pack(
-            '<HHIIHH',
+            "<HHIIHH",
             audio_format,
             channels,
             sample_rate,
             byte_rate,
             block_align,
-            bits_per_sample
+            bits_per_sample,
         )
 
         # Create header
         header = (
-            riff_id +
-            struct.pack('<I', file_size) +
-            wave_id +
-            fmt_id +
-            struct.pack('<I', fmt_chunk_size) +
-            fmt_chunk +
-            data_id +
-            struct.pack('<I', data_size)
+            riff_id
+            + struct.pack("<I", file_size)
+            + wave_id
+            + fmt_id
+            + struct.pack("<I", fmt_chunk_size)
+            + fmt_chunk
+            + data_id
+            + struct.pack("<I", data_size)
         )
 
         return header
@@ -298,7 +294,7 @@ class TestAudioStreamProcessing:
     async def test_process_stream_audio(self):
         """Test stream audio processing."""
         # Create test audio data
-        audio_data = b'\x00' * 4096  # 4KB of silence
+        audio_data = b"\x00" * 4096  # 4KB of silence
         stream_id = "test_stream"
 
         chunks = await self.service.process_stream_audio(
@@ -307,7 +303,7 @@ class TestAudioStreamProcessing:
             format="raw",
             sample_rate=16000,
             channels=1,
-            correlation_id="stream_test"
+            correlation_id="stream_test",
         )
 
         assert isinstance(chunks, list)
@@ -317,12 +313,12 @@ class TestAudioStreamProcessing:
     async def test_convert_for_stt(self):
         """Test audio conversion for STT."""
         # Create test audio data
-        audio_data = b'\x00' * 16000  # 1 second of silence at 16kHz
+        audio_data = b"\x00" * 16000  # 1 second of silence at 16kHz
 
         converted_data, format_name = await self.service.convert_for_stt(
             audio_data=audio_data,
             input_format="raw",
-            correlation_id="stt_conversion_test"
+            correlation_id="stt_conversion_test",
         )
 
         # Should return data and format (may be original if conversion fails)
@@ -333,13 +329,13 @@ class TestAudioStreamProcessing:
     async def test_convert_for_tts(self):
         """Test audio conversion for TTS."""
         # Create test audio data
-        audio_data = b'\x00' * 22050  # 1 second of silence at 22kHz
+        audio_data = b"\x00" * 22050  # 1 second of silence at 22kHz
 
         converted_data, format_name = await self.service.convert_for_tts(
             audio_data=audio_data,
             input_format="raw",
             target_format="wav",
-            correlation_id="tts_conversion_test"
+            correlation_id="tts_conversion_test",
         )
 
         # Should return data and format
@@ -373,9 +369,7 @@ class TestAudioEnhancement:
         # Create varying amplitude audio
         audio_data = np.random.normal(0, 0.5, 1024).astype(np.int16).tobytes()
 
-        result = await self.service._apply_normalization(
-            audio_data, "wav", "norm_test"
-        )
+        result = await self.service._apply_normalization(audio_data, "wav", "norm_test")
 
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -386,9 +380,7 @@ class TestAudioEnhancement:
         # Create test audio
         audio_data = np.random.normal(0, 0.3, 1024).astype(np.int16).tobytes()
 
-        result = await self.service._apply_compression(
-            audio_data, "wav", "comp_test"
-        )
+        result = await self.service._apply_compression(audio_data, "wav", "comp_test")
 
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -399,9 +391,7 @@ class TestAudioEnhancement:
         # Create test audio
         audio_data = np.random.normal(0, 0.2, 1024).astype(np.int16).tobytes()
 
-        result = await self.service._apply_equalization(
-            audio_data, "wav", "eq_test"
-        )
+        result = await self.service._apply_equalization(audio_data, "wav", "eq_test")
 
         assert isinstance(result, bytes)
         assert len(result) > 0
@@ -429,7 +419,7 @@ class TestAudioFormatConversion:
     async def test_mp3_to_wav_conversion(self):
         """Test MP3 to WAV conversion (placeholder)."""
         # Create mock MP3 data
-        mp3_data = b'\xFF\xFB' + b'\x00' * 1000  # MP3 frame sync + data
+        mp3_data = b"\xff\xfb" + b"\x00" * 1000  # MP3 frame sync + data
 
         result = await self.service._convert_mp3_to_wav(mp3_data, "format_test")
 
@@ -441,10 +431,10 @@ class TestAudioFormatConversion:
         import struct
 
         # WAV header
-        riff_id = b'RIFF'
-        wave_id = b'WAVE'
-        fmt_id = b'fmt '
-        data_id = b'data'
+        riff_id = b"RIFF"
+        wave_id = b"WAVE"
+        fmt_id = b"fmt "
+        data_id = b"data"
 
         # Audio parameters
         sample_rate = 16000
@@ -460,27 +450,27 @@ class TestAudioFormatConversion:
         byte_rate = sample_rate * block_align
 
         fmt_chunk = struct.pack(
-            '<HHIIHH',
+            "<HHIIHH",
             audio_format,
             channels,
             sample_rate,
             byte_rate,
             block_align,
-            bits_per_sample
+            bits_per_sample,
         )
 
         # Create minimal audio data (silence)
-        audio_data = b'\x00' * data_size
+        audio_data = b"\x00" * data_size
 
         header = (
-            riff_id +
-            struct.pack('<I', file_size) +
-            wave_id +
-            fmt_id +
-            struct.pack('<I', fmt_chunk_size) +
-            fmt_chunk +
-            data_id +
-            struct.pack('<I', data_size)
+            riff_id
+            + struct.pack("<I", file_size)
+            + wave_id
+            + fmt_id
+            + struct.pack("<I", fmt_chunk_size)
+            + fmt_chunk
+            + data_id
+            + struct.pack("<I", data_size)
         )
 
         return header + audio_data
@@ -496,12 +486,12 @@ class TestErrorHandling:
     @pytest.mark.asyncio
     async def test_corrupted_audio_handling(self):
         """Test handling of corrupted audio data."""
-        corrupted_data = b'\xFF\xFF\xFF\xFF'  # Invalid audio data
+        corrupted_data = b"\xff\xff\xff\xff"  # Invalid audio data
 
         result = await self.service.process_audio_data(
             audio_data=corrupted_data,
             input_format="wav",
-            correlation_id="corruption_test"
+            correlation_id="corruption_test",
         )
 
         assert result.success is False
@@ -512,12 +502,12 @@ class TestErrorHandling:
     async def test_unsupported_format_handling(self):
         """Test handling of unsupported audio formats."""
         # Create data with unsupported format
-        unknown_data = b'UNSUPPORTED_FORMAT' + b'\x00' * 100
+        unknown_data = b"UNSUPPORTED_FORMAT" + b"\x00" * 100
 
         result = await self.service.process_audio_data(
             audio_data=unknown_data,
             input_format="xyz",
-            correlation_id="unknown_format_test"
+            correlation_id="unknown_format_test",
         )
 
         assert result.success is False

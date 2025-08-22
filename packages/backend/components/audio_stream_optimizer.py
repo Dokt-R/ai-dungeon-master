@@ -15,22 +15,23 @@ Features:
 """
 
 import asyncio
-import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Callable
-from dataclasses import dataclass, field
-from collections import deque
 import threading
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from packages.shared.models import (
-    AudioStreamInfo, AudioProcessingConfig, VoiceLatencyMetrics,
-    TextToSpeechRequest, SpeechSynthesisResult
-)
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.audio_processor import audio_processor, AudioChunk
 from packages.backend.components.tts_service import tts_service
-from packages.backend.components.voice_performance_monitor import voice_performance_monitor
+from packages.backend.components.voice_performance_monitor import (
+    voice_performance_monitor,
+)
 from packages.shared.logging_config import get_logger
+from packages.shared.models import (
+    AudioStreamInfo,
+    SpeechSynthesisResult,
+    TextToSpeechRequest,
+)
 
 logger = get_logger(__name__)
 
@@ -73,7 +74,7 @@ class StreamBuffer:
                     "stream_buffer_overflow",
                     stream_id=self.stream_id,
                     overflow_amount=overflow_amount,
-                    overflow_count=self._overflow_count
+                    overflow_count=self._overflow_count,
                 )
                 return False
 
@@ -132,8 +133,7 @@ class ProcessingPipeline:
 
                     # Execute stage with timeout
                     result = await asyncio.wait_for(
-                        stage(result, pipeline_context),
-                        timeout=self.timeout
+                        stage(result, pipeline_context), timeout=self.timeout
                     )
 
                     stage_time = time.time() - start_time
@@ -145,14 +145,14 @@ class ProcessingPipeline:
                 logger.error(
                     "pipeline_stage_timeout",
                     pipeline_id=self.pipeline_id,
-                    timeout=self.timeout
+                    timeout=self.timeout,
                 )
                 raise
             except Exception as e:
                 logger.error(
                     "pipeline_execution_error",
                     pipeline_id=self.pipeline_id,
-                    error=str(e)
+                    error=str(e),
                 )
                 raise
 
@@ -240,46 +240,43 @@ class AudioStreamOptimizer:
     def _initialize_pipelines(self) -> None:
         """Initialize processing pipelines."""
         # STT processing pipeline
-        self.pipelines['stt'] = ProcessingPipeline(
-            pipeline_id='stt_processing',
+        self.pipelines["stt"] = ProcessingPipeline(
+            pipeline_id="stt_processing",
             stages=[
                 self._preprocess_audio,
                 self._extract_audio_features,
-                self._optimize_for_stt
+                self._optimize_for_stt,
             ],
             timeout=10.0,
-            max_concurrent=5
+            max_concurrent=5,
         )
 
         # TTS processing pipeline
-        self.pipelines['tts'] = ProcessingPipeline(
-            pipeline_id='tts_processing',
+        self.pipelines["tts"] = ProcessingPipeline(
+            pipeline_id="tts_processing",
             stages=[
                 self._optimize_tts_input,
                 self._select_optimal_voice,
-                self._generate_with_prediction
+                self._generate_with_prediction,
             ],
             timeout=15.0,
-            max_concurrent=3
+            max_concurrent=3,
         )
 
         # Parallel STT + AI pipeline
-        self.pipelines['parallel_stt_ai'] = ProcessingPipeline(
-            pipeline_id='parallel_stt_ai',
+        self.pipelines["parallel_stt_ai"] = ProcessingPipeline(
+            pipeline_id="parallel_stt_ai",
             stages=[
                 self._parallel_stt_processing,
                 self._parallel_ai_processing,
-                self._merge_results
+                self._merge_results,
             ],
             timeout=25.0,
-            max_concurrent=2
+            max_concurrent=2,
         )
 
     async def optimize_stream(
-        self,
-        stream_id: str,
-        audio_data: bytes,
-        session_context: Dict[str, Any] = None
+        self, stream_id: str, audio_data: bytes, session_context: Dict[str, Any] = None
     ) -> Tuple[bytes, Dict[str, Any]]:
         """
         Optimize audio stream for real-time processing.
@@ -296,10 +293,8 @@ class AudioStreamOptimizer:
 
         try:
             with observability_service.trace_operation(
-                operation_name="stream_optimization",
-                stream_id=stream_id
+                operation_name="stream_optimization", stream_id=stream_id
             ) as trace_id:
-
                 # Get or create stream buffer
                 buffer = self._get_or_create_buffer(stream_id)
 
@@ -317,7 +312,10 @@ class AudioStreamOptimizer:
 
                     if chunk_data:
                         # Apply streaming optimizations
-                        optimized_data, metadata = await self._apply_streaming_optimizations(
+                        (
+                            optimized_data,
+                            metadata,
+                        ) = await self._apply_streaming_optimizations(
                             chunk_data, session_context
                         )
 
@@ -331,7 +329,7 @@ class AudioStreamOptimizer:
                             original_size=len(audio_data),
                             optimized_size=len(optimized_data),
                             processing_time=processing_time,
-                            trace_id=trace_id
+                            trace_id=trace_id,
                         )
 
                         return optimized_data, metadata
@@ -345,7 +343,7 @@ class AudioStreamOptimizer:
                 "stream_optimization_failed",
                 stream_id=stream_id,
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
             return audio_data, {"error": str(e)}
 
@@ -354,7 +352,7 @@ class AudioStreamOptimizer:
         stream_id: str,
         audio_data: bytes,
         text_data: str = None,
-        session_context: Dict[str, Any] = None
+        session_context: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
         """
         Process audio through parallel pipelines for reduced latency.
@@ -377,7 +375,7 @@ class AudioStreamOptimizer:
             if audio_data and self.enable_parallel_processing:
                 # STT processing task
                 stt_task = asyncio.create_task(
-                    self.pipelines['stt'].execute(audio_data, session_context)
+                    self.pipelines["stt"].execute(audio_data, session_context)
                 )
                 tasks.append(("stt", stt_task))
 
@@ -397,7 +395,7 @@ class AudioStreamOptimizer:
                 done, pending = await asyncio.wait(
                     [task for _, task in tasks],
                     timeout=20.0,
-                    return_when=asyncio.FIRST_COMPLETED
+                    return_when=asyncio.FIRST_COMPLETED,
                 )
 
                 # Process completed tasks
@@ -434,13 +432,13 @@ class AudioStreamOptimizer:
                 stream_id=stream_id,
                 processing_time=processing_time,
                 completed_tasks=len(results),
-                timeout="timeout" in results
+                timeout="timeout" in results,
             )
 
             return {
                 "results": results,
                 "processing_time": processing_time,
-                "parallel_efficiency": self._calculate_parallel_efficiency(results)
+                "parallel_efficiency": self._calculate_parallel_efficiency(results),
             }
 
         except Exception as e:
@@ -449,14 +447,12 @@ class AudioStreamOptimizer:
                 "parallel_processing_failed",
                 stream_id=stream_id,
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
             return {"error": str(e), "processing_time": processing_time}
 
     async def generate_preemptive_tts(
-        self,
-        common_responses: List[str],
-        session_context: Dict[str, Any] = None
+        self, common_responses: List[str], session_context: Dict[str, Any] = None
     ) -> Dict[str, SpeechSynthesisResult]:
         """
         Generate TTS for common responses preemptively.
@@ -506,14 +502,11 @@ class AudioStreamOptimizer:
                             self.predictive_cache.add_prediction(cache_key, result)
                     except asyncio.TimeoutError:
                         self.logger.warning(
-                            "preemptive_tts_timeout",
-                            response=response[:50]
+                            "preemptive_tts_timeout", response=response[:50]
                         )
                     except Exception as e:
                         self.logger.error(
-                            "preemptive_tts_error",
-                            response=response[:50],
-                            error=str(e)
+                            "preemptive_tts_error", response=response[:50], error=str(e)
                         )
 
             processing_time = time.time() - start_time
@@ -522,7 +515,7 @@ class AudioStreamOptimizer:
                 requested_responses=len(common_responses),
                 cached_results=len(cached_results) - len(uncached_responses),
                 generated_results=len(uncached_responses),
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
             return cached_results
@@ -532,19 +525,21 @@ class AudioStreamOptimizer:
             self.logger.error(
                 "preemptive_tts_generation_failed",
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
             return {}
 
-    async def _adapt_buffer_size(self, buffer: StreamBuffer, context: Dict[str, Any]) -> None:
+    async def _adapt_buffer_size(
+        self, buffer: StreamBuffer, context: Dict[str, Any]
+    ) -> None:
         """Adapt buffer size based on network conditions and processing load."""
         try:
             # Analyze recent performance
             recent_stats = self.processing_stats.get(buffer.stream_id, {})
-            avg_processing_time = recent_stats.get('avg_processing_time', 0.1)
+            avg_processing_time = recent_stats.get("avg_processing_time", 0.1)
 
             # Network latency estimation (simplified)
-            network_latency = context.get('network_latency', 0.05)
+            network_latency = context.get("network_latency", 0.05)
 
             # Adjust buffer size based on processing and network conditions
             if avg_processing_time > 0.5 or network_latency > 0.2:
@@ -560,9 +555,7 @@ class AudioStreamOptimizer:
             self.logger.warning("buffer_adaptation_failed", error=str(e))
 
     async def _apply_streaming_optimizations(
-        self,
-        audio_data: bytes,
-        context: Dict[str, Any]
+        self, audio_data: bytes, context: Dict[str, Any]
     ) -> Tuple[bytes, Dict[str, Any]]:
         """Apply streaming-specific optimizations."""
         try:
@@ -573,14 +566,16 @@ class AudioStreamOptimizer:
             optimized_data = await self._normalize_audio_level(optimized_data)
 
             # Apply predictive filtering based on context
-            if context and context.get('voice_activity_detected', True):
+            if context and context.get("voice_activity_detected", True):
                 optimized_data = await self._apply_voice_enhancement(optimized_data)
 
             metadata = {
                 "original_size": len(audio_data),
                 "optimized_size": len(optimized_data),
                 "optimizations_applied": ["silence_removal", "normalization"],
-                "quality_improvement": self._estimate_quality_improvement(audio_data, optimized_data)
+                "quality_improvement": self._estimate_quality_improvement(
+                    audio_data, optimized_data
+                ),
             }
 
             return optimized_data, metadata
@@ -595,6 +590,7 @@ class AudioStreamOptimizer:
         try:
             # Convert to 16-bit samples
             import numpy as np
+
             audio_array = np.frombuffer(audio_data, dtype=np.int16)
 
             # Calculate energy
@@ -632,7 +628,7 @@ class AudioStreamOptimizer:
             audio_array = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
 
             # Calculate RMS level
-            rms = np.sqrt(np.mean(audio_array ** 2))
+            rms = np.sqrt(np.mean(audio_array**2))
 
             # Target RMS level (about 50% of max for 16-bit)
             target_rms = 16384 * 0.5  # 50% of 16-bit range
@@ -676,22 +672,19 @@ class AudioStreamOptimizer:
             return 0.0
 
     async def _generate_single_preemptive_tts(
-        self,
-        text: str,
-        context: Dict[str, Any]
+        self, text: str, context: Dict[str, Any]
     ) -> Optional[SpeechSynthesisResult]:
         """Generate TTS for a single response."""
         try:
             request = TextToSpeechRequest(
                 text=text,
-                voice=context.get('preferred_voice', 'default'),
-                language=context.get('language', 'en-US'),
-                speed=1.0
+                voice=context.get("preferred_voice", "default"),
+                language=context.get("language", "en-US"),
+                speed=1.0,
             )
 
             result = await tts_service.synthesize_speech(
-                request,
-                correlation_id=context.get('correlation_id')
+                request, correlation_id=context.get("correlation_id")
             )
 
             return result
@@ -700,7 +693,9 @@ class AudioStreamOptimizer:
             self.logger.error("single_preemptive_tts_failed", error=str(e))
             return None
 
-    async def _process_ai_text(self, text: str, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _process_ai_text(
+        self, text: str, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Process text through AI pipeline (placeholder)."""
         # In a real implementation, this would call the AI/DM service
         await asyncio.sleep(0.1)  # Simulate processing time
@@ -713,22 +708,26 @@ class AudioStreamOptimizer:
             self.logger.info("created_stream_buffer", stream_id=stream_id)
         return self.stream_buffers[stream_id]
 
-    def _update_stream_stats(self, stream_id: str, processing_time: float, metadata: Dict[str, Any]) -> None:
+    def _update_stream_stats(
+        self, stream_id: str, processing_time: float, metadata: Dict[str, Any]
+    ) -> None:
         """Update stream processing statistics."""
         if stream_id not in self.processing_stats:
             self.processing_stats[stream_id] = {
-                'total_processing_time': 0.0,
-                'processing_count': 0,
-                'avg_processing_time': 0.0,
-                'optimizations_applied': []
+                "total_processing_time": 0.0,
+                "processing_count": 0,
+                "avg_processing_time": 0.0,
+                "optimizations_applied": [],
             }
 
         stats = self.processing_stats[stream_id]
-        stats['total_processing_time'] += processing_time
-        stats['processing_count'] += 1
-        stats['avg_processing_time'] = stats['total_processing_time'] / stats['processing_count']
-        stats['last_processing_time'] = processing_time
-        stats['last_metadata'] = metadata
+        stats["total_processing_time"] += processing_time
+        stats["processing_count"] += 1
+        stats["avg_processing_time"] = (
+            stats["total_processing_time"] / stats["processing_count"]
+        )
+        stats["last_processing_time"] = processing_time
+        stats["last_metadata"] = metadata
 
     def _calculate_parallel_efficiency(self, results: Dict[str, Any]) -> float:
         """Calculate parallel processing efficiency."""
@@ -737,7 +736,13 @@ class AudioStreamOptimizer:
                 return 0.0
 
             # Simple efficiency calculation based on completed tasks
-            completed_tasks = len([r for r in results.values() if not isinstance(r, dict) or 'error' not in r])
+            completed_tasks = len(
+                [
+                    r
+                    for r in results.values()
+                    if not isinstance(r, dict) or "error" not in r
+                ]
+            )
             total_tasks = len(results)
 
             return (completed_tasks / total_tasks) * 100.0
@@ -750,7 +755,9 @@ class AudioStreamOptimizer:
         """Audio preprocessing stage."""
         return await self._remove_silence(data)
 
-    async def _extract_audio_features(self, data: bytes, context: Dict[str, Any]) -> bytes:
+    async def _extract_audio_features(
+        self, data: bytes, context: Dict[str, Any]
+    ) -> bytes:
         """Audio feature extraction stage."""
         return data  # Placeholder
 
@@ -766,19 +773,27 @@ class AudioStreamOptimizer:
         """Voice selection stage."""
         return data  # Placeholder
 
-    async def _generate_with_prediction(self, data: Any, context: Dict[str, Any]) -> Any:
+    async def _generate_with_prediction(
+        self, data: Any, context: Dict[str, Any]
+    ) -> Any:
         """Predictive generation stage."""
         return data  # Placeholder
 
-    async def _parallel_stt_processing(self, data: bytes, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _parallel_stt_processing(
+        self, data: bytes, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Parallel STT processing."""
         return {"stt_result": "processed", "confidence": 0.9}
 
-    async def _parallel_ai_processing(self, data: bytes, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _parallel_ai_processing(
+        self, data: bytes, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Parallel AI processing."""
         return {"ai_result": "generated", "quality": 0.8}
 
-    async def _merge_results(self, data: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _merge_results(
+        self, data: Dict[str, Any], context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Merge parallel processing results."""
         return {"merged_results": data, "efficiency": 0.9}
 
@@ -797,7 +812,7 @@ class AudioStreamOptimizer:
                 started_at=datetime.utcnow(),
                 last_activity=buffer._last_access,
                 is_active=True,
-                buffer_size=buffer.size
+                buffer_size=buffer.size,
             )
         return None
 
@@ -817,8 +832,14 @@ class AudioStreamOptimizer:
         # Calculate average processing time
         avg_processing_time = 0.0
         if self.processing_stats:
-            total_time = sum(stats.get('total_processing_time', 0) for stats in self.processing_stats.values())
-            total_count = sum(stats.get('processing_count', 0) for stats in self.processing_stats.values())
+            total_time = sum(
+                stats.get("total_processing_time", 0)
+                for stats in self.processing_stats.values()
+            )
+            total_count = sum(
+                stats.get("processing_count", 0)
+                for stats in self.processing_stats.values()
+            )
             if total_count > 0:
                 avg_processing_time = total_time / total_count
 
@@ -830,7 +851,7 @@ class AudioStreamOptimizer:
             "predictive_cache_entries": len(self.predictive_cache._cache),
             "parallel_processing_enabled": self.enable_parallel_processing,
             "preemptive_tts_enabled": self.enable_preemptive_tts,
-            "adaptive_buffering_enabled": self.adaptive_buffering_enabled
+            "adaptive_buffering_enabled": self.adaptive_buffering_enabled,
         }
 
 

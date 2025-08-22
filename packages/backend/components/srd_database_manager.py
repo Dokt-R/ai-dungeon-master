@@ -11,15 +11,14 @@ This module provides database management functionality for SRD data including:
 
 import json
 import sqlite3
-import hashlib
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
 from packages.backend.components.srd_compliance_service import srd_compliance_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 logger = get_logger(__name__)
 
@@ -135,12 +134,24 @@ class SRDDatabaseManager:
             """)
 
             # Create indexes for better query performance
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_monsters_name ON monsters(monster_name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_monsters_cr ON monsters(challenge_rating)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_spells_name ON spells(spell_name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_spells_level ON spells(level)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_weapons_name ON weapons(weapon_name)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_weapons_category ON weapons(category)")
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_monsters_name ON monsters(monster_name)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_monsters_cr ON monsters(challenge_rating)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_spells_name ON spells(spell_name)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_spells_level ON spells(level)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_weapons_name ON weapons(weapon_name)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_weapons_category ON weapons(category)"
+            )
 
             # Create database metadata table
             cursor.execute("""
@@ -169,15 +180,17 @@ class SRDDatabaseManager:
 
     def _serialize_compliance(self, compliance: SRDCompliance) -> str:
         """Serialize SRDCompliance to JSON string."""
-        return json.dumps({
-            "data_source": compliance.data_source,
-            "license_version": compliance.license_version,
-            "usage_restrictions": compliance.usage_restrictions,
-            "last_verified": compliance.last_verified.isoformat(),
-            "verification_hash": compliance.verification_hash,
-            "compliance_officer": compliance.compliance_officer,
-            "audit_trail": compliance.audit_trail
-        })
+        return json.dumps(
+            {
+                "data_source": compliance.data_source,
+                "license_version": compliance.license_version,
+                "usage_restrictions": compliance.usage_restrictions,
+                "last_verified": compliance.last_verified.isoformat(),
+                "verification_hash": compliance.verification_hash,
+                "compliance_officer": compliance.compliance_officer,
+                "audit_trail": compliance.audit_trail,
+            }
+        )
 
     def _deserialize_compliance(self, data: str) -> SRDCompliance:
         """Deserialize JSON string to SRDCompliance."""
@@ -189,20 +202,22 @@ class SRDDatabaseManager:
             last_verified=datetime.fromisoformat(parsed["last_verified"]),
             verification_hash=parsed["verification_hash"],
             compliance_officer=parsed.get("compliance_officer"),
-            audit_trail=parsed.get("audit_trail", [])
+            audit_trail=parsed.get("audit_trail", []),
         )
 
     def _serialize_data_source(self, data_source: DataSource) -> str:
         """Serialize DataSource to JSON string."""
-        return json.dumps({
-            "source_name": data_source.source_name,
-            "source_url": data_source.source_url,
-            "publication_date": data_source.publication_date.isoformat(),
-            "version": data_source.version,
-            "checksum": data_source.checksum,
-            "is_official": data_source.is_official,
-            "attribution_required": data_source.attribution_required
-        })
+        return json.dumps(
+            {
+                "source_name": data_source.source_name,
+                "source_url": data_source.source_url,
+                "publication_date": data_source.publication_date.isoformat(),
+                "version": data_source.version,
+                "checksum": data_source.checksum,
+                "is_official": data_source.is_official,
+                "attribution_required": data_source.attribution_required,
+            }
+        )
 
     def _deserialize_data_source(self, data: str) -> DataSource:
         """Deserialize JSON string to DataSource."""
@@ -214,7 +229,7 @@ class SRDDatabaseManager:
             version=parsed["version"],
             checksum=parsed["checksum"],
             is_official=parsed["is_official"],
-            attribution_required=parsed["attribution_required"]
+            attribution_required=parsed["attribution_required"],
         )
 
     # Monster CRUD Operations
@@ -224,46 +239,47 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO monsters (
                         monster_name, armor_class, hit_points, strength, dexterity,
                         constitution, intelligence, wisdom, charisma, challenge_rating,
                         actions, special_abilities, description, srd_compliance,
                         data_source, created_at, updated_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    monster.monster_name,
-                    monster.armor_class,
-                    monster.hit_points,
-                    monster.strength,
-                    monster.dexterity,
-                    monster.constitution,
-                    monster.intelligence,
-                    monster.wisdom,
-                    monster.charisma,
-                    monster.challenge_rating,
-                    monster.actions,
-                    monster.special_abilities,
-                    monster.description,
-                    self._serialize_compliance(monster.srd_compliance),
-                    self._serialize_data_source(monster.data_source),
-                    monster.created_at.isoformat(),
-                    monster.updated_at.isoformat()
-                ))
+                """,
+                    (
+                        monster.monster_name,
+                        monster.armor_class,
+                        monster.hit_points,
+                        monster.strength,
+                        monster.dexterity,
+                        monster.constitution,
+                        monster.intelligence,
+                        monster.wisdom,
+                        monster.charisma,
+                        monster.challenge_rating,
+                        monster.actions,
+                        monster.special_abilities,
+                        monster.description,
+                        self._serialize_compliance(monster.srd_compliance),
+                        self._serialize_data_source(monster.data_source),
+                        monster.created_at.isoformat(),
+                        monster.updated_at.isoformat(),
+                    ),
+                )
 
                 monster_id = cursor.lastrowid
                 conn.commit()
 
                 # Verify compliance
-                srd_compliance_service.verify_data_compliance(
-                    monster, "monster", user
-                )
+                srd_compliance_service.verify_data_compliance(monster, "monster", user)
 
                 self.logger.info(
                     "Monster created",
                     monster_id=monster_id,
                     monster_name=monster.monster_name,
-                    user=user
+                    user=user,
                 )
 
                 return monster_id
@@ -278,7 +294,9 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("SELECT * FROM monsters WHERE monster_id = ?", (monster_id,))
+                cursor.execute(
+                    "SELECT * FROM monsters WHERE monster_id = ?", (monster_id,)
+                )
                 row = cursor.fetchone()
 
                 if row:
@@ -297,54 +315,69 @@ class SRDDatabaseManager:
                         actions=row["actions"],
                         special_abilities=row["special_abilities"],
                         description=row["description"],
-                        srd_compliance=self._deserialize_compliance(row["srd_compliance"]),
+                        srd_compliance=self._deserialize_compliance(
+                            row["srd_compliance"]
+                        ),
                         data_source=self._deserialize_data_source(row["data_source"]),
                         created_at=datetime.fromisoformat(row["created_at"]),
                         updated_at=datetime.fromisoformat(row["updated_at"]),
-                        is_active=row["is_active"]
+                        is_active=row["is_active"],
                     )
 
         except Exception as e:
-            self.logger.error("Failed to get monster", monster_id=monster_id, error=str(e))
+            self.logger.error(
+                "Failed to get monster", monster_id=monster_id, error=str(e)
+            )
 
         return None
 
-    def get_monsters_by_challenge_rating(self, min_cr: float, max_cr: float) -> List[Monster]:
+    def get_monsters_by_challenge_rating(
+        self, min_cr: float, max_cr: float
+    ) -> List[Monster]:
         """Get monsters within challenge rating range."""
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT * FROM monsters
                     WHERE CAST(challenge_rating AS FLOAT) BETWEEN ? AND ?
                     AND is_active = 1
                     ORDER BY CAST(challenge_rating AS FLOAT)
-                """, (min_cr, max_cr))
+                """,
+                    (min_cr, max_cr),
+                )
 
                 monsters = []
                 for row in cursor.fetchall():
-                    monsters.append(Monster(
-                        monster_id=row["monster_id"],
-                        monster_name=row["monster_name"],
-                        armor_class=row["armor_class"],
-                        hit_points=row["hit_points"],
-                        strength=row["strength"],
-                        dexterity=row["dexterity"],
-                        constitution=row["constitution"],
-                        intelligence=row["intelligence"],
-                        wisdom=row["wisdom"],
-                        charisma=row["charisma"],
-                        challenge_rating=row["challenge_rating"],
-                        actions=row["actions"],
-                        special_abilities=row["special_abilities"],
-                        description=row["description"],
-                        srd_compliance=self._deserialize_compliance(row["srd_compliance"]),
-                        data_source=self._deserialize_data_source(row["data_source"]),
-                        created_at=datetime.fromisoformat(row["created_at"]),
-                        updated_at=datetime.fromisoformat(row["updated_at"]),
-                        is_active=row["is_active"]
-                    ))
+                    monsters.append(
+                        Monster(
+                            monster_id=row["monster_id"],
+                            monster_name=row["monster_name"],
+                            armor_class=row["armor_class"],
+                            hit_points=row["hit_points"],
+                            strength=row["strength"],
+                            dexterity=row["dexterity"],
+                            constitution=row["constitution"],
+                            intelligence=row["intelligence"],
+                            wisdom=row["wisdom"],
+                            charisma=row["charisma"],
+                            challenge_rating=row["challenge_rating"],
+                            actions=row["actions"],
+                            special_abilities=row["special_abilities"],
+                            description=row["description"],
+                            srd_compliance=self._deserialize_compliance(
+                                row["srd_compliance"]
+                            ),
+                            data_source=self._deserialize_data_source(
+                                row["data_source"]
+                            ),
+                            created_at=datetime.fromisoformat(row["created_at"]),
+                            updated_at=datetime.fromisoformat(row["updated_at"]),
+                            is_active=row["is_active"],
+                        )
+                    )
 
                 return monsters
 
@@ -359,43 +392,44 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO spells (
                         spell_name, level, school, casting_time, range, components,
                         duration, description, at_higher_levels, classes,
                         srd_compliance, data_source, created_at, updated_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    spell.spell_name,
-                    spell.level,
-                    spell.school,
-                    spell.casting_time,
-                    spell.range,
-                    spell.components,
-                    spell.duration,
-                    spell.description,
-                    spell.at_higher_levels,
-                    json.dumps(spell.classes),
-                    self._serialize_compliance(spell.srd_compliance),
-                    self._serialize_data_source(spell.data_source),
-                    spell.created_at.isoformat(),
-                    spell.updated_at.isoformat()
-                ))
+                """,
+                    (
+                        spell.spell_name,
+                        spell.level,
+                        spell.school,
+                        spell.casting_time,
+                        spell.range,
+                        spell.components,
+                        spell.duration,
+                        spell.description,
+                        spell.at_higher_levels,
+                        json.dumps(spell.classes),
+                        self._serialize_compliance(spell.srd_compliance),
+                        self._serialize_data_source(spell.data_source),
+                        spell.created_at.isoformat(),
+                        spell.updated_at.isoformat(),
+                    ),
+                )
 
                 spell_id = cursor.lastrowid
                 conn.commit()
 
                 # Verify compliance
-                srd_compliance_service.verify_data_compliance(
-                    spell, "spell", user
-                )
+                srd_compliance_service.verify_data_compliance(spell, "spell", user)
 
                 self.logger.info(
                     "Spell created",
                     spell_id=spell_id,
                     spell_name=spell.spell_name,
                     level=spell.level,
-                    user=user
+                    user=user,
                 )
 
                 return spell_id
@@ -410,37 +444,48 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT * FROM spells
                     WHERE level = ? AND is_active = 1
                     ORDER BY spell_name
-                """, (level,))
+                """,
+                    (level,),
+                )
 
                 spells = []
                 for row in cursor.fetchall():
-                    spells.append(Spell(
-                        spell_id=row["spell_id"],
-                        spell_name=row["spell_name"],
-                        level=row["level"],
-                        school=row["school"],
-                        casting_time=row["casting_time"],
-                        range=row["range"],
-                        components=row["components"],
-                        duration=row["duration"],
-                        description=row["description"],
-                        at_higher_levels=row["at_higher_levels"],
-                        classes=json.loads(row["classes"]),
-                        srd_compliance=self._deserialize_compliance(row["srd_compliance"]),
-                        data_source=self._deserialize_data_source(row["data_source"]),
-                        created_at=datetime.fromisoformat(row["created_at"]),
-                        updated_at=datetime.fromisoformat(row["updated_at"]),
-                        is_active=row["is_active"]
-                    ))
+                    spells.append(
+                        Spell(
+                            spell_id=row["spell_id"],
+                            spell_name=row["spell_name"],
+                            level=row["level"],
+                            school=row["school"],
+                            casting_time=row["casting_time"],
+                            range=row["range"],
+                            components=row["components"],
+                            duration=row["duration"],
+                            description=row["description"],
+                            at_higher_levels=row["at_higher_levels"],
+                            classes=json.loads(row["classes"]),
+                            srd_compliance=self._deserialize_compliance(
+                                row["srd_compliance"]
+                            ),
+                            data_source=self._deserialize_data_source(
+                                row["data_source"]
+                            ),
+                            created_at=datetime.fromisoformat(row["created_at"]),
+                            updated_at=datetime.fromisoformat(row["updated_at"]),
+                            is_active=row["is_active"],
+                        )
+                    )
 
                 return spells
 
         except Exception as e:
-            self.logger.error("Failed to get spells by level", level=level, error=str(e))
+            self.logger.error(
+                "Failed to get spells by level", level=level, error=str(e)
+            )
             return []
 
     # Weapon CRUD Operations
@@ -450,38 +495,39 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO weapons (
                         weapon_name, category, cost, damage, weight, properties,
                         description, srd_compliance, data_source, created_at, updated_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    weapon.weapon_name,
-                    weapon.category,
-                    weapon.cost,
-                    weapon.damage,
-                    weapon.weight,
-                    json.dumps(weapon.properties),
-                    weapon.description,
-                    self._serialize_compliance(weapon.srd_compliance),
-                    self._serialize_data_source(weapon.data_source),
-                    weapon.created_at.isoformat(),
-                    weapon.updated_at.isoformat()
-                ))
+                """,
+                    (
+                        weapon.weapon_name,
+                        weapon.category,
+                        weapon.cost,
+                        weapon.damage,
+                        weapon.weight,
+                        json.dumps(weapon.properties),
+                        weapon.description,
+                        self._serialize_compliance(weapon.srd_compliance),
+                        self._serialize_data_source(weapon.data_source),
+                        weapon.created_at.isoformat(),
+                        weapon.updated_at.isoformat(),
+                    ),
+                )
 
                 weapon_id = cursor.lastrowid
                 conn.commit()
 
                 # Verify compliance
-                srd_compliance_service.verify_data_compliance(
-                    weapon, "weapon", user
-                )
+                srd_compliance_service.verify_data_compliance(weapon, "weapon", user)
 
                 self.logger.info(
                     "Weapon created",
                     weapon_id=weapon_id,
                     weapon_name=weapon.weapon_name,
-                    user=user
+                    user=user,
                 )
 
                 return weapon_id
@@ -496,34 +542,45 @@ class SRDDatabaseManager:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT * FROM weapons
                     WHERE category = ? AND is_active = 1
                     ORDER BY weapon_name
-                """, (category,))
+                """,
+                    (category,),
+                )
 
                 weapons = []
                 for row in cursor.fetchall():
-                    weapons.append(Weapon(
-                        weapon_id=row["weapon_id"],
-                        weapon_name=row["weapon_name"],
-                        category=row["category"],
-                        cost=row["cost"],
-                        damage=row["damage"],
-                        weight=row["weight"],
-                        properties=json.loads(row["properties"]),
-                        description=row["description"],
-                        srd_compliance=self._deserialize_compliance(row["srd_compliance"]),
-                        data_source=self._deserialize_data_source(row["data_source"]),
-                        created_at=datetime.fromisoformat(row["created_at"]),
-                        updated_at=datetime.fromisoformat(row["updated_at"]),
-                        is_active=row["is_active"]
-                    ))
+                    weapons.append(
+                        Weapon(
+                            weapon_id=row["weapon_id"],
+                            weapon_name=row["weapon_name"],
+                            category=row["category"],
+                            cost=row["cost"],
+                            damage=row["damage"],
+                            weight=row["weight"],
+                            properties=json.loads(row["properties"]),
+                            description=row["description"],
+                            srd_compliance=self._deserialize_compliance(
+                                row["srd_compliance"]
+                            ),
+                            data_source=self._deserialize_data_source(
+                                row["data_source"]
+                            ),
+                            created_at=datetime.fromisoformat(row["created_at"]),
+                            updated_at=datetime.fromisoformat(row["updated_at"]),
+                            is_active=row["is_active"],
+                        )
+                    )
 
                 return weapons
 
         except Exception as e:
-            self.logger.error("Failed to get weapons by category", category=category, error=str(e))
+            self.logger.error(
+                "Failed to get weapons by category", category=category, error=str(e)
+            )
             return []
 
     # Database Management Operations
@@ -536,15 +593,19 @@ class SRDDatabaseManager:
 
             # SQLite backup using shell command (in production, use proper backup methods)
             import shutil
+
             shutil.copy2(self.database_path, backup_path)
 
             # Update metadata
             with self._get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT OR REPLACE INTO database_metadata (key, value)
                     VALUES ('last_backup', ?)
-                """, (datetime.utcnow().isoformat(),))
+                """,
+                    (datetime.utcnow().isoformat(),),
+                )
                 conn.commit()
 
             self.logger.info("Database backup created", backup_path=backup_path)
@@ -575,12 +636,16 @@ class SRDDatabaseManager:
                 database_size = db_path.stat().st_size if db_path.exists() else 0
 
                 # Get last backup
-                cursor.execute("SELECT value FROM database_metadata WHERE key = 'last_backup'")
+                cursor.execute(
+                    "SELECT value FROM database_metadata WHERE key = 'last_backup'"
+                )
                 row = cursor.fetchone()
                 last_backup = datetime.fromisoformat(row[0]) if row and row[0] else None
 
                 # Get schema version
-                cursor.execute("SELECT value FROM database_metadata WHERE key = 'schema_version'")
+                cursor.execute(
+                    "SELECT value FROM database_metadata WHERE key = 'schema_version'"
+                )
                 row = cursor.fetchone()
                 schema_version = row[0] if row and row[0] else "1.0"
 
@@ -591,7 +656,7 @@ class SRDDatabaseManager:
                     database_size=database_size,
                     last_backup=last_backup,
                     schema_version=schema_version,
-                    connection_healthy=True
+                    connection_healthy=True,
                 )
 
         except Exception as e:
@@ -611,8 +676,10 @@ class SRDDatabaseManager:
                 "total_spells": stats.total_spells,
                 "total_weapons": stats.total_weapons,
                 "database_size_mb": round(stats.database_size / (1024 * 1024), 2),
-                "last_backup": stats.last_backup.isoformat() if stats.last_backup else None,
-                "schema_version": stats.schema_version
+                "last_backup": stats.last_backup.isoformat()
+                if stats.last_backup
+                else None,
+                "schema_version": stats.schema_version,
             }
 
         except Exception as e:
@@ -620,7 +687,7 @@ class SRDDatabaseManager:
                 "status": "unhealthy",
                 "database_exists": Path(self.database_path).exists(),
                 "database_path": self.database_path,
-                "error": str(e)
+                "error": str(e),
             }
 
 

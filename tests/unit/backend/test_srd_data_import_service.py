@@ -10,22 +10,22 @@ Tests cover:
 - Import history and rollback capabilities
 """
 
-import pytest
-import json
 import csv
+import json
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from unittest.mock import Mock, patch
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
+import pytest
+
 from packages.backend.components.srd_data_import_service import (
-    SRDDataImportService,
+    ConflictResolution,
+    ImportProgress,
     ImportResult,
     ImportStatus,
-    ImportProgress,
-    ConflictResolution
+    SRDDataImportService,
 )
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 
 class TestSRDDataImportService:
@@ -54,7 +54,7 @@ class TestSRDDataImportService:
                     "challenge_rating": "1/4",
                     "actions": "Scimitar: +4 to hit, 1d6+2 slashing damage",
                     "special_abilities": "Nimble Escape",
-                    "description": "A small, green humanoid"
+                    "description": "A small, green humanoid",
                 }
             ],
             "spells": [
@@ -67,7 +67,7 @@ class TestSRDDataImportService:
                     "components": "V, S",
                     "duration": "Instantaneous",
                     "description": "You hurl a mote of fire at a creature",
-                    "classes": ["Sorcerer", "Wizard"]
+                    "classes": ["Sorcerer", "Wizard"],
                 }
             ],
             "weapons": [
@@ -78,15 +78,15 @@ class TestSRDDataImportService:
                     "damage": "1d8 slashing",
                     "weight": "3 lb.",
                     "properties": ["Versatile (1d10)"],
-                    "description": "A versatile martial melee weapon"
+                    "description": "A versatile martial melee weapon",
                 }
-            ]
+            ],
         }
 
     @pytest.fixture
     def temp_json_file(self, sample_json_data):
         """Create a temporary JSON file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(sample_json_data, f)
             temp_path = f.name
         yield temp_path
@@ -96,8 +96,10 @@ class TestSRDDataImportService:
     @pytest.fixture
     def temp_csv_file(self, sample_json_data):
         """Create a temporary CSV file for testing."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
-            writer = csv.DictWriter(f, fieldnames=sample_json_data["monsters"][0].keys())
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            writer = csv.DictWriter(
+                f, fieldnames=sample_json_data["monsters"][0].keys()
+            )
             writer.writeheader()
             writer.writerows(sample_json_data["monsters"])
             temp_path = f.name
@@ -183,7 +185,7 @@ class TestSRDDataImportService:
             "intelligence": 8,
             "wisdom": 10,
             "charisma": 8,
-            "challenge_rating": "1/2"
+            "challenge_rating": "1/2",
         }
 
         validated = import_service._validate_and_transform_record(record, "monsters")
@@ -205,7 +207,7 @@ class TestSRDDataImportService:
             "intelligence": 8,
             "wisdom": 10,
             "charisma": 8,
-            "challenge_rating": "1/2"
+            "challenge_rating": "1/2",
         }
 
         validated = import_service._validate_and_transform_record(record, "monsters")
@@ -223,7 +225,7 @@ class TestSRDDataImportService:
             "intelligence": 8,
             "wisdom": 10,
             "charisma": 8,
-            "challenge_rating": "1/2"
+            "challenge_rating": "1/2",
         }
 
         validated = import_service._validate_and_transform_record(record, "monsters")
@@ -239,7 +241,7 @@ class TestSRDDataImportService:
             "range": "120 feet",
             "components": "V, S, M",
             "duration": "1 minute",
-            "description": "A test spell"
+            "description": "A test spell",
         }
 
         validated = import_service._validate_and_transform_record(record, "spells")
@@ -258,7 +260,7 @@ class TestSRDDataImportService:
             "range": "120 feet",
             "components": "V, S, M",
             "duration": "1 minute",
-            "description": "A test spell"
+            "description": "A test spell",
         }
 
         validated = import_service._validate_and_transform_record(record, "spells")
@@ -272,7 +274,7 @@ class TestSRDDataImportService:
             "cost": "5 gp",
             "damage": "1d6 piercing",
             "weight": "2 lb.",
-            "properties": ["Light", "Finesse"]
+            "properties": ["Light", "Finesse"],
         }
 
         validated = import_service._validate_and_transform_record(record, "weapons")
@@ -296,7 +298,7 @@ class TestSRDDataImportService:
             "challenge_rating": "1/2",
             "actions": "Test Action",
             "special_abilities": "Test Ability",
-            "description": "A test monster"
+            "description": "A test monster",
         }
 
         entity = import_service._create_srd_entity(record, "monsters")
@@ -319,7 +321,7 @@ class TestSRDDataImportService:
             "duration": "1 minute",
             "description": "A test spell",
             "at_higher_levels": "Test higher level effects",
-            "classes": ["Wizard", "Sorcerer"]
+            "classes": ["Wizard", "Sorcerer"],
         }
 
         entity = import_service._create_srd_entity(record, "spells")
@@ -338,7 +340,7 @@ class TestSRDDataImportService:
             "damage": "1d6 piercing",
             "weight": "2 lb.",
             "properties": ["Light", "Finesse"],
-            "description": "A test weapon"
+            "description": "A test weapon",
         }
 
         entity = import_service._create_srd_entity(record, "weapons")
@@ -380,9 +382,7 @@ class TestSRDDataImportService:
         # This would need to be tested with actual async import
         # For now, just test the structure
         progress = ImportProgress(
-            status=ImportStatus.PENDING,
-            current_record=0,
-            total_records=10
+            status=ImportStatus.PENDING, current_record=0, total_records=10
         )
 
         assert progress.status == ImportStatus.PENDING
@@ -417,7 +417,7 @@ class TestImportResult:
             skipped_records=0,
             errors=errors,
             warnings=warnings,
-            processing_time=1.5
+            processing_time=1.5,
         )
 
         assert result.total_records == 10
@@ -454,7 +454,7 @@ class TestImportProgress:
             current_record=5,
             total_records=10,
             start_time=start_time,
-            result=result
+            result=result,
         )
 
         assert progress.status == ImportStatus.IN_PROGRESS

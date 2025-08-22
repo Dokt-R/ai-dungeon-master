@@ -10,16 +10,14 @@ Tests cover:
 """
 
 import pytest
-from datetime import datetime
-from unittest.mock import Mock, patch
 
 from packages.backend.agents.prompts import (
-    PromptTemplate,
-    PromptVersion,
-    PromptType,
-    PromptManager,
     DungeonMasterPrompts,
-    prompt_manager
+    PromptManager,
+    PromptTemplate,
+    PromptType,
+    PromptVersion,
+    prompt_manager,
 )
 
 
@@ -68,7 +66,7 @@ class TestPromptTemplate:
             description="A test template",
             content="Hello {name}, welcome to {place}!",
             variables=["name", "place"],
-            max_tokens=1000
+            max_tokens=1000,
         )
 
     def test_template_creation(self):
@@ -133,7 +131,7 @@ class TestPromptManager:
             description="A test template",
             content="Hello {name}!",
             variables=["name"],
-            max_tokens=1000
+            max_tokens=1000,
         )
 
     def test_register_template(self):
@@ -148,7 +146,9 @@ class TestPromptManager:
         """Test that registering a template updates default version."""
         self.manager.register_template(self.template)
 
-        assert self.manager._default_versions[PromptType.CORE_DM] == self.template.full_id
+        assert (
+            self.manager._default_versions[PromptType.CORE_DM] == self.template.full_id
+        )
 
     def test_register_higher_version_becomes_default(self):
         """Test that a higher version becomes the default."""
@@ -160,7 +160,7 @@ class TestPromptManager:
             name="Test Template v1",
             description="Version 1",
             content="Hello {name}!",
-            variables=["name"]
+            variables=["name"],
         )
 
         # Register higher version
@@ -171,7 +171,7 @@ class TestPromptManager:
             name="Test Template v2",
             description="Version 2",
             content="Hi {name}!",
-            variables=["name"]
+            variables=["name"],
         )
 
         self.manager.register_template(v1)
@@ -195,7 +195,7 @@ class TestPromptManager:
             prompt_type=PromptType.CORE_DM,
             name="Test Template v1",
             content="Hello {name}!",
-            variables=["name"]
+            variables=["name"],
         )
 
         v2 = PromptTemplate(
@@ -204,7 +204,7 @@ class TestPromptManager:
             prompt_type=PromptType.CORE_DM,
             name="Test Template v2",
             content="Hi {name}!",
-            variables=["name"]
+            variables=["name"],
         )
 
         self.manager.register_template(v1)
@@ -256,7 +256,7 @@ class TestPromptManager:
             prompt_type=PromptType.CORE_DM,
             name="Bad Template",
             content="Hello {name",  # Missing closing brace
-            variables=["name"]
+            variables=["name"],
         )
         self.manager.register_template(template)
 
@@ -273,7 +273,7 @@ class TestPromptManager:
         prompt = self.manager.create_core_dm_prompt(
             campaign_context="A dark fantasy campaign",
             player_count=3,
-            campaign_tone="dark"
+            campaign_tone="dark",
         )
 
         assert "A dark fantasy campaign" in prompt
@@ -342,9 +342,7 @@ class TestGlobalPromptManager:
     def test_global_manager_can_create_prompt(self):
         """Test that the global manager can create a core DM prompt."""
         prompt = prompt_manager.create_core_dm_prompt(
-            campaign_context="Test campaign",
-            player_count=4,
-            campaign_tone="heroic"
+            campaign_context="Test campaign", player_count=4, campaign_tone="heroic"
         )
 
         assert "Test campaign" in prompt

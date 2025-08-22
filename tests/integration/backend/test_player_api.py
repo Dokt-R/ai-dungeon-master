@@ -378,9 +378,7 @@ class TestPlayersEndCampaign(BaseTestData):
 
 
 class TestPlayersContinueCampaign(BaseTestData):
-    async def test_continue_campaign_success(
-        self, client, create_campaign
-    ):
+    async def test_continue_campaign_success(self, client, create_campaign):
         resp = await client.post(
             ROUTES.player_create(),
             json={"player_id": self.player_id, "username": self.username},
@@ -406,7 +404,9 @@ class TestPlayersContinueCampaign(BaseTestData):
             "player_id": self.player_id,
             "username": self.username,
         }
-        resp = await client.post(ROUTES.player_continue_campaign(), json=continue_payload)
+        resp = await client.post(
+            ROUTES.player_continue_campaign(), json=continue_payload
+        )
         assert resp.status_code == 200
 
     async def test_continue_campaign_nonexistent_campaign(self, client):

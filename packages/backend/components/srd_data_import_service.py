@@ -9,25 +9,24 @@ This module provides data import functionality for SRD data including:
 - Conflict resolution strategies
 """
 
-import json
 import csv
 import hashlib
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+import json
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
 from packages.backend.components.srd_database_manager import srd_database_manager
-from packages.backend.components.srd_compliance_service import srd_compliance_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 logger = get_logger(__name__)
 
 
 class ImportStatus(Enum):
     """Import operation status."""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -37,6 +36,7 @@ class ImportStatus(Enum):
 
 class ConflictResolution(Enum):
     """Strategy for handling data conflicts."""
+
     SKIP = "skip"
     UPDATE = "update"
     FAIL = "fail"
@@ -46,6 +46,7 @@ class ConflictResolution(Enum):
 @dataclass
 class ImportResult:
     """Result of an import operation."""
+
     total_records: int = 0
     successful_imports: int = 0
     failed_imports: int = 0
@@ -64,6 +65,7 @@ class ImportResult:
 @dataclass
 class ImportProgress:
     """Import operation progress tracking."""
+
     status: ImportStatus = ImportStatus.PENDING
     current_record: int = 0
     total_records: int = 0
@@ -94,19 +96,18 @@ class SRDDataImportService:
         data_type: str,
         user: str = "system",
         conflict_resolution: ConflictResolution = ConflictResolution.UPDATE,
-        batch_size: int = 100
+        batch_size: int = 100,
     ) -> ImportResult:
         """Import SRD data from a JSON file."""
         try:
             import_id = f"json_import_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
             progress = ImportProgress(
-                status=ImportStatus.IN_PROGRESS,
-                start_time=datetime.utcnow()
+                status=ImportStatus.IN_PROGRESS, start_time=datetime.utcnow()
             )
             self._active_imports[import_id] = progress
 
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             if data_type not in data:
@@ -129,7 +130,7 @@ class SRDDataImportService:
                 data_type=data_type,
                 total_records=result.total_records,
                 successful_imports=result.successful_imports,
-                failed_imports=result.failed_imports
+                failed_imports=result.failed_imports,
             )
 
             return result
@@ -152,19 +153,18 @@ class SRDDataImportService:
         data_type: str,
         user: str = "system",
         conflict_resolution: ConflictResolution = ConflictResolution.UPDATE,
-        batch_size: int = 100
+        batch_size: int = 100,
     ) -> ImportResult:
         """Import SRD data from a CSV file."""
         try:
             import_id = f"csv_import_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
 
             progress = ImportProgress(
-                status=ImportStatus.IN_PROGRESS,
-                start_time=datetime.utcnow()
+                status=ImportStatus.IN_PROGRESS, start_time=datetime.utcnow()
             )
             self._active_imports[import_id] = progress
 
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 records = list(reader)
 
@@ -184,7 +184,7 @@ class SRDDataImportService:
                 data_type=data_type,
                 total_records=result.total_records,
                 successful_imports=result.successful_imports,
-                failed_imports=result.failed_imports
+                failed_imports=result.failed_imports,
             )
 
             return result
@@ -208,14 +208,14 @@ class SRDDataImportService:
         user: str,
         conflict_resolution: ConflictResolution,
         batch_size: int,
-        progress: ImportProgress
+        progress: ImportProgress,
     ) -> ImportResult:
         """Import records in batches with progress tracking."""
         result = ImportResult(total_records=len(records))
         start_time = datetime.utcnow()
 
         for i in range(0, len(records), batch_size):
-            batch = records[i:i + batch_size]
+            batch = records[i : i + batch_size]
 
             for record in batch:
                 try:
@@ -247,14 +247,18 @@ class SRDDataImportService:
 
                 except Exception as e:
                     result.failed_imports += 1
-                    result.errors.append(f"Record {i + result.successful_imports + result.failed_imports}: {str(e)}")
+                    result.errors.append(
+                        f"Record {i + result.successful_imports + result.failed_imports}: {str(e)}"
+                    )
 
                 progress.current_record = i + len(batch)
 
         result.processing_time = (datetime.utcnow() - start_time).total_seconds()
         return result
 
-    def _validate_and_transform_record(self, record: Dict[str, Any], data_type: str) -> Optional[Dict[str, Any]]:
+    def _validate_and_transform_record(
+        self, record: Dict[str, Any], data_type: str
+    ) -> Optional[Dict[str, Any]]:
         """Validate and transform a record for import."""
         try:
             if data_type == "monsters":
@@ -273,9 +277,16 @@ class SRDDataImportService:
     def _validate_monster_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and transform monster record."""
         required_fields = [
-            "monster_name", "armor_class", "hit_points",
-            "strength", "dexterity", "constitution",
-            "intelligence", "wisdom", "charisma", "challenge_rating"
+            "monster_name",
+            "armor_class",
+            "hit_points",
+            "strength",
+            "dexterity",
+            "constitution",
+            "intelligence",
+            "wisdom",
+            "charisma",
+            "challenge_rating",
         ]
 
         # Check required fields
@@ -284,7 +295,14 @@ class SRDDataImportService:
                 raise ValueError(f"Missing required field: {field}")
 
         # Validate ability scores
-        ability_scores = ["strength", "dexterity", "constitution", "intelligence", "wisdom", "charisma"]
+        ability_scores = [
+            "strength",
+            "dexterity",
+            "constitution",
+            "intelligence",
+            "wisdom",
+            "charisma",
+        ]
         for score in ability_scores:
             value = record[score]
             if isinstance(value, str):
@@ -305,14 +323,20 @@ class SRDDataImportService:
             "challenge_rating": str(record["challenge_rating"]).strip(),
             "actions": record.get("actions", ""),
             "special_abilities": record.get("special_abilities", ""),
-            "description": record.get("description", "")
+            "description": record.get("description", ""),
         }
 
     def _validate_spell_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and transform spell record."""
         required_fields = [
-            "spell_name", "level", "school", "casting_time",
-            "range", "components", "duration", "description"
+            "spell_name",
+            "level",
+            "school",
+            "casting_time",
+            "range",
+            "components",
+            "duration",
+            "description",
         ]
 
         # Check required fields
@@ -335,13 +359,18 @@ class SRDDataImportService:
             "duration": str(record["duration"]).strip(),
             "description": str(record["description"]).strip(),
             "at_higher_levels": record.get("at_higher_levels", ""),
-            "classes": record.get("classes", [])
+            "classes": record.get("classes", []),
         }
 
     def _validate_weapon_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Validate and transform weapon record."""
         required_fields = [
-            "weapon_name", "category", "cost", "damage", "weight", "properties"
+            "weapon_name",
+            "category",
+            "cost",
+            "damage",
+            "weight",
+            "properties",
         ]
 
         # Check required fields
@@ -356,10 +385,12 @@ class SRDDataImportService:
             "damage": str(record["damage"]).strip(),
             "weight": str(record["weight"]).strip(),
             "properties": record.get("properties", []),
-            "description": record.get("description", "")
+            "description": record.get("description", ""),
         }
 
-    def _create_srd_entity(self, record: Dict[str, Any], data_type: str) -> Optional[Union[Monster, Spell, Weapon]]:
+    def _create_srd_entity(
+        self, record: Dict[str, Any], data_type: str
+    ) -> Optional[Union[Monster, Spell, Weapon]]:
         """Create SRD entity from validated record."""
         try:
             # Create data source
@@ -370,7 +401,7 @@ class SRDDataImportService:
                 version="5.1",
                 checksum=self._calculate_record_hash(record),
                 is_official=True,
-                attribution_required=True
+                attribution_required=True,
             )
 
             # Create compliance record
@@ -380,12 +411,12 @@ class SRDDataImportService:
                 usage_restrictions=[
                     "Must include Wizards of the Coast attribution",
                     "Cannot be used in commercial products",
-                    "Must be distributed under OGL 1.0a"
+                    "Must be distributed under OGL 1.0a",
                 ],
                 last_verified=datetime.utcnow(),
                 verification_hash=self._calculate_record_hash(record),
                 compliance_officer="SRD Import Service",
-                audit_trail=[f"Imported on {datetime.utcnow().isoformat()}"]
+                audit_trail=[f"Imported on {datetime.utcnow().isoformat()}"],
             )
 
             if data_type == "monsters":
@@ -407,7 +438,7 @@ class SRDDataImportService:
                     data_source=data_source,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
-                    is_active=True
+                    is_active=True,
                 )
 
             elif data_type == "spells":
@@ -426,7 +457,7 @@ class SRDDataImportService:
                     data_source=data_source,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
-                    is_active=True
+                    is_active=True,
                 )
 
             elif data_type == "weapons":
@@ -442,32 +473,56 @@ class SRDDataImportService:
                     data_source=data_source,
                     created_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
-                    is_active=True
+                    is_active=True,
                 )
 
         except Exception as e:
             self.logger.error("Failed to create SRD entity", error=str(e))
             return None
 
-    def _record_exists(self, entity: Union[Monster, Spell, Weapon], data_type: str) -> bool:
+    def _record_exists(
+        self, entity: Union[Monster, Spell, Weapon], data_type: str
+    ) -> bool:
         """Check if a record already exists in the database."""
         try:
             if isinstance(entity, Monster):
                 return srd_database_manager.get_monster(entity.monster_id) is not None
             elif isinstance(entity, Spell):
                 # For spells, we check by name and level since ID might not be set
-                return len([s for s in srd_database_manager.get_spells_by_level(entity.level)
-                           if s.spell_name == entity.spell_name]) > 0
+                return (
+                    len(
+                        [
+                            s
+                            for s in srd_database_manager.get_spells_by_level(
+                                entity.level
+                            )
+                            if s.spell_name == entity.spell_name
+                        ]
+                    )
+                    > 0
+                )
             elif isinstance(entity, Weapon):
-                return len([w for w in srd_database_manager.get_weapons_by_category(entity.category)
-                           if w.weapon_name == entity.weapon_name]) > 0
+                return (
+                    len(
+                        [
+                            w
+                            for w in srd_database_manager.get_weapons_by_category(
+                                entity.category
+                            )
+                            if w.weapon_name == entity.weapon_name
+                        ]
+                    )
+                    > 0
+                )
 
         except Exception as e:
             self.logger.warning("Failed to check record existence", error=str(e))
 
         return False
 
-    def _import_single_record(self, entity: Union[Monster, Spell, Weapon], data_type: str, user: str) -> None:
+    def _import_single_record(
+        self, entity: Union[Monster, Spell, Weapon], data_type: str, user: str
+    ) -> None:
         """Import a single record to the database."""
         try:
             if isinstance(entity, Monster):

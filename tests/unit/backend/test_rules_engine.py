@@ -10,20 +10,19 @@ Tests cover:
 - Health monitoring
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
 
-from packages.shared.models import RulesQuery, RulesResponse
-from packages.backend.components.rules_engine import (
-    RulesEngine,
-    RuleProviderType,
-    QueryMetrics
-)
+import pytest
+
 from packages.backend.components.providers.monster_provider import MonsterRuleProvider
 from packages.backend.components.providers.spell_provider import SpellRuleProvider
 from packages.backend.components.providers.weapon_provider import WeaponRuleProvider
-from packages.shared.logging_config import get_logger
+from packages.backend.components.rules_engine import (
+    QueryMetrics,
+    RuleProviderType,
+    RulesEngine,
+)
+from packages.shared.models import RulesQuery, RulesResponse
 
 
 class TestRulesEngine:
@@ -44,7 +43,7 @@ class TestRulesEngine:
             query_type="monster",
             name="Test Monster",
             context="combat encounter",
-            filters={"min_cr": 1, "max_cr": 5}
+            filters={"min_cr": 1, "max_cr": 5},
         )
 
     def test_rules_engine_initialization(self, rules_engine):
@@ -57,9 +56,15 @@ class TestRulesEngine:
 
     def test_provider_initialization(self, rules_engine):
         """Test that providers are properly initialized."""
-        assert isinstance(rules_engine.providers[RuleProviderType.MONSTER], MonsterRuleProvider)
-        assert isinstance(rules_engine.providers[RuleProviderType.SPELL], SpellRuleProvider)
-        assert isinstance(rules_engine.providers[RuleProviderType.WEAPON], WeaponRuleProvider)
+        assert isinstance(
+            rules_engine.providers[RuleProviderType.MONSTER], MonsterRuleProvider
+        )
+        assert isinstance(
+            rules_engine.providers[RuleProviderType.SPELL], SpellRuleProvider
+        )
+        assert isinstance(
+            rules_engine.providers[RuleProviderType.WEAPON], WeaponRuleProvider
+        )
 
     @pytest.mark.asyncio
     async def test_query_monster(self, rules_engine):
@@ -200,9 +205,7 @@ class TestRulesEngine:
     async def test_query_with_filters(self, rules_engine):
         """Test query with filters."""
         query = RulesQuery(
-            query_type="monster",
-            name="Test",
-            filters={"min_cr": 1, "max_cr": 3}
+            query_type="monster", name="Test", filters={"min_cr": 1, "max_cr": 3}
         )
 
         response = await rules_engine.query(query)
@@ -219,6 +222,7 @@ class TestRulesEngine:
         # The query should not raise an exception even if the monster is not found
         # It should return a proper RulesResponse with found=False
         import asyncio
+
         async def run_query():
             return await rules_engine.query(query)
 
@@ -260,13 +264,14 @@ class TestRulesEngine:
         provider = rules_engine.providers[RuleProviderType.MONSTER]
 
         # Create a cache entry with very short TTL
-        from packages.backend.components.rules_engine import CacheEntry
         from datetime import timedelta
+
+        from packages.backend.components.rules_engine import CacheEntry
 
         test_entry = CacheEntry(
             data="test_data",
             timestamp=datetime.utcnow() - timedelta(seconds=10),  # 10 seconds ago
-            ttl_seconds=5  # 5 second TTL
+            ttl_seconds=5,  # 5 second TTL
         )
 
         assert test_entry.is_expired() is True
@@ -303,7 +308,7 @@ class TestRulesResponse:
             name="Goblin",
             found=True,
             data={"test": "data"},
-            query_time=0.123
+            query_time=0.123,
         )
 
         assert response.query_type == "monster"
@@ -336,7 +341,7 @@ class TestQueryMetrics:
             query_time=0.123,
             cache_hit=False,
             timestamp=datetime.utcnow(),
-            success=True
+            success=True,
         )
 
         assert metrics.query_type == "monster"

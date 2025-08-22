@@ -50,7 +50,8 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.add_character.return_value = mock_character
 
         # Act
-        response = await client.post(ROUTES.character_add(),
+        response = await client.post(
+            ROUTES.character_add(),
             json={
                 "player_id": self.player_id,
                 "name": self.character_name,
@@ -170,7 +171,9 @@ class TestCharacterAPI(BaseTestData):
         mock_character_manager.remove_character.side_effect = NotFoundError(error)
 
         # Act
-        response = await client.post(ROUTES.character_remove(), json={"character_id": 999})
+        response = await client.post(
+            ROUTES.character_remove(), json={"character_id": 999}
+        )
 
         # Assert
         assert response.status_code == 404

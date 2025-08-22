@@ -15,13 +15,11 @@ Features:
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Callable, Awaitable
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
-from functools import wraps
+from typing import Any, Awaitable, Callable, Dict, List, Optional
 
-from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -70,14 +68,11 @@ class ErrorInfo:
     @property
     def is_retryable(self) -> bool:
         """Check if error can be retried."""
-        return (
-            self.retry_count < self.max_retries and
-            self.category in [
-                ErrorCategory.NETWORK,
-                ErrorCategory.TIMEOUT,
-                ErrorCategory.PROVIDER_ERROR
-            ]
-        )
+        return self.retry_count < self.max_retries and self.category in [
+            ErrorCategory.NETWORK,
+            ErrorCategory.TIMEOUT,
+            ErrorCategory.PROVIDER_ERROR,
+        ]
 
 
 @dataclass
@@ -114,9 +109,9 @@ class CircuitBreaker:
     def __init__(self, name: str, config: Dict[str, Any]):
         self.name = name
         self.state = CircuitBreakerState(
-            failure_threshold=config.get('failure_threshold', 5),
-            recovery_timeout=timedelta(seconds=config.get('recovery_timeout', 60)),
-            success_threshold=config.get('success_threshold', 3)
+            failure_threshold=config.get("failure_threshold", 5),
+            recovery_timeout=timedelta(seconds=config.get("recovery_timeout", 60)),
+            success_threshold=config.get("success_threshold", 3),
         )
         self.logger = get_logger(f"{__name__}.CircuitBreaker.{name}")
 
@@ -126,8 +121,13 @@ class CircuitBreaker:
             return True
 
         # Check if recovery timeout has passed
-        if self.state.next_retry_time and datetime.utcnow() >= self.state.next_retry_time:
-            self.logger.info("circuit_breaker_attempting_recovery", circuit_breaker=self.name)
+        if (
+            self.state.next_retry_time
+            and datetime.utcnow() >= self.state.next_retry_time
+        ):
+            self.logger.info(
+                "circuit_breaker_attempting_recovery", circuit_breaker=self.name
+            )
             return True
 
         return False
@@ -138,7 +138,10 @@ class CircuitBreaker:
         self.state.failure_count = 0
 
         # Close circuit if enough consecutive successes
-        if self.state.is_open and self.state.consecutive_successes >= self.state.success_threshold:
+        if (
+            self.state.is_open
+            and self.state.consecutive_successes >= self.state.success_threshold
+        ):
             self.state.is_open = False
             self.state.consecutive_successes = 0
             self.logger.info("circuit_breaker_closed", circuit_breaker=self.name)
@@ -150,14 +153,17 @@ class CircuitBreaker:
         self.state.consecutive_successes = 0
 
         # Open circuit if failure threshold exceeded
-        if not self.state.is_open and self.state.failure_count >= self.state.failure_threshold:
+        if (
+            not self.state.is_open
+            and self.state.failure_count >= self.state.failure_threshold
+        ):
             self.state.is_open = True
             self.state.next_retry_time = datetime.utcnow() + self.state.recovery_timeout
             self.logger.warning(
                 "circuit_breaker_opened",
                 circuit_breaker=self.name,
                 failure_count=self.state.failure_count,
-                next_retry_time=self.state.next_retry_time.isoformat()
+                next_retry_time=self.state.next_retry_time.isoformat(),
             )
 
 
@@ -205,22 +211,22 @@ class ErrorHandlingService:
                     conditions=[{"category": ErrorCategory.PROVIDER_ERROR}],
                     action="switch_tts_provider",
                     timeout=30.0,
-                    cooldown=60.0
+                    cooldown=60.0,
                 ),
                 FallbackStrategy(
                     name="reduce_quality_settings",
                     priority=2,
                     conditions=[{"severity": ErrorSeverity.HIGH}],
                     action="reduce_tts_quality",
-                    timeout=15.0
+                    timeout=15.0,
                 ),
                 FallbackStrategy(
                     name="use_cached_response",
                     priority=3,
                     conditions=[{"category": ErrorCategory.NETWORK}],
                     action="return_cached_tts",
-                    timeout=5.0
-                )
+                    timeout=5.0,
+                ),
             ],
             "stt_transcription_failed": [
                 FallbackStrategy(
@@ -228,7 +234,7 @@ class ErrorHandlingService:
                     priority=1,
                     conditions=[{"category": ErrorCategory.AUDIO_PROCESSING}],
                     action="reformat_audio_stt",
-                    timeout=20.0
+                    timeout=20.0,
                 ),
                 FallbackStrategy(
                     name="switch_stt_provider",
@@ -236,8 +242,8 @@ class ErrorHandlingService:
                     conditions=[{"category": ErrorCategory.PROVIDER_ERROR}],
                     action="switch_stt_provider",
                     timeout=30.0,
-                    cooldown=60.0
-                )
+                    cooldown=60.0,
+                ),
             ],
             "audio_processing_failed": [
                 FallbackStrategy(
@@ -245,19 +251,21 @@ class ErrorHandlingService:
                     priority=1,
                     conditions=[{"category": ErrorCategory.AUDIO_PROCESSING}],
                     action="disable_enhancements",
-                    timeout=10.0
+                    timeout=10.0,
                 ),
                 FallbackStrategy(
                     name="reduce_chunk_size",
                     priority=2,
                     conditions=[{"severity": ErrorSeverity.HIGH}],
                     action="reduce_audio_chunk_size",
-                    timeout=15.0
-                )
-            ]
+                    timeout=15.0,
+                ),
+            ],
         }
 
-    def register_circuit_breaker(self, name: str, config: Dict[str, Any]) -> CircuitBreaker:
+    def register_circuit_breaker(
+        self, name: str, config: Dict[str, Any]
+    ) -> CircuitBreaker:
         """Register a new circuit breaker."""
         circuit_breaker = CircuitBreaker(name, config)
         self.circuit_breakers[name] = circuit_breaker
@@ -275,7 +283,7 @@ class ErrorHandlingService:
         fallback_scenarios: List[str],
         *args,
         correlation_id: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Execute operation with fallback mechanisms.
@@ -311,7 +319,7 @@ class ErrorHandlingService:
                 "operation_successful",
                 operation=operation_name,
                 execution_time=execution_time,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             return result
@@ -325,8 +333,13 @@ class ErrorHandlingService:
 
             # Handle error and attempt fallbacks
             return await self._handle_error_and_fallback(
-                operation_name, e, fallback_scenarios,
-                operation, args, kwargs, correlation_id
+                operation_name,
+                e,
+                fallback_scenarios,
+                operation,
+                args,
+                kwargs,
+                correlation_id,
             )
 
     async def _handle_error_and_fallback(
@@ -337,13 +350,11 @@ class ErrorHandlingService:
         original_operation: Callable[..., Awaitable[Any]],
         args: tuple,
         kwargs: dict,
-        correlation_id: Optional[str]
+        correlation_id: Optional[str],
     ) -> Any:
         """Handle error and execute fallback strategies."""
         # Create error info
-        error_info = self._create_error_info(
-            operation_name, error, correlation_id
-        )
+        error_info = self._create_error_info(operation_name, error, correlation_id)
 
         # Log error
         self._log_error(error_info)
@@ -362,7 +373,7 @@ class ErrorHandlingService:
                         "fallback_successful",
                         operation=operation_name,
                         scenario=scenario,
-                        correlation_id=correlation_id
+                        correlation_id=correlation_id,
                     )
                     return result
 
@@ -371,17 +382,14 @@ class ErrorHandlingService:
             "all_fallbacks_failed",
             operation=operation_name,
             correlation_id=correlation_id,
-            error=str(error)
+            error=str(error),
         )
 
         # Return appropriate error response
         return self._create_error_response(operation_name, error_info)
 
     def _create_error_info(
-        self,
-        operation_name: str,
-        error: Exception,
-        correlation_id: Optional[str]
+        self, operation_name: str, error: Exception, correlation_id: Optional[str]
     ) -> ErrorInfo:
         """Create structured error information."""
         error_id = f"{operation_name}_{int(time.time() * 1000)}"
@@ -397,20 +405,25 @@ class ErrorHandlingService:
             details={
                 "exception_type": type(error).__name__,
                 "operation": operation_name,
-                "traceback": self._get_traceback(error)
+                "traceback": self._get_traceback(error),
             },
             component="error_handling_service",
             operation=operation_name,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
-    def _classify_error(self, error: Exception, operation_name: str) -> tuple[ErrorCategory, ErrorSeverity]:
+    def _classify_error(
+        self, error: Exception, operation_name: str
+    ) -> tuple[ErrorCategory, ErrorSeverity]:
         """Classify error by category and severity."""
         error_str = str(error).lower()
         error_type = type(error).__name__
 
         # Network errors
-        if any(keyword in error_str for keyword in ["connection", "timeout", "network", "dns", "ssl"]):
+        if any(
+            keyword in error_str
+            for keyword in ["connection", "timeout", "network", "dns", "ssl"]
+        ):
             return ErrorCategory.NETWORK, ErrorSeverity.MEDIUM
 
         # Timeout errors
@@ -419,16 +432,24 @@ class ErrorHandlingService:
 
         # Audio processing errors
         if any(keyword in operation_name for keyword in ["audio", "stt", "tts"]):
-            if any(keyword in error_str for keyword in ["format", "decode", "encode", "invalid"]):
+            if any(
+                keyword in error_str
+                for keyword in ["format", "decode", "encode", "invalid"]
+            ):
                 return ErrorCategory.AUDIO_PROCESSING, ErrorSeverity.HIGH
             return ErrorCategory.VOICE_SERVICE, ErrorSeverity.MEDIUM
 
         # Provider errors
-        if "provider" in error_str or any(keyword in operation_name for keyword in ["openai", "elevenlabs"]):
+        if "provider" in error_str or any(
+            keyword in operation_name for keyword in ["openai", "elevenlabs"]
+        ):
             return ErrorCategory.PROVIDER_ERROR, ErrorSeverity.HIGH
 
         # Resource limit errors
-        if any(keyword in error_str for keyword in ["memory", "disk", "quota", "rate limit"]):
+        if any(
+            keyword in error_str
+            for keyword in ["memory", "disk", "quota", "rate limit"]
+        ):
             return ErrorCategory.RESOURCE_LIMIT, ErrorSeverity.HIGH
 
         # Configuration errors
@@ -436,7 +457,9 @@ class ErrorHandlingService:
             return ErrorCategory.CONFIGURATION, ErrorSeverity.MEDIUM
 
         # Validation errors
-        if any(keyword in error_str for keyword in ["invalid", "validation", "parameter"]):
+        if any(
+            keyword in error_str for keyword in ["invalid", "validation", "parameter"]
+        ):
             return ErrorCategory.VALIDATION, ErrorSeverity.LOW
 
         return ErrorCategory.UNKNOWN, ErrorSeverity.MEDIUM
@@ -444,6 +467,7 @@ class ErrorHandlingService:
     def _get_traceback(self, error: Exception) -> str:
         """Get traceback information."""
         import traceback
+
         return traceback.format_exception(type(error), error, error.__traceback__)
 
     async def _execute_fallback_scenario(
@@ -452,7 +476,7 @@ class ErrorHandlingService:
         error_info: ErrorInfo,
         original_operation: Callable[..., Awaitable[Any]],
         args: tuple,
-        kwargs: dict
+        kwargs: dict,
     ) -> Optional[Any]:
         """Execute a specific fallback scenario."""
         strategies = self.fallback_strategies.get(scenario, [])
@@ -464,7 +488,7 @@ class ErrorHandlingService:
                         "executing_fallback_strategy",
                         scenario=scenario,
                         strategy=strategy.name,
-                        error_id=error_info.error_id
+                        error_id=error_info.error_id,
                     )
 
                     result = await self._execute_strategy_action(
@@ -479,12 +503,14 @@ class ErrorHandlingService:
                         "fallback_strategy_failed",
                         strategy=strategy.name,
                         error=str(e),
-                        error_id=error_info.error_id
+                        error_id=error_info.error_id,
                     )
 
         return None
 
-    def _should_execute_strategy(self, strategy: FallbackStrategy, error_info: ErrorInfo) -> bool:
+    def _should_execute_strategy(
+        self, strategy: FallbackStrategy, error_info: ErrorInfo
+    ) -> bool:
         """Check if fallback strategy should be executed."""
         for condition in strategy.conditions:
             condition_met = False
@@ -511,7 +537,7 @@ class ErrorHandlingService:
         error_info: ErrorInfo,
         original_operation: Callable[..., Awaitable[Any]],
         args: tuple,
-        kwargs: dict
+        kwargs: dict,
     ) -> Optional[Any]:
         """Execute the action for a fallback strategy."""
         action = strategy.action
@@ -534,40 +560,56 @@ class ErrorHandlingService:
         return None
 
     # Fallback action implementations
-    async def _switch_tts_provider(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _switch_tts_provider(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Switch to backup TTS provider."""
         # This would integrate with the TTS service to switch providers
         # For now, return a mock response
         return {"fallback": "tts_provider_switched", "error_id": error_info.error_id}
 
-    async def _reduce_tts_quality(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _reduce_tts_quality(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Reduce TTS quality settings."""
         # Modify kwargs to use lower quality settings
         modified_kwargs = kwargs.copy()
         modified_kwargs["voice"] = "default"  # Use default voice
         return {"fallback": "tts_quality_reduced", "error_id": error_info.error_id}
 
-    async def _return_cached_tts(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _return_cached_tts(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Return cached TTS response."""
         return {"fallback": "cached_tts_response", "error_id": error_info.error_id}
 
-    async def _reformat_audio_stt(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _reformat_audio_stt(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Reformat audio for STT processing."""
         return {"fallback": "audio_reformatted", "error_id": error_info.error_id}
 
-    async def _switch_stt_provider(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _switch_stt_provider(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Switch STT provider."""
         return {"fallback": "stt_provider_switched", "error_id": error_info.error_id}
 
-    async def _disable_enhancements(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _disable_enhancements(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Disable audio enhancements."""
         return {"fallback": "enhancements_disabled", "error_id": error_info.error_id}
 
-    async def _reduce_audio_chunk_size(self, error_info: ErrorInfo, args: tuple, kwargs: dict) -> Optional[Any]:
+    async def _reduce_audio_chunk_size(
+        self, error_info: ErrorInfo, args: tuple, kwargs: dict
+    ) -> Optional[Any]:
         """Reduce audio chunk size."""
         return {"fallback": "chunk_size_reduced", "error_id": error_info.error_id}
 
-    def _create_error_response(self, operation_name: str, error_info: ErrorInfo) -> Dict[str, Any]:
+    def _create_error_response(
+        self, operation_name: str, error_info: ErrorInfo
+    ) -> Dict[str, Any]:
         """Create appropriate error response."""
         return {
             "success": False,
@@ -577,7 +619,7 @@ class ErrorHandlingService:
             "severity": error_info.severity.value,
             "operation": operation_name,
             "retryable": error_info.is_retryable,
-            "timestamp": error_info.timestamp.isoformat()
+            "timestamp": error_info.timestamp.isoformat(),
         }
 
     def _log_error(self, error_info: ErrorInfo) -> None:
@@ -589,7 +631,7 @@ class ErrorHandlingService:
             "component": error_info.component,
             "operation": error_info.operation,
             "correlation_id": error_info.correlation_id,
-            "message": error_info.message
+            "message": error_info.message,
         }
 
         if error_info.severity == ErrorSeverity.CRITICAL:
@@ -607,7 +649,7 @@ class ErrorHandlingService:
 
         # Maintain max history size
         if len(self.recent_errors) > self.max_error_history:
-            self.recent_errors = self.recent_errors[-self.max_error_history:]
+            self.recent_errors = self.recent_errors[-self.max_error_history :]
 
         # Update error counts
         error_key = f"{error_info.category.value}:{error_info.operation}"
@@ -618,7 +660,7 @@ class ErrorHandlingService:
         error_info: ErrorInfo,
         operation: Callable[..., Awaitable[Any]],
         *args,
-        **kwargs
+        **kwargs,
     ) -> Awaitable[Any]:
         """Retry operation with exponential backoff."""
         if not error_info.is_retryable:
@@ -627,24 +669,20 @@ class ErrorHandlingService:
         error_info.retry_count += 1
 
         # Calculate delay with exponential backoff
-        delay = min(2 ** error_info.retry_count, 30)  # Max 30 seconds
+        delay = min(2**error_info.retry_count, 30)  # Max 30 seconds
 
         self.logger.info(
             "retrying_operation",
             operation=error_info.operation,
             retry_count=error_info.retry_count,
             delay=delay,
-            error_id=error_info.error_id
+            error_id=error_info.error_id,
         )
 
         return self._execute_with_delay(operation, delay, *args, **kwargs)
 
     async def _execute_with_delay(
-        self,
-        operation: Callable[..., Awaitable[Any]],
-        delay: float,
-        *args,
-        **kwargs
+        self, operation: Callable[..., Awaitable[Any]], delay: float, *args, **kwargs
     ) -> Any:
         """Execute operation after delay."""
         await asyncio.sleep(delay)
@@ -652,8 +690,11 @@ class ErrorHandlingService:
 
     def get_error_statistics(self) -> Dict[str, Any]:
         """Get error statistics and health information."""
-        recent_errors = [e for e in self.recent_errors if
-                        datetime.utcnow() - e.timestamp < timedelta(hours=1)]
+        recent_errors = [
+            e
+            for e in self.recent_errors
+            if datetime.utcnow() - e.timestamp < timedelta(hours=1)
+        ]
 
         return {
             "total_errors_tracked": len(self.recent_errors),
@@ -663,24 +704,33 @@ class ErrorHandlingService:
                 name: {
                     "is_open": cb.state.is_open,
                     "failure_count": cb.state.failure_count,
-                    "consecutive_successes": cb.state.consecutive_successes
+                    "consecutive_successes": cb.state.consecutive_successes,
                 }
                 for name, cb in self.circuit_breakers.items()
             },
             "operation_performance": self.operation_times.copy(),
-            "recovery_times": self.recovery_times.copy()
+            "recovery_times": self.recovery_times.copy(),
         }
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get overall health status of error handling service."""
-        recent_errors_1h = len([e for e in self.recent_errors
-                               if datetime.utcnow() - e.timestamp < timedelta(hours=1)])
+        recent_errors_1h = len(
+            [
+                e
+                for e in self.recent_errors
+                if datetime.utcnow() - e.timestamp < timedelta(hours=1)
+            ]
+        )
 
-        open_circuit_breakers = len([cb for cb in self.circuit_breakers.values()
-                                    if cb.state.is_open])
+        open_circuit_breakers = len(
+            [cb for cb in self.circuit_breakers.values() if cb.state.is_open]
+        )
 
         # Determine overall health
-        if recent_errors_1h > 100 or open_circuit_breakers > len(self.circuit_breakers) / 2:
+        if (
+            recent_errors_1h > 100
+            or open_circuit_breakers > len(self.circuit_breakers) / 2
+        ):
             health_status = "critical"
         elif recent_errors_1h > 50 or open_circuit_breakers > 0:
             health_status = "degraded"
@@ -693,7 +743,7 @@ class ErrorHandlingService:
             "open_circuit_breakers": open_circuit_breakers,
             "total_circuit_breakers": len(self.circuit_breakers),
             "error_rate": recent_errors_1h / max(len(self.recent_errors), 1),
-            "fallback_strategies_count": len(self.fallback_strategies)
+            "fallback_strategies_count": len(self.fallback_strategies),
         }
 
     def clear_error_history(self) -> None:

@@ -35,9 +35,7 @@ class TestCampaignManager(BaseTestData):
         )
         assert result is True
         with pytest.raises(NotFoundError):
-            await managers.campaign.get_campaign(
-                self.server_id, self.campaign_name
-            )
+            await managers.campaign.get_campaign(self.server_id, self.campaign_name)
 
     async def test_delete_campaign_by_admin(self, managers, session):
         await managers.campaign.create_campaign(
@@ -48,9 +46,7 @@ class TestCampaignManager(BaseTestData):
         )
         assert result is True
         with pytest.raises(NotFoundError):
-            await managers.campaign.get_campaign(
-                self.server_id, self.campaign_name
-            )
+            await managers.campaign.get_campaign(self.server_id, self.campaign_name)
 
     async def test_delete_campaign_permission_denied(self, managers, session):
         await managers.campaign.create_campaign(

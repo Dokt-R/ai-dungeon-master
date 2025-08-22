@@ -83,7 +83,9 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.get_campaign.return_value = mock_campaign
 
         # Act
-        response = await client.get(ROUTES.campaign_details(self.server_id, self.campaign_name))
+        response = await client.get(
+            ROUTES.campaign_details(self.server_id, self.campaign_name)
+        )
 
         # Assert
         assert response.status_code == 200
@@ -159,7 +161,8 @@ class TestCampaignAPI(BaseTestData):
         mock_campaign_manager.update_campaign_state.return_value = mock_campaign
 
         # Act
-        response = await client.put(ROUTES.campaign_state_update(self.campaign_id), json={"state": new_state}
+        response = await client.put(
+            ROUTES.campaign_state_update(self.campaign_id), json={"state": new_state}
         )
 
         # Assert

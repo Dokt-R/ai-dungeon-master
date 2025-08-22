@@ -95,7 +95,9 @@ class AdminCog(commands.Cog):
     async def server_setkey_(self, interaction: discord.Interaction, api_key: str):
         await self._handle_server_setkey(interaction, api_key)
 
-    async def _handle_server_setkey(self, interaction: discord.Interaction, api_key: str):
+    async def _handle_server_setkey(
+        self, interaction: discord.Interaction, api_key: str
+    ):
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
                 ErrorCode.PERMISSION_DENIED_ERROR,

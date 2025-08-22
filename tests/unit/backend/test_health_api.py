@@ -8,15 +8,18 @@ Tests cover:
 - Test trace endpoint functionality
 """
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
-from fastapi.testclient import TestClient
-from fastapi import HTTPException
+from unittest.mock import Mock, patch
 
+import pytest
+from fastapi.testclient import TestClient
+
+from packages.backend.agents.prompts import prompt_manager
+from packages.backend.components.ai_client import AIClient, ai_client
+from packages.backend.components.observability_service import (
+    ObservabilityService,
+    observability_service,
+)
 from packages.backend.main import app
-from packages.backend.components.observability_service import observability_service, ObservabilityService
-from packages.backend.components.ai_client import ai_client, AIClient
-from packages.backend.agents.prompts import prompt_manager, PromptType
 
 
 @pytest.fixture
@@ -36,15 +39,17 @@ def reset_observability_service():
 class TestObservabilityHealthEndpoint:
     """Test the /api/health/observability endpoint."""
 
-    def test_get_observability_health_healthy(self, client, reset_observability_service):
+    def test_get_observability_health_healthy(
+        self, client, reset_observability_service
+    ):
         """Test getting healthy observability health status."""
         # Mock the service to return healthy status
-        with patch.object(observability_service, 'get_health_status') as mock_health:
+        with patch.object(observability_service, "get_health_status") as mock_health:
             mock_health.return_value = {
                 "status": "healthy",
                 "provider": "langsmith",
                 "project": "test-project",
-                "tracing_enabled": True
+                "tracing_enabled": True,
             }
 
             response = client.get("/api/health/observability")
@@ -58,15 +63,17 @@ class TestObservabilityHealthEndpoint:
 
             mock_health.assert_called_once()
 
-    def test_get_observability_health_unhealthy(self, client, reset_observability_service):
+    def test_get_observability_health_unhealthy(
+        self, client, reset_observability_service
+    ):
         """Test getting unhealthy observability health status."""
         # Mock the service to return unhealthy status
-        with patch.object(observability_service, 'get_health_status') as mock_health:
+        with patch.object(observability_service, "get_health_status") as mock_health:
             mock_health.return_value = {
                 "status": "unhealthy",
                 "provider": "langsmith",
                 "project": "unknown",
-                "error": "configuration_failed"
+                "error": "configuration_failed",
             }
 
             response = client.get("/api/health/observability")
@@ -78,10 +85,12 @@ class TestObservabilityHealthEndpoint:
 
             mock_health.assert_called_once()
 
-    def test_get_observability_health_exception(self, client, reset_observability_service):
+    def test_get_observability_health_exception(
+        self, client, reset_observability_service
+    ):
         """Test observability health endpoint when service throws exception."""
         # Mock the service to raise an exception
-        with patch.object(observability_service, 'get_health_status') as mock_health:
+        with patch.object(observability_service, "get_health_status") as mock_health:
             mock_health.side_effect = Exception("Internal service error")
 
             response = client.get("/api/health/observability")
@@ -125,9 +134,10 @@ class TestObservabilityTestTraceEndpoint:
     def test_test_trace_success(self, client, reset_observability_service):
         """Test successful observability trace test."""
         # Mock the observability service methods
-        with patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(observability_service, 'get_health_status') as mock_health:
-
+        with (
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(observability_service, "get_health_status") as mock_health,
+        ):
             # Setup mocks
             mock_trace.return_value.__enter__ = Mock(return_value="test-trace-id")
             mock_trace.return_value.__exit__ = Mock(return_value=None)
@@ -135,7 +145,7 @@ class TestObservabilityTestTraceEndpoint:
             mock_health.return_value = {
                 "status": "healthy",
                 "provider": "langsmith",
-                "project": "test-project"
+                "project": "test-project",
             }
 
             response = client.post("/api/health/observability/test-trace")
@@ -151,16 +161,17 @@ class TestObservabilityTestTraceEndpoint:
             mock_trace.assert_called_once_with(
                 operation_name="test_observability_trace",
                 test_type="health_check",
-                endpoint="/api/health/observability/test-trace"
+                endpoint="/api/health/observability/test-trace",
             )
             mock_health.assert_called_once()
 
     def test_test_trace_service_exception(self, client, reset_observability_service):
         """Test observability trace test with service exception."""
         # Mock the trace operation to raise an exception
-        with patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(observability_service, 'get_health_status') as mock_health:
-
+        with (
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(observability_service, "get_health_status") as mock_health,
+        ):
             mock_trace.side_effect = Exception("Trace operation failed")
             mock_health.return_value = {"status": "unhealthy", "error": "trace_failed"}
 
@@ -188,19 +199,22 @@ def reset_ai_client():
 class TestAIHealthEndpoint:
     """Test the /api/health/ai endpoint."""
 
-    def test_get_ai_health_healthy_comprehensive(self, client, reset_ai_client, reset_observability_service):
+    def test_get_ai_health_healthy_comprehensive(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test getting comprehensive healthy AI health status."""
         # Mock all components to return healthy status
-        with patch.object(ai_client, 'get_health_status') as mock_ai_health, \
-             patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(prompt_manager, 'get_default_template') as mock_get_template:
-
+        with (
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(prompt_manager, "get_default_template") as mock_get_template,
+        ):
             # Setup mocks
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
                 "model": "gpt-4",
-                "circuit_breaker_state": "CLOSED"
+                "circuit_breaker_state": "CLOSED",
             }
 
             mock_trace.return_value.__enter__ = Mock(return_value="test-trace-id")
@@ -211,7 +225,10 @@ class TestAIHealthEndpoint:
             mock_get_template.return_value = mock_template
 
             # Mock prompt manager templates
-            prompt_manager._templates = {"template1": mock_template, "template2": mock_template}
+            prompt_manager._templates = {
+                "template1": mock_template,
+                "template2": mock_template,
+            }
 
             response = client.get("/api/health/ai")
 
@@ -230,24 +247,29 @@ class TestAIHealthEndpoint:
             mock_ai_health.assert_called_once()
             mock_trace.assert_called_once()
 
-    def test_get_ai_health_unhealthy_components(self, client, reset_ai_client, reset_observability_service):
+    def test_get_ai_health_unhealthy_components(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test getting AI health status when some components are unhealthy."""
-        with patch.object(ai_client, 'get_health_status') as mock_ai_health, \
-             patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(prompt_manager, 'get_default_template') as mock_get_template:
-
+        with (
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(prompt_manager, "get_default_template") as mock_get_template,
+        ):
             # Setup mocks with mixed health
             mock_ai_health.return_value = {
                 "status": "unhealthy",
                 "provider": "openai",
                 "model": "gpt-4",
-                "error": "configuration_failed"
+                "error": "configuration_failed",
             }
 
             mock_trace.return_value.__enter__ = Mock(return_value="test-trace-id")
             mock_trace.return_value.__exit__ = Mock(return_value=None)
 
-            mock_get_template.return_value = Mock()  # Template exists but AI is unhealthy
+            mock_get_template.return_value = (
+                Mock()
+            )  # Template exists but AI is unhealthy
 
             response = client.get("/api/health/ai")
 
@@ -260,17 +282,20 @@ class TestAIHealthEndpoint:
             assert data["failed_components"] == ["ai_client"]
             assert "error" in data
 
-    def test_get_ai_health_tracing_failure(self, client, reset_ai_client, reset_observability_service):
+    def test_get_ai_health_tracing_failure(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test AI health endpoint when tracing fails."""
-        with patch.object(ai_client, 'get_health_status') as mock_ai_health, \
-             patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(prompt_manager, 'get_default_template') as mock_get_template:
-
+        with (
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(prompt_manager, "get_default_template") as mock_get_template,
+        ):
             # Setup mocks with tracing failure
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4"
+                "model": "gpt-4",
             }
 
             mock_trace.side_effect = Exception("Tracing failed")
@@ -284,17 +309,20 @@ class TestAIHealthEndpoint:
             assert data["traced"] is False
             assert "tracing" in data["failed_components"]
 
-    def test_get_ai_health_prompt_system_failure(self, client, reset_ai_client, reset_observability_service):
+    def test_get_ai_health_prompt_system_failure(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test AI health endpoint when prompt system fails."""
-        with patch.object(ai_client, 'get_health_status') as mock_ai_health, \
-             patch.object(observability_service, 'trace_operation') as mock_trace, \
-             patch.object(prompt_manager, 'get_default_template') as mock_get_template:
-
+        with (
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+            patch.object(observability_service, "trace_operation") as mock_trace,
+            patch.object(prompt_manager, "get_default_template") as mock_get_template,
+        ):
             # Setup mocks with prompt system failure
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4"
+                "model": "gpt-4",
             }
 
             mock_trace.return_value.__enter__ = Mock(return_value="test-trace-id")
@@ -310,9 +338,11 @@ class TestAIHealthEndpoint:
             assert data["traced"] is True
             assert "prompt_system" in data["failed_components"]
 
-    def test_get_ai_health_internal_error(self, client, reset_ai_client, reset_observability_service):
+    def test_get_ai_health_internal_error(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test AI health endpoint when internal error occurs."""
-        with patch.object(ai_client, 'get_health_status') as mock_ai_health:
+        with patch.object(ai_client, "get_health_status") as mock_ai_health:
             mock_ai_health.side_effect = Exception("Internal service error")
 
             response = client.get("/api/health/ai")
@@ -320,27 +350,32 @@ class TestAIHealthEndpoint:
             assert response.status_code == 500
             data = response.json()
             assert data["detail"]["status"] == "unhealthy"
-            assert "internal_comprehensive_health_check_error" in data["detail"]["error"]
+            assert (
+                "internal_comprehensive_health_check_error" in data["detail"]["error"]
+            )
 
 
 class TestGeneralHealthEndpointWithAI:
     """Test the /api/health/general endpoint with AI integration."""
 
-    def test_get_general_health_with_ai_healthy(self, client, reset_ai_client, reset_observability_service):
+    def test_get_general_health_with_ai_healthy(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test general health endpoint with healthy AI components."""
-        with patch.object(observability_service, 'get_health_status') as mock_obs_health, \
-             patch.object(ai_client, 'get_health_status') as mock_ai_health:
-
+        with (
+            patch.object(observability_service, "get_health_status") as mock_obs_health,
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+        ):
             mock_obs_health.return_value = {
                 "status": "healthy",
                 "provider": "langsmith",
-                "project": "ai-dungeon-master"
+                "project": "ai-dungeon-master",
             }
 
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4"
+                "model": "gpt-4",
             }
 
             response = client.get("/api/health/general")
@@ -353,21 +388,24 @@ class TestGeneralHealthEndpointWithAI:
             assert data["components"]["ai_client"]["status"] == "healthy"
             assert "timestamp" in data
 
-    def test_get_general_health_with_ai_degraded(self, client, reset_ai_client, reset_observability_service):
+    def test_get_general_health_with_ai_degraded(
+        self, client, reset_ai_client, reset_observability_service
+    ):
         """Test general health endpoint with degraded AI components."""
-        with patch.object(observability_service, 'get_health_status') as mock_obs_health, \
-             patch.object(ai_client, 'get_health_status') as mock_ai_health:
-
+        with (
+            patch.object(observability_service, "get_health_status") as mock_obs_health,
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+        ):
             mock_obs_health.return_value = {
                 "status": "healthy",
                 "provider": "langsmith",
-                "project": "ai-dungeon-master"
+                "project": "ai-dungeon-master",
             }
 
             mock_ai_health.return_value = {
                 "status": "unhealthy",
                 "provider": "openai",
-                "error": "connection_failed"
+                "error": "connection_failed",
             }
 
             response = client.get("/api/health/general")
@@ -388,7 +426,7 @@ class TestHealthEndpointsIntegration:
             "/api/health/observability",
             "/api/health/ai",
             "/api/health/general",
-            "/api/health/observability/test-trace"
+            "/api/health/observability/test-trace",
         ]
 
         for endpoint in endpoints:
@@ -403,7 +441,7 @@ class TestHealthEndpointsIntegration:
         endpoints = [
             "/api/health/observability",
             "/api/health/ai",
-            "/api/health/general"
+            "/api/health/general",
         ]
 
         for endpoint in endpoints:
@@ -414,7 +452,9 @@ class TestHealthEndpointsIntegration:
             assert "status" in data
             assert data["status"] in ["healthy", "unhealthy", "degraded"]
 
-    def test_test_trace_not_initialized_service(self, client, reset_observability_service):
+    def test_test_trace_not_initialized_service(
+        self, client, reset_observability_service
+    ):
         """Test observability trace test when service is not initialized."""
         # Don't mock anything - service should handle not being initialized
 
@@ -433,14 +473,14 @@ class TestHealthEndpointsIntegration:
 
     def test_all_health_endpoints_exist(self, client):
         """Test that all expected health endpoints exist and return proper responses."""
-        endpoints = [
-            "/api/health/observability",
-            "/api/health/general"
-        ]
+        endpoints = ["/api/health/observability", "/api/health/general"]
 
         for endpoint in endpoints:
             response = client.get(endpoint)
-            assert response.status_code in [200, 500]  # 500 is acceptable for unhealthy services
+            assert response.status_code in [
+                200,
+                500,
+            ]  # 500 is acceptable for unhealthy services
             data = response.json()
             assert "status" in data
 

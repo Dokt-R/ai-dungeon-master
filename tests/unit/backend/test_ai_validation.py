@@ -10,16 +10,16 @@ Tests cover:
 - Terminology and rule compliance validation
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from packages.backend.components.ai_validation_service import (
     AIValidationService,
+    ValidationMetrics,
     ValidationResult,
-    ValidationMetrics
 )
-from packages.shared.logging_config import get_logger
 
 
 class TestAIValidationService:
@@ -38,7 +38,7 @@ class TestAIValidationService:
         return {
             "query": "What is the armor class of a Goblin?",
             "ai_response": "A Goblin has an armor class of 15, hit points of 7 (2d6), and uses a scimitar that deals 1d6+2 slashing damage.",
-            "expected_entities": ["Goblin"]
+            "expected_entities": ["Goblin"],
         }
 
     @pytest.fixture
@@ -47,7 +47,7 @@ class TestAIValidationService:
         return {
             "query": "What is the armor class of a Goblin?",
             "ai_response": "A Goblin has an armor class of 18, hit points of 15, and uses a longsword that deals 2d8 slashing damage.",
-            "expected_entities": ["Goblin"]
+            "expected_entities": ["Goblin"],
         }
 
     def test_service_initialization(self, validation_service):
@@ -58,20 +58,26 @@ class TestAIValidationService:
         assert len(validation_service.terminology_rules) > 0
 
     @pytest.mark.asyncio
-    async def test_validate_accurate_response(self, validation_service, sample_accurate_response):
+    async def test_validate_accurate_response(
+        self, validation_service, sample_accurate_response
+    ):
         """Test validation of an accurate AI response."""
-        with patch('packages.backend.components.ai_validation_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.ai_validation_service.rules_engine"
+        ) as mock_engine:
             # Mock Goblin monster data
             mock_monster = Mock()
             mock_monster.found = True
             mock_monster.data = {
                 "monster_name": "Goblin",
                 "armor_class": 15,
-                "hit_points": "7 (2d6)"
+                "hit_points": "7 (2d6)",
             }
             mock_engine.query_monster = AsyncMock(return_value=mock_monster)
 
-            result = await validation_service.validate_ai_response(**sample_accurate_response)
+            result = await validation_service.validate_ai_response(
+                **sample_accurate_response
+            )
 
             assert isinstance(result, ValidationResult)
             assert result.is_accurate is True
@@ -79,20 +85,26 @@ class TestAIValidationService:
             assert len(result.issues_found) == 0
 
     @pytest.mark.asyncio
-    async def test_validate_inaccurate_response(self, validation_service, sample_inaccurate_response):
+    async def test_validate_inaccurate_response(
+        self, validation_service, sample_inaccurate_response
+    ):
         """Test validation of an inaccurate AI response."""
-        with patch('packages.backend.components.ai_validation_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.ai_validation_service.rules_engine"
+        ) as mock_engine:
             # Mock Goblin monster data (different from AI response)
             mock_monster = Mock()
             mock_monster.found = True
             mock_monster.data = {
                 "monster_name": "Goblin",
                 "armor_class": 15,
-                "hit_points": "7 (2d6)"
+                "hit_points": "7 (2d6)",
             }
             mock_engine.query_monster = AsyncMock(return_value=mock_monster)
 
-            result = await validation_service.validate_ai_response(**sample_inaccurate_response)
+            result = await validation_service.validate_ai_response(
+                **sample_inaccurate_response
+            )
 
             assert isinstance(result, ValidationResult)
             assert result.is_accurate is False
@@ -105,7 +117,7 @@ class TestAIValidationService:
         validation_data = {
             "query": "How do you calculate hit points?",
             "ai_response": "You calculate health points by rolling dice and adding your constitution modifier.",
-            "expected_entities": []
+            "expected_entities": [],
         }
 
         result = await validation_service.validate_ai_response(**validation_data)
@@ -120,7 +132,7 @@ class TestAIValidationService:
         validation_data = {
             "query": "How do critical hits work?",
             "ai_response": "Critical hits occur on a roll of 19-20 and deal double damage including modifiers.",
-            "expected_entities": []
+            "expected_entities": [],
         }
 
         result = await validation_service.validate_ai_response(**validation_data)
@@ -170,7 +182,9 @@ class TestAIValidationService:
     def test_compare_hit_points(self, validation_service):
         """Test hit points comparison."""
         # Same hit points should match
-        assert validation_service._compare_hit_points("10 (3d6+1)", "10 (3d6+1)") is True
+        assert (
+            validation_service._compare_hit_points("10 (3d6+1)", "10 (3d6+1)") is True
+        )
 
         # Similar hit points should match (within variance)
         assert validation_service._compare_hit_points("10", "12") is True
@@ -188,7 +202,10 @@ class TestAIValidationService:
         """Test casting time comparison."""
         assert validation_service._compare_casting_times("1 action", "1 action") is True
         assert validation_service._compare_casting_times("action", "1 action") is True
-        assert validation_service._compare_casting_times("bonus action", "1 bonus action") is True
+        assert (
+            validation_service._compare_casting_times("bonus action", "1 bonus action")
+            is True
+        )
 
     def test_compare_ranges(self, validation_service):
         """Test range comparison."""
@@ -198,7 +215,10 @@ class TestAIValidationService:
 
     def test_compare_damage(self, validation_service):
         """Test damage comparison."""
-        assert validation_service._compare_damage("1d8 slashing", "1d8 slashing damage") is True
+        assert (
+            validation_service._compare_damage("1d8 slashing", "1d8 slashing damage")
+            is True
+        )
         assert validation_service._compare_damage("2d6+3", "2d6 + 3 piercing") is True
 
     def test_calculate_accuracy_score(self, validation_service):
@@ -212,7 +232,9 @@ class TestAIValidationService:
         assert score == 0.7  # 0.8 - 0.1
 
         # Corrections should reduce score further
-        score = validation_service._calculate_accuracy_score(["Issue 1"], ["Correction 1"])
+        score = validation_service._calculate_accuracy_score(
+            ["Issue 1"], ["Correction 1"]
+        )
         assert score == 0.65  # 0.8 - 0.1 - 0.05
 
     def test_update_metrics(self, validation_service):
@@ -243,7 +265,7 @@ class TestAIValidationService:
             corrections_suggested=["Use proper D&D terminology"],
             validation_details=[],
             validated_at=datetime.utcnow(),
-            validation_type="terminology"
+            validation_type="terminology",
         )
 
         feedback = validation_service.generate_improvement_feedback(validation_result)
@@ -260,7 +282,7 @@ class TestAIValidationService:
             "Terminology: 'health points' should be 'hit points'",
             "Armor Class mismatch for Goblin: AI said 18, SRD says 15",
             "Missing information: No mention of Goblin's Nimble Escape",
-            "Critical hit range incorrect"
+            "Critical hit range incorrect",
         ]
 
         categories = validation_service._categorize_issues(issues)
@@ -302,12 +324,16 @@ class TestAIValidationService:
         validation_data = {
             "query": "Test query",
             "ai_response": "Test response",
-            "expected_entities": ["NonexistentEntity"]
+            "expected_entities": ["NonexistentEntity"],
         }
 
-        with patch('packages.backend.components.ai_validation_service.rules_engine') as mock_engine:
+        with patch(
+            "packages.backend.components.ai_validation_service.rules_engine"
+        ) as mock_engine:
             # Mock engine to raise exception
-            mock_engine.query_monster = AsyncMock(side_effect=Exception("Database error"))
+            mock_engine.query_monster = AsyncMock(
+                side_effect=Exception("Database error")
+            )
 
             result = await validation_service.validate_ai_response(**validation_data)
 
@@ -340,7 +366,7 @@ class TestAIValidationService:
         validation_data = {
             "query": "What is a Goblin?",
             "ai_response": "",
-            "expected_entities": ["Goblin"]
+            "expected_entities": ["Goblin"],
         }
 
         result = await validation_service.validate_ai_response(**validation_data)
@@ -355,7 +381,7 @@ class TestAIValidationService:
         validation_data = {
             "query": "What is a Goblin?",
             "ai_response": None,
-            "expected_entities": ["Goblin"]
+            "expected_entities": ["Goblin"],
         }
 
         result = await validation_service.validate_ai_response(**validation_data)
@@ -381,7 +407,7 @@ class TestValidationResult:
             corrections_suggested=corrections,
             validation_details=details,
             validated_at=datetime.utcnow(),
-            validation_type="test"
+            validation_type="test",
         )
 
         assert result.is_accurate is False
@@ -418,7 +444,7 @@ class TestValidationMetrics:
             accuracy_rate=0.833,
             average_accuracy_score=0.85,
             common_issues=common_issues,
-            validation_types=validation_types
+            validation_types=validation_types,
         )
 
         assert metrics.total_validations == 18

@@ -10,21 +10,19 @@ Tests cover:
 - Integration with validation module
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from packages.backend.components.campaign_memory_service import CampaignMemoryService
 from packages.shared.models import (
-    MemoryEvent,
-    MemoryFact,
-    MemoryContext,
     CreateMemoryEventRequest,
     CreateMemoryFactRequest,
+    MemoryContext,
+    MemoryEvent,
+    MemoryFact,
+    MemoryQueryRequest,
     UpdateMemoryEventRequest,
     UpdateMemoryFactRequest,
-    MemoryQueryRequest,
-    MemoryOperation
 )
 
 
@@ -51,12 +49,12 @@ class TestCampaignMemoryServiceInitialization:
         """Test that search indexes are properly initialized."""
         service = CampaignMemoryService()
 
-        assert hasattr(service._storage, 'event_index')
-        assert hasattr(service._storage, 'fact_index')
-        assert 'participants' in service._storage.event_index
-        assert 'event_type' in service._storage.event_index
-        assert 'subject' in service._storage.fact_index
-        assert 'fact_type' in service._storage.fact_index
+        assert hasattr(service._storage, "event_index")
+        assert hasattr(service._storage, "fact_index")
+        assert "participants" in service._storage.event_index
+        assert "event_type" in service._storage.event_index
+        assert "subject" in service._storage.fact_index
+        assert "fact_type" in service._storage.fact_index
 
 
 class TestMemoryEventCRUD:
@@ -70,7 +68,7 @@ class TestMemoryEventCRUD:
             event_type="narrative",
             description="The party enters the dark cave",
             participants=["Eldrin", "Lyra"],
-            location="Dark Cave Entrance"
+            location="Dark Cave Entrance",
         )
 
         result = service.create_memory_event_from_request(request)
@@ -94,7 +92,7 @@ class TestMemoryEventCRUD:
         request = CreateMemoryEventRequest(
             event_type="narrative",
             description="",  # Empty description - validation failure
-            participants=["Test"]
+            participants=["Test"],
         )
 
         result = service.create_memory_event_from_request(request)
@@ -114,7 +112,7 @@ class TestMemoryEventCRUD:
             timestamp=datetime.utcnow(),
             event_type="combat",
             description="Test event",
-            participants=["Hero"]
+            participants=["Hero"],
         )
         service._storage.events["test_event"] = event
 
@@ -143,15 +141,15 @@ class TestMemoryEventCRUD:
                 timestamp=datetime.utcnow(),
                 event_type="combat",
                 description="Battle event",
-                participants=["Hero"]
+                participants=["Hero"],
             ),
             MemoryEvent(
                 event_id="event_2",
                 timestamp=datetime.utcnow(),
                 event_type="narrative",
                 description="Story event",
-                participants=["Hero"]
-            )
+                participants=["Hero"],
+            ),
         ]
 
         for event in events:
@@ -175,7 +173,7 @@ class TestMemoryEventCRUD:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Eldrin", "Lyra"]
+            participants=["Eldrin", "Lyra"],
         )
         service._storage.events["event_1"] = event
 
@@ -199,7 +197,7 @@ class TestMemoryEventCRUD:
             event_type="narrative",
             description="Original description",
             participants=["Hero"],
-            version=1
+            version=1,
         )
         service._storage.events["test_event"] = original_event
 
@@ -207,7 +205,7 @@ class TestMemoryEventCRUD:
         update_request = UpdateMemoryEventRequest(
             event_id="test_event",
             description="Updated description",
-            participants=["Hero", "Sidekick"]
+            participants=["Hero", "Sidekick"],
         )
 
         result = service.update_memory_event("test_event", update_request)
@@ -227,8 +225,7 @@ class TestMemoryEventCRUD:
         service = CampaignMemoryService()
 
         update_request = UpdateMemoryEventRequest(
-            event_id="nonexistent",
-            description="Updated description"
+            event_id="nonexistent", description="Updated description"
         )
 
         result = service.update_memory_event("nonexistent", update_request)
@@ -246,7 +243,7 @@ class TestMemoryEventCRUD:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Hero"]
+            participants=["Hero"],
         )
         service._storage.events["test_event"] = event
 
@@ -283,7 +280,7 @@ class TestMemoryFactCRUD:
             description="A merchant with valuable information",
             confidence=0.85,
             source="conversation",
-            tags=["merchant", "informant"]
+            tags=["merchant", "informant"],
         )
 
         result = service.create_memory_fact_from_request(request)
@@ -310,7 +307,7 @@ class TestMemoryFactCRUD:
             subject="",  # Empty subject - validation failure
             description="Test description",
             confidence=0.5,
-            source="test"
+            source="test",
         )
 
         result = service.create_memory_fact_from_request(request)
@@ -331,7 +328,7 @@ class TestMemoryFactCRUD:
             subject="Ancient Temple",
             description="Test fact",
             confidence=0.8,
-            source="discovery"
+            source="discovery",
         )
         service._storage.facts["test_fact"] = fact
 
@@ -362,7 +359,7 @@ class TestMemoryFactCRUD:
                 description="NPC fact",
                 confidence=0.8,
                 source="test",
-                tags=["merchant"]
+                tags=["merchant"],
             ),
             MemoryFact(
                 fact_id="fact_2",
@@ -371,8 +368,8 @@ class TestMemoryFactCRUD:
                 description="Location fact",
                 confidence=0.7,
                 source="test",
-                tags=["temple"]
-            )
+                tags=["temple"],
+            ),
         ]
 
         for fact in facts:
@@ -399,7 +396,7 @@ class TestMemoryFactCRUD:
                 subject="High Confidence NPC",
                 description="Test fact",
                 confidence=0.9,
-                source="reliable"
+                source="reliable",
             ),
             MemoryFact(
                 fact_id="fact_2",
@@ -407,8 +404,8 @@ class TestMemoryFactCRUD:
                 subject="Low Confidence NPC",
                 description="Test fact",
                 confidence=0.3,
-                source="rumor"
-            )
+                source="rumor",
+            ),
         ]
 
         for fact in facts:
@@ -435,7 +432,7 @@ class TestMemoryFactCRUD:
             confidence=0.6,
             source="original",
             tags=["original"],
-            related_events=["event_1"]
+            related_events=["event_1"],
         )
         service._storage.facts["test_fact"] = original_fact
 
@@ -444,7 +441,7 @@ class TestMemoryFactCRUD:
             fact_id="test_fact",
             description="Updated description",
             confidence=0.9,
-            tags=["updated", "important"]
+            tags=["updated", "important"],
         )
 
         result = service.update_memory_fact("test_fact", update_request)
@@ -465,8 +462,7 @@ class TestMemoryFactCRUD:
         service = CampaignMemoryService()
 
         update_request = UpdateMemoryFactRequest(
-            fact_id="nonexistent",
-            description="Updated description"
+            fact_id="nonexistent", description="Updated description"
         )
 
         result = service.update_memory_fact("nonexistent", update_request)
@@ -485,7 +481,7 @@ class TestMemoryFactCRUD:
             subject="Test Subject",
             description="Test fact",
             confidence=0.8,
-            source="test"
+            source="test",
         )
         service._storage.facts["test_fact"] = fact
 
@@ -523,15 +519,15 @@ class TestMemoryQuerying:
                 timestamp=datetime.utcnow(),
                 event_type="combat",
                 description="Battle event",
-                participants=["Hero"]
+                participants=["Hero"],
             ),
             MemoryEvent(
                 event_id="event_2",
                 timestamp=datetime.utcnow(),
                 event_type="narrative",
                 description="Story event",
-                participants=["Hero"]
-            )
+                participants=["Hero"],
+            ),
         ]
 
         for event in events:
@@ -539,8 +535,7 @@ class TestMemoryQuerying:
 
         # Query events
         request = MemoryQueryRequest(
-            query_type="events",
-            filters={"event_type": "combat"}
+            query_type="events", filters={"event_type": "combat"}
         )
 
         result = service.query_memory(request)
@@ -562,7 +557,7 @@ class TestMemoryQuerying:
                 subject="Merchant",
                 description="NPC fact",
                 confidence=0.8,
-                source="test"
+                source="test",
             ),
             MemoryFact(
                 fact_id="fact_2",
@@ -570,18 +565,15 @@ class TestMemoryQuerying:
                 subject="Temple",
                 description="Location fact",
                 confidence=0.9,
-                source="test"
-            )
+                source="test",
+            ),
         ]
 
         for fact in facts:
             service._storage.facts[fact.fact_id] = fact
 
         # Query facts
-        request = MemoryQueryRequest(
-            query_type="facts",
-            filters={"fact_type": "npc"}
-        )
+        request = MemoryQueryRequest(query_type="facts", filters={"fact_type": "npc"})
 
         result = service.query_memory(request)
 
@@ -600,7 +592,7 @@ class TestMemoryQuerying:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
         service._storage.events["event_1"] = event
 
@@ -610,7 +602,7 @@ class TestMemoryQuerying:
             subject="Test NPC",
             description="Test fact",
             confidence=0.8,
-            source="test"
+            source="test",
         )
         service._storage.facts["fact_1"] = fact
 
@@ -664,15 +656,15 @@ class TestAIContextGeneration:
                 timestamp=recent_time,
                 event_type="narrative",
                 description="Recent event description",
-                participants=["Hero"]
+                participants=["Hero"],
             ),
             MemoryEvent(
                 event_id="old_event",
                 timestamp=old_time,
                 event_type="narrative",
                 description="Old event description",
-                participants=["Hero"]
-            )
+                participants=["Hero"],
+            ),
         ]
 
         # Create facts with different confidence levels
@@ -683,7 +675,7 @@ class TestAIContextGeneration:
                 subject="Important NPC",
                 description="High confidence fact description",
                 confidence=0.9,
-                source="reliable"
+                source="reliable",
             ),
             MemoryFact(
                 fact_id="low_confidence_fact",
@@ -691,8 +683,8 @@ class TestAIContextGeneration:
                 subject="Unimportant Location",
                 description="Low confidence fact description",
                 confidence=0.3,
-                source="rumor"
-            )
+                source="rumor",
+            ),
         ]
 
         for event in events:
@@ -722,7 +714,7 @@ class TestAIContextGeneration:
                 timestamp=datetime.utcnow() - timedelta(hours=i),
                 event_type="narrative",
                 description=f"Event {i} description",
-                participants=["Hero"]
+                participants=["Hero"],
             )
             service._storage.events[event.event_id] = event
 
@@ -732,7 +724,7 @@ class TestAIContextGeneration:
                 subject=f"NPC {i}",
                 description=f"Fact {i} description",
                 confidence=0.8,
-                source="test"
+                source="test",
             )
             service._storage.facts[fact.fact_id] = fact
 
@@ -756,7 +748,7 @@ class TestServiceManagement:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
         service._storage.events["test_event"] = event
 
@@ -766,7 +758,7 @@ class TestServiceManagement:
             subject="Test NPC",
             description="Test fact",
             confidence=0.8,
-            source="test"
+            source="test",
         )
         service._storage.facts["test_fact"] = fact
 
@@ -790,7 +782,7 @@ class TestServiceManagement:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
         service._storage.events["test_event"] = event
 
@@ -800,7 +792,7 @@ class TestServiceManagement:
             subject="Test NPC",
             description="Test fact",
             confidence=0.8,
-            source="test"
+            source="test",
         )
         service._storage.facts["test_fact"] = fact
 
@@ -824,13 +816,13 @@ class TestErrorHandling:
         service = CampaignMemoryService()
 
         # Mock validation to raise exception
-        with patch.object(service, '_validate_memory_event') as mock_validate:
+        with patch.object(service, "_validate_memory_event") as mock_validate:
             mock_validate.side_effect = Exception("Validation error")
 
             request = CreateMemoryEventRequest(
                 event_type="narrative",
                 description="Test description",
-                participants=["Test"]
+                participants=["Test"],
             )
 
             result = service.create_memory_event_from_request(request)
@@ -843,7 +835,7 @@ class TestErrorHandling:
         service = CampaignMemoryService()
 
         # Mock validation to raise exception
-        with patch.object(service, '_validate_memory_fact') as mock_validate:
+        with patch.object(service, "_validate_memory_fact") as mock_validate:
             mock_validate.side_effect = Exception("Validation error")
 
             request = CreateMemoryFactRequest(
@@ -851,7 +843,7 @@ class TestErrorHandling:
                 subject="Test Subject",
                 description="Test description",
                 confidence=0.5,
-                source="test"
+                source="test",
             )
 
             result = service.create_memory_fact_from_request(request)
@@ -864,7 +856,7 @@ class TestErrorHandling:
         service = CampaignMemoryService()
 
         # Mock get_memory_events to raise exception
-        with patch.object(service, 'get_memory_events') as mock_get:
+        with patch.object(service, "get_memory_events") as mock_get:
             mock_get.side_effect = Exception("Query error")
 
             request = MemoryQueryRequest(query_type="events")
@@ -887,7 +879,7 @@ class TestMemoryServiceIntegration:
             event_type="narrative",
             description="Initial event description",
             participants=["Hero"],
-            location="Starting Area"
+            location="Starting Area",
         )
 
         create_result = service.create_memory_event_from_request(create_request)
@@ -903,7 +895,7 @@ class TestMemoryServiceIntegration:
         update_request = UpdateMemoryEventRequest(
             event_id=event_id,
             description="Updated event description",
-            participants=["Hero", "Sidekick"]
+            participants=["Hero", "Sidekick"],
         )
 
         update_result = service.update_memory_event(event_id, update_request)
@@ -933,7 +925,7 @@ class TestMemoryServiceIntegration:
             description="Initial fact description",
             confidence=0.7,
             source="observation",
-            tags=["tavern", "npc"]
+            tags=["tavern", "npc"],
         )
 
         create_result = service.create_memory_fact_from_request(create_request)
@@ -950,7 +942,7 @@ class TestMemoryServiceIntegration:
             fact_id=fact_id,
             description="Updated fact description",
             confidence=0.9,
-            tags=["tavern", "npc", "important"]
+            tags=["tavern", "npc", "important"],
         )
 
         update_result = service.update_memory_fact(fact_id, update_request)

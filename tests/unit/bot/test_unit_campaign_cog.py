@@ -24,21 +24,26 @@ pytestmark = pytest.mark.asyncio
 
 async def test_campaign_new_success(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('create_campaign', {"message": "Campaign created successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "create_campaign", {"message": "Campaign created successfully"}
+    )
 
     interaction = InteractionFactory.admin_interaction()
     assert isinstance(interaction.user, discord.Member)
 
     await mock_campaign_cog._handle_campaign_new(interaction, "test_campaign")
     interaction.response.send_message.assert_awaited_once()
-    assert (
-        "created successfully" in interaction.response.send_message.call_args[0][0]
-    )
+    assert "created successfully" in interaction.response.send_message.call_args[0][0]
 
 
 async def test_campaign_new_duplicate(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('create_campaign', ValidationError(ErrorCode.DUPLICATE_CAMPAIGN_NAME, campaign_name="existing_campaign"))
+    mock_campaign_cog.api_client.set_exception_override(
+        "create_campaign",
+        ValidationError(
+            ErrorCode.DUPLICATE_CAMPAIGN_NAME, campaign_name="existing_campaign"
+        ),
+    )
 
     interaction = InteractionFactory.admin_interaction()
     campaign_name = "existing_campaign"
@@ -65,7 +70,9 @@ async def test_campaign_new_permission_denied(mock_campaign_cog):
 
 async def test_campaign_new_backend_error(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('create_campaign', CustomException())
+    mock_campaign_cog.api_client.set_exception_override(
+        "create_campaign", CustomException()
+    )
 
     interaction = InteractionFactory.admin_interaction()
     campaign_name = "test_campaign"
@@ -79,7 +86,9 @@ async def test_campaign_new_backend_error(mock_campaign_cog):
 
 async def test_campaign_join_success(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
     campaign_name = "existing_campaign"
@@ -91,7 +100,10 @@ async def test_campaign_join_success(mock_campaign_cog):
 
 async def test_campaign_join_nonexistent(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('join_campaign', NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign_name="My Campaign"))
+    mock_campaign_cog.api_client.set_exception_override(
+        "join_campaign",
+        NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign_name="My Campaign"),
+    )
 
     # Mock interaction
     interaction = InteractionFactory.regular_interaction()
@@ -103,7 +115,9 @@ async def test_campaign_join_nonexistent(mock_campaign_cog):
 
 async def test_campaign_join_no_campaign_name_uses_last_active(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -114,7 +128,9 @@ async def test_campaign_join_no_campaign_name_uses_last_active(mock_campaign_cog
 
 async def test_campaign_join_already_joined_fails(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('join_campaign', ValidationError(ErrorCode.PLAYER_NOT_IN_CMD))
+    mock_campaign_cog.api_client.set_exception_override(
+        "join_campaign", ValidationError(ErrorCode.PLAYER_NOT_IN_CMD)
+    )
 
     # Mock interaction
     interaction = InteractionFactory.regular_interaction()
@@ -129,7 +145,9 @@ async def test_campaign_join_already_joined_fails(mock_campaign_cog):
 
 async def test_campaign_join_new_player_and_character(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
     campaign_name = "new_campaign"
@@ -141,8 +159,12 @@ async def test_campaign_join_new_player_and_character(mock_campaign_cog):
 
 async def test_campaign_end_and_join_another(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('end_campaign', {"message": "Campaign ended successfully"})
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "end_campaign", {"message": "Campaign ended successfully"}
+    )
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
     campaign_name1 = "campaignA"
@@ -162,7 +184,9 @@ async def test_campaign_end_and_join_another(mock_campaign_cog):
 async def test_campaign_join_no_last_active_campaign_fails(mock_campaign_cog):
     # Replace API client with mock
     error = ErrorCode.NO_LAST_ACTIVE_CAMPAIGN
-    mock_campaign_cog.api_client.set_exception_override('join_campaign', NotFoundError(error))
+    mock_campaign_cog.api_client.set_exception_override(
+        "join_campaign", NotFoundError(error)
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -175,7 +199,9 @@ async def test_campaign_join_no_last_active_campaign_fails(mock_campaign_cog):
 
 async def test_campaign_join_new_character_linked(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
     campaign_name = "campaignC"
@@ -184,13 +210,19 @@ async def test_campaign_join_new_character_linked(mock_campaign_cog):
     interaction.response.send_message.assert_awaited_once()
     assert "joined campaign" in interaction.response.send_message.call_args[0][0]
 
-@pytest.mark.skip(reason="Autosave is gimmicky and should be reworked, if at all implemented")
+
+@pytest.mark.skip(
+    reason="Autosave is gimmicky and should be reworked, if at all implemented"
+)
 async def test_campaign_continue_success_autosave(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('continue_campaign', {
-        "campaign_name": "EpicQuest",
-        "source": "autosave",
-    })
+    mock_campaign_cog.api_client.set_response_override(
+        "continue_campaign",
+        {
+            "campaign_name": "EpicQuest",
+            "source": "autosave",
+        },
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -198,16 +230,21 @@ async def test_campaign_continue_success_autosave(mock_campaign_cog):
     interaction.response.send_message.assert_awaited_once()
     assert "autosave" in interaction.response.send_message.call_args[0][0].lower()
     assert (
-        "resuming campaign"
-        in interaction.response.send_message.call_args[0][0].lower()
+        "resuming campaign" in interaction.response.send_message.call_args[0][0].lower()
     )
 
 
 async def test_campaign_party_formation_multiple_users_onboarding(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('create_campaign', {"message": "Campaign created successfully"})
-    mock_campaign_cog.api_client.set_response_override('join_campaign', {"message": "Joined campaign successfully"})
-    mock_campaign_cog.api_client.set_exception_override('continue_campaign', ValidationError("UNKNOWN"))
+    mock_campaign_cog.api_client.set_response_override(
+        "create_campaign", {"message": "Campaign created successfully"}
+    )
+    mock_campaign_cog.api_client.set_response_override(
+        "join_campaign", {"message": "Joined campaign successfully"}
+    )
+    mock_campaign_cog.api_client.set_exception_override(
+        "continue_campaign", ValidationError("UNKNOWN")
+    )
 
     campaign_name = "party_campaign"
 
@@ -269,28 +306,31 @@ async def test_campaign_autosave_restore_after_onboarding_and_disconnect(cog):
 
 async def test_campaign_continue_success_save(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('continue_campaign', {
-        "campaign_name": "EpicQuest",
-        "source": "save",
-    })
+    mock_campaign_cog.api_client.set_response_override(
+        "continue_campaign",
+        {
+            "campaign_name": "EpicQuest",
+            "source": "save",
+        },
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
     await mock_campaign_cog._handle_campaign_continue(interaction)
     interaction.response.send_message.assert_awaited_once()
     assert (
-        "last clean save"
-        in interaction.response.send_message.call_args[0][0].lower()
+        "last clean save" in interaction.response.send_message.call_args[0][0].lower()
     )
     assert (
-        "resuming campaign"
-        in interaction.response.send_message.call_args[0][0].lower()
+        "resuming campaign" in interaction.response.send_message.call_args[0][0].lower()
     )
 
 
 async def test_campaign_continue_backend_error(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('continue_campaign', CustomException())
+    mock_campaign_cog.api_client.set_exception_override(
+        "continue_campaign", CustomException()
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -319,7 +359,9 @@ async def test_campaign_delete_with_active_characters(mock_campaign_cog):
         )
 
     with patch.object(
-        mock_campaign_cog, "_create_delete_confirmation_callback", return_value=mock_callback
+        mock_campaign_cog,
+        "_create_delete_confirmation_callback",
+        return_value=mock_callback,
     ):
         await mock_campaign_cog._handle_campaign_delete(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
@@ -338,7 +380,9 @@ async def test_campaign_delete_with_active_characters(mock_campaign_cog):
 
 async def test_campaign_continue_no_campaign(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('continue_campaign', ValidationError(ErrorCode.NO_LAST_ACTIVE_CAMPAIGN))
+    mock_campaign_cog.api_client.set_exception_override(
+        "continue_campaign", ValidationError(ErrorCode.NO_LAST_ACTIVE_CAMPAIGN)
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -354,7 +398,9 @@ async def test_campaign_continue_no_campaign(mock_campaign_cog):
 
 async def test_campaign_end_success(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('end_campaign', {"message": "Campaign ended successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "end_campaign", {"message": "Campaign ended successfully"}
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -368,7 +414,9 @@ async def test_campaign_end_success(mock_campaign_cog):
 
 async def test_campaign_end_backend_error(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('end_campaign', CustomException())
+    mock_campaign_cog.api_client.set_exception_override(
+        "end_campaign", CustomException()
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -382,7 +430,9 @@ async def test_campaign_end_backend_error(mock_campaign_cog):
 async def test_campaign_end_failure(mock_campaign_cog):
     # Replace API client with mock
     error = ErrorCode.PLAYER_NOT_IN_CAMPAIGN
-    mock_campaign_cog.api_client.set_exception_override('end_campaign', ValidationError(error))
+    mock_campaign_cog.api_client.set_exception_override(
+        "end_campaign", ValidationError(error)
+    )
 
     interaction = InteractionFactory.regular_interaction()
 
@@ -398,7 +448,9 @@ async def test_campaign_end_failure(mock_campaign_cog):
 
 async def test_campaign_delete_success(mock_campaign_cog):
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('delete_campaign', {"message": "Campaign deleted successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "delete_campaign", {"message": "Campaign deleted successfully"}
+    )
 
     interaction = InteractionFactory.admin_interaction()
     campaign_name = "delete_me"
@@ -418,17 +470,23 @@ async def test_campaign_info_success(mock_campaign_cog):
     server_id = "server123"
 
     # Set up mock responses
-    mock_campaign_cog.api_client.set_response_override('get_campaign_details', {
-        "campaign_id": campaign_id,
-        "campaign_name": campaign_name,
-        "owner_id": owner_id,
-        "state": "active",
-        "last_save": "2023-01-01T12:00:00",
-    })
-    mock_campaign_cog.api_client.set_response_override('get_campaign_players', [
-        {"player_id": "player1", "username": "Alice"},
-        {"player_id": "player2", "username": "Bob"},
-    ])
+    mock_campaign_cog.api_client.set_response_override(
+        "get_campaign_details",
+        {
+            "campaign_id": campaign_id,
+            "campaign_name": campaign_name,
+            "owner_id": owner_id,
+            "state": "active",
+            "last_save": "2023-01-01T12:00:00",
+        },
+    )
+    mock_campaign_cog.api_client.set_response_override(
+        "get_campaign_players",
+        [
+            {"player_id": "player1", "username": "Alice"},
+            {"player_id": "player2", "username": "Bob"},
+        ],
+    )
 
     interaction = InteractionFactory.admin_interaction()
     interaction.guild.id = server_id
@@ -458,7 +516,9 @@ async def test_campaign_delete_cancel(mock_campaign_cog):
 async def test_campaign_delete_button_confirm_success(mock_campaign_cog):
     """Test the confirm button callback for successful campaign deletion."""
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_response_override('delete_campaign', {"message": "Campaign deleted successfully"})
+    mock_campaign_cog.api_client.set_response_override(
+        "delete_campaign", {"message": "Campaign deleted successfully"}
+    )
 
     interaction = InteractionFactory.admin_interaction()
     interaction.data = {"custom_id": "confirm"}
@@ -479,7 +539,9 @@ async def test_campaign_delete_button_confirm_success(mock_campaign_cog):
 async def test_campaign_delete_button_confirm_error(mock_campaign_cog):
     """Test the confirm button callback when campaign deletion fails."""
     # Replace API client with mock
-    mock_campaign_cog.api_client.set_exception_override('delete_campaign', CustomException())
+    mock_campaign_cog.api_client.set_exception_override(
+        "delete_campaign", CustomException()
+    )
 
     interaction = InteractionFactory.admin_interaction()
     interaction.data = {"custom_id": "confirm"}

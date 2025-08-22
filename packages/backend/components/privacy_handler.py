@@ -13,15 +13,12 @@ Features:
 - Automatic data deletion
 """
 
-import asyncio
-import time
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-from dataclasses import dataclass, field
 
-from packages.shared.models import PrivacyComplianceRecord
-from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import PrivacyComplianceRecord
 
 logger = get_logger(__name__)
 
@@ -71,8 +68,8 @@ class PrivacyHandler:
 
         # Privacy policies
         self.privacy_policy = PrivacyPolicy(
-            data_retention_days=self.config.get('data_retention_days', 30),
-            require_explicit_consent=self.config.get('require_explicit_consent', True)
+            data_retention_days=self.config.get("data_retention_days", 30),
+            require_explicit_consent=self.config.get("require_explicit_consent", True),
         )
 
         # Consent tracking
@@ -94,10 +91,7 @@ class PrivacyHandler:
         logger.info("privacy_handler_initialized")
 
     async def obtain_voice_consent(
-        self,
-        user_id: str,
-        session_id: str,
-        consent_details: Dict[str, Any] = None
+        self, user_id: str, session_id: str, consent_details: Dict[str, Any] = None
     ) -> bool:
         """
         Obtain user consent for voice processing.
@@ -123,8 +117,12 @@ class PrivacyHandler:
                 consented_at=datetime.utcnow(),
                 consent_expires=datetime.utcnow() + timedelta(days=365),  # 1 year
                 consent_details=consent_details or {},
-                ip_address=consent_details.get('ip_address') if consent_details else None,
-                user_agent=consent_details.get('user_agent') if consent_details else None
+                ip_address=consent_details.get("ip_address")
+                if consent_details
+                else None,
+                user_agent=consent_details.get("user_agent")
+                if consent_details
+                else None,
             )
 
             # Store consent record
@@ -137,13 +135,11 @@ class PrivacyHandler:
                 action="consent_obtained",
                 user_id=user_id,
                 session_id=session_id,
-                details={"consent_type": "voice_processing"}
+                details={"consent_type": "voice_processing"},
             )
 
             logger.info(
-                "voice_consent_obtained",
-                user_id=user_id,
-                session_id=session_id
+                "voice_consent_obtained", user_id=user_id, session_id=session_id
             )
 
             return True
@@ -153,7 +149,7 @@ class PrivacyHandler:
                 "voice_consent_obtain_failed",
                 user_id=user_id,
                 session_id=session_id,
-                error=str(e)
+                error=str(e),
             )
             return False
 
@@ -176,9 +172,14 @@ class PrivacyHandler:
 
             # Find valid voice processing consent
             for consent in user_consents:
-                if (consent.consent_type == "voice_processing" and
-                    not consent.consent_withdrawn and
-                    (consent.consent_expires is None or consent.consent_expires > datetime.utcnow())):
+                if (
+                    consent.consent_type == "voice_processing"
+                    and not consent.consent_withdrawn
+                    and (
+                        consent.consent_expires is None
+                        or consent.consent_expires > datetime.utcnow()
+                    )
+                ):
                     return True
 
             return False
@@ -188,15 +189,12 @@ class PrivacyHandler:
                 "voice_consent_check_failed",
                 user_id=user_id,
                 session_id=session_id,
-                error=str(e)
+                error=str(e),
             )
             return False
 
     async def schedule_data_deletion(
-        self,
-        session_id: str,
-        user_id: str,
-        retention_days: int = None
+        self, session_id: str, user_id: str, retention_days: int = None
     ) -> bool:
         """
         Schedule audio data for deletion after retention period.
@@ -221,7 +219,7 @@ class PrivacyHandler:
                 data_deletion_date=deletion_date,
                 privacy_consent_obtained=self.check_voice_consent(user_id, session_id),
                 data_encrypted=self.privacy_policy.encrypt_data_in_transit,
-                compliance_officer=self.privacy_policy.compliance_officer_contact
+                compliance_officer=self.privacy_policy.compliance_officer_contact,
             )
 
             # Store compliance record
@@ -235,14 +233,17 @@ class PrivacyHandler:
                 action="data_deletion_scheduled",
                 user_id=user_id,
                 session_id=session_id,
-                details={"deletion_date": deletion_date.isoformat(), "retention_days": days}
+                details={
+                    "deletion_date": deletion_date.isoformat(),
+                    "retention_days": days,
+                },
             )
 
             logger.info(
                 "data_deletion_scheduled",
                 session_id=session_id,
                 user_id=user_id,
-                deletion_date=deletion_date.isoformat()
+                deletion_date=deletion_date.isoformat(),
             )
 
             return True
@@ -252,7 +253,7 @@ class PrivacyHandler:
                 "data_deletion_scheduling_failed",
                 session_id=session_id,
                 user_id=user_id,
-                error=str(e)
+                error=str(e),
             )
             return False
 
@@ -286,9 +287,7 @@ class PrivacyHandler:
 
                 except Exception as e:
                     logger.error(
-                        "data_deletion_failed",
-                        session_id=session_id,
-                        error=str(e)
+                        "data_deletion_failed", session_id=session_id, error=str(e)
                     )
 
             if processed_count > 0:
@@ -311,7 +310,7 @@ class PrivacyHandler:
         self._audit_log(
             action="voice_data_deleted",
             session_id=session_id,
-            details={"deletion_method": "secure_wipe"}
+            details={"deletion_method": "secure_wipe"},
         )
 
         logger.info("voice_data_deleted", session_id=session_id)
@@ -324,7 +323,7 @@ class PrivacyHandler:
         audit_entry = {
             "timestamp": datetime.utcnow().isoformat(),
             "action": action,
-            **kwargs
+            **kwargs,
         }
 
         self.audit_log.append(audit_entry)
@@ -333,7 +332,9 @@ class PrivacyHandler:
         if len(self.audit_log) > 10000:
             self.audit_log = self.audit_log[-10000:]
 
-    def generate_compliance_report(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+    def generate_compliance_report(
+        self, user_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Generate privacy compliance report.
 
@@ -350,8 +351,8 @@ class PrivacyHandler:
                     "data_retention_days": self.privacy_policy.data_retention_days,
                     "require_explicit_consent": self.privacy_policy.require_explicit_consent,
                     "encrypt_data_in_transit": self.privacy_policy.encrypt_data_in_transit,
-                    "encrypt_data_at_rest": self.privacy_policy.encrypt_data_at_rest
-                }
+                    "encrypt_data_at_rest": self.privacy_policy.encrypt_data_at_rest,
+                },
             }
 
             if user_id:
@@ -364,15 +365,23 @@ class PrivacyHandler:
                 report["user_id"] = user_id
                 report["consent_records"] = len(user_consents)
                 report["compliance_records"] = len(user_compliance_records)
-                report["valid_consents"] = len([
-                    c for c in user_consents
-                    if not c.consent_withdrawn and
-                    (c.consent_expires is None or c.consent_expires > datetime.utcnow())
-                ])
+                report["valid_consents"] = len(
+                    [
+                        c
+                        for c in user_consents
+                        if not c.consent_withdrawn
+                        and (
+                            c.consent_expires is None
+                            or c.consent_expires > datetime.utcnow()
+                        )
+                    ]
+                )
             else:
                 # System-wide report
                 report["total_users"] = len(self.consent_records)
-                report["total_consent_records"] = sum(len(consents) for consents in self.consent_records.values())
+                report["total_consent_records"] = sum(
+                    len(consents) for consents in self.consent_records.values()
+                )
                 report["total_compliance_records"] = len(self.compliance_records)
                 report["pending_deletions"] = len(self.deletion_queue)
 
@@ -403,12 +412,14 @@ class PrivacyHandler:
                 "data_collected": {
                     "consent_records": [c.__dict__ for c in user_consents],
                     "compliance_records": [r.__dict__ for r in user_compliance_records],
-                    "audit_entries": [e for e in self.audit_log if e.get("user_id") == user_id]
+                    "audit_entries": [
+                        e for e in self.audit_log if e.get("user_id") == user_id
+                    ],
                 },
                 "retention_period": self.privacy_policy.data_retention_days,
                 "data_purposes": ["voice_interaction", "ai_response_generation"],
                 "legal_basis": "consent",
-                "access_date": datetime.utcnow().isoformat()
+                "access_date": datetime.utcnow().isoformat(),
             }
 
         except Exception as e:
@@ -446,13 +457,11 @@ class PrivacyHandler:
             self._audit_log(
                 action="consent_withdrawn",
                 user_id=user_id,
-                details={"consent_type": consent_type}
+                details={"consent_type": consent_type},
             )
 
             logger.info(
-                "user_consent_withdrawn",
-                user_id=user_id,
-                consent_type=consent_type
+                "user_consent_withdrawn", user_id=user_id, consent_type=consent_type
             )
 
             return True
@@ -462,7 +471,7 @@ class PrivacyHandler:
                 "consent_withdrawal_failed",
                 user_id=user_id,
                 consent_type=consent_type,
-                error=str(e)
+                error=str(e),
             )
             return False
 
@@ -472,11 +481,13 @@ class PrivacyHandler:
             "status": "healthy",
             "audit_enabled": self.audit_enabled,
             "auto_deletion_enabled": self.auto_deletion_enabled,
-            "total_consent_records": sum(len(consents) for consents in self.consent_records.values()),
+            "total_consent_records": sum(
+                len(consents) for consents in self.consent_records.values()
+            ),
             "total_compliance_records": len(self.compliance_records),
             "pending_deletions": len(self.deletion_queue),
             "audit_log_entries": len(self.audit_log),
-            "privacy_policy_active": True
+            "privacy_policy_active": True,
         }
 
 

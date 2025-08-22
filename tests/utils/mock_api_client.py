@@ -18,21 +18,21 @@ from packages.shared.models import (
 
 class MockApiClient:
     """Mock API client that mimics the real ApiClient interface."""
-    
+
     def __init__(self, base_url: str = "http://localhost:8000", timeout: float = 10.0):
         self.base_url = base_url
         self.timeout = timeout
-        
+
         # Mock data storage
         self.characters = {}
         self.campaigns = {}
         self.players = {}
         self.server_configs = {}
-        
+
         # Response overrides for testing specific scenarios
         self.response_overrides = {}
         self.exception_overrides = {}
-        
+
         # Call tracking
         self.call_history = []
 
@@ -55,11 +55,9 @@ class MockApiClient:
 
     def _track_call(self, method_name: str, *args, **kwargs):
         """Track method calls for testing verification."""
-        self.call_history.append({
-            'method': method_name,
-            'args': args,
-            'kwargs': kwargs
-        })
+        self.call_history.append(
+            {"method": method_name, "args": args, "kwargs": kwargs}
+        )
 
     def _check_overrides(self, method_name: str):
         """Check if there are any overrides for this method."""
@@ -74,188 +72,189 @@ class MockApiClient:
         self, server_id: str, config: ServerConfigModel
     ) -> Dict[str, Any]:
         """Mock set server configuration."""
-        self._track_call('set_server_config', server_id, config)
-        override = self._check_overrides('set_server_config')
+        self._track_call("set_server_config", server_id, config)
+        override = self._check_overrides("set_server_config")
         if override is not None:
             return override
-            
+
         self.server_configs[server_id] = config.model_dump()
         return {"message": "Server configuration updated successfully"}
 
     # Characters
     async def get_character_info(self, character_id: str) -> Dict[str, Any]:
         """Mock get character information."""
-        self._track_call('get_character_info', character_id)
-        override = self._check_overrides('get_character_info')
+        self._track_call("get_character_info", character_id)
+        override = self._check_overrides("get_character_info")
         if override is not None:
             return override
-            
+
         if character_id not in self.characters:
             raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
         return self.characters[character_id]
 
     async def add_character(self, req: AddCharacterRequest) -> Dict[str, Any]:
         """Mock add character."""
-        self._track_call('add_character', req)
-        override = self._check_overrides('add_character')
+        self._track_call("add_character", req)
+        override = self._check_overrides("add_character")
         if override is not None:
             return override
-            
+
         # Check for duplicate names
         for char in self.characters.values():
-            if char['name'] == req.name and char['player_id'] == req.player_id:
+            if char["name"] == req.name and char["player_id"] == req.player_id:
                 raise ValidationError(ErrorCode.DUPLICATE_CHARACTER, name=req.name)
-        
+
         character_id = len(self.characters) + 1
         character_data = {
-            'character_id': character_id,
-            'name': req.name,
-            'player_id': req.player_id,
-            'character_url': req.character_url
+            "character_id": character_id,
+            "name": req.name,
+            "player_id": req.player_id,
+            "character_url": req.character_url,
         }
         self.characters[str(character_id)] = character_data
         return character_data
 
     async def update_character(self, req: UpdateCharacterRequest) -> Dict[str, Any]:
         """Mock update character."""
-        self._track_call('update_character', req)
-        override = self._check_overrides('update_character')
+        self._track_call("update_character", req)
+        override = self._check_overrides("update_character")
         if override is not None:
             return override
-            
+
         character_id = str(req.character_id)
         if character_id not in self.characters:
             raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
-            
+
         character = self.characters[character_id]
         if req.name is not None:
-            character['name'] = req.name
+            character["name"] = req.name
         if req.character_url is not None:
-            character['character_url'] = req.character_url
-            
+            character["character_url"] = req.character_url
+
         return character
 
     async def remove_character(self, req: RemoveCharacterRequest) -> Dict[str, Any]:
         """Mock remove character."""
-        self._track_call('remove_character', req)
-        override = self._check_overrides('remove_character')
+        self._track_call("remove_character", req)
+        override = self._check_overrides("remove_character")
         if override is not None:
             return override
-            
+
         character_id = str(req.character_id)
         if character_id not in self.characters:
             raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
-            
+
         del self.characters[character_id]
         return {"message": "Character removed successfully"}
 
     async def list_characters(self, req: ListCharactersRequest) -> Dict[str, Any]:
         """Mock list characters."""
-        self._track_call('list_characters', req)
-        override = self._check_overrides('list_characters')
+        self._track_call("list_characters", req)
+        override = self._check_overrides("list_characters")
         if override is not None:
             return override
-            
+
         player_characters = [
-            char for char in self.characters.values()
-            if char['player_id'] == req.player_id
+            char
+            for char in self.characters.values()
+            if char["player_id"] == req.player_id
         ]
         return {"characters": player_characters}
 
     # Campaigns
     async def create_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock create campaign."""
-        self._track_call('create_campaign', data)
-        override = self._check_overrides('create_campaign')
+        self._track_call("create_campaign", data)
+        override = self._check_overrides("create_campaign")
         if override is not None:
             return override
-            
+
         campaign_id = len(self.campaigns) + 1
-        campaign_data = {
-            'campaign_id': campaign_id,
-            **data
-        }
+        campaign_data = {"campaign_id": campaign_id, **data}
         self.campaigns[campaign_id] = campaign_data
         return campaign_data
 
     async def delete_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock delete campaign."""
-        self._track_call('delete_campaign', data)
-        override = self._check_overrides('delete_campaign')
+        self._track_call("delete_campaign", data)
+        override = self._check_overrides("delete_campaign")
         if override is not None:
             return override
-            
+
         return {"message": "Campaign deleted successfully"}
 
     async def get_campaign_details(
         self, server_id: str, campaign_name: str
     ) -> Dict[str, Any]:
         """Mock get campaign details."""
-        self._track_call('get_campaign_details', server_id, campaign_name)
-        override = self._check_overrides('get_campaign_details')
+        self._track_call("get_campaign_details", server_id, campaign_name)
+        override = self._check_overrides("get_campaign_details")
         if override is not None:
             return override
-            
+
         # Find campaign by server_id and name
         for campaign in self.campaigns.values():
-            if campaign.get('server_id') == server_id and campaign.get('campaign_name') == campaign_name:
+            if (
+                campaign.get("server_id") == server_id
+                and campaign.get("campaign_name") == campaign_name
+            ):
                 return campaign
         raise NotFoundError(ErrorCode.CAMPAIGN_NOT_FOUND, campaign=campaign_name)
 
     async def get_campaign_players(self, campaign_id: int) -> List[Dict[str, Any]]:
         """Mock get campaign players."""
-        self._track_call('get_campaign_players', campaign_id)
-        override = self._check_overrides('get_campaign_players')
+        self._track_call("get_campaign_players", campaign_id)
+        override = self._check_overrides("get_campaign_players")
         if override is not None:
             return override
-            
+
         return []  # Return empty list for mock
 
     async def update_campaign_state(
         self, campaign_id: int, data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Mock update campaign state."""
-        self._track_call('update_campaign_state', campaign_id, data)
-        override = self._check_overrides('update_campaign_state')
+        self._track_call("update_campaign_state", campaign_id, data)
+        override = self._check_overrides("update_campaign_state")
         if override is not None:
             return override
-            
+
         return {"message": "Campaign state updated successfully"}
 
     async def submit_campaign_action(
         self, campaign_id: int, data: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Mock submit campaign action."""
-        self._track_call('submit_campaign_action', campaign_id, data)
-        override = self._check_overrides('submit_campaign_action')
+        self._track_call("submit_campaign_action", campaign_id, data)
+        override = self._check_overrides("submit_campaign_action")
         if override is not None:
             return override
-            
+
         return {"message": "Action submitted successfully"}
 
     # Players
     async def join_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock join campaign."""
-        self._track_call('join_campaign', data)
-        override = self._check_overrides('join_campaign')
+        self._track_call("join_campaign", data)
+        override = self._check_overrides("join_campaign")
         if override is not None:
             return override
-            
+
         return {"message": "Joined campaign successfully"}
 
     async def end_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock end campaign."""
-        self._track_call('end_campaign', data)
-        override = self._check_overrides('end_campaign')
+        self._track_call("end_campaign", data)
+        override = self._check_overrides("end_campaign")
         if override is not None:
             return override
-            
+
         return {"message": "Campaign ended successfully"}
 
     async def remove_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock remove campaign."""
-        self._track_call('remove_campaign', data)
-        override = self._check_overrides('remove_campaign')
+        self._track_call("remove_campaign", data)
+        override = self._check_overrides("remove_campaign")
         if override is not None:
             return override
 
@@ -263,8 +262,8 @@ class MockApiClient:
 
     async def continue_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock continue campaign."""
-        self._track_call('continue_campaign', data)
-        override = self._check_overrides('continue_campaign')
+        self._track_call("continue_campaign", data)
+        override = self._check_overrides("continue_campaign")
         if override is not None:
             return override
 
@@ -272,30 +271,26 @@ class MockApiClient:
 
     async def get_player_status(self, player_id: str) -> Dict[str, Any]:
         """Mock get player status."""
-        self._track_call('get_player_status', player_id)
-        override = self._check_overrides('get_player_status')
+        self._track_call("get_player_status", player_id)
+        override = self._check_overrides("get_player_status")
         if override is not None:
             return override
-            
-        return {
-            "player_id": player_id,
-            "status": "cmd",
-            "last_active_campaign": None
-        }
+
+        return {"player_id": player_id, "status": "cmd", "last_active_campaign": None}
 
     async def create_player(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Mock create player."""
-        self._track_call('create_player', data)
-        override = self._check_overrides('create_player')
+        self._track_call("create_player", data)
+        override = self._check_overrides("create_player")
         if override is not None:
             return override
-            
+
         # Create or update player (Discord IDs are unique)
-        player_id = data.get('player_id')
+        player_id = data.get("player_id")
         player_data = {
-            'player_id': player_id,
-            'username': data.get('username'),
-            'status': 'cmd'
+            "player_id": player_id,
+            "username": data.get("username"),
+            "status": "cmd",
         }
         self.players[player_id] = player_data
         return player_data

@@ -20,8 +20,12 @@ class TestSyncIntegration:
         interaction = make_discord_interaction(is_admin=True)
 
         # Mock guild with members
-        mock_member1 = make_discord_member(user_id=123, display_name="TestUser1", bot=False)
-        mock_member2 = make_discord_member(user_id=124, display_name="TestUser2", bot=False)
+        mock_member1 = make_discord_member(
+            user_id=123, display_name="TestUser1", bot=False
+        )
+        mock_member2 = make_discord_member(
+            user_id=124, display_name="TestUser2", bot=False
+        )
         mock_guild = MagicMock()
         mock_guild.members = [mock_member1, mock_member2]
         mock_guild.chunk = AsyncMock()
@@ -56,7 +60,7 @@ class TestSyncIntegration:
         mock_guild.name = "Test Guild"
         mock_guild.members = [
             make_discord_member(user_id=123, display_name="User1", bot=False),
-            make_discord_member(user_id=124, display_name="User2", bot=False)
+            make_discord_member(user_id=124, display_name="User2", bot=False),
         ]
         mock_guild.chunk = AsyncMock()
         mock_bot.guilds = [mock_guild]
@@ -99,16 +103,19 @@ class TestSyncIntegration:
         await cog.on_member_join(member)
 
         # Verify API was called with correct data
-        cog.api_client.create_player.assert_awaited_once_with({
-            "player_id": "123",
-            "username": "NewUser"
-        })
+        cog.api_client.create_player.assert_awaited_once_with(
+            {"player_id": "123", "username": "NewUser"}
+        )
 
     async def test_member_update_integration(self, mock_bot):
         """Test member update event integration when display name changes."""
         cog = AdminCog(mock_bot)
-        before_member = make_discord_member(user_id=123, display_name="OldName", bot=False)
-        after_member = make_discord_member(user_id=123, display_name="NewName", bot=False)
+        before_member = make_discord_member(
+            user_id=123, display_name="OldName", bot=False
+        )
+        after_member = make_discord_member(
+            user_id=123, display_name="NewName", bot=False
+        )
 
         # Mock API response
         mock_api_response = {"player_id": "123", "username": "NewName"}
@@ -117,16 +124,19 @@ class TestSyncIntegration:
         await cog.on_member_update(before_member, after_member)
 
         # Verify API was called with new display name
-        cog.api_client.create_player.assert_awaited_once_with({
-            "player_id": "123",
-            "username": "NewName"
-        })
+        cog.api_client.create_player.assert_awaited_once_with(
+            {"player_id": "123", "username": "NewName"}
+        )
 
     async def test_member_update_no_change(self, mock_bot):
         """Test member update event when display name doesn't change."""
         cog = AdminCog(mock_bot)
-        before_member = make_discord_member(user_id=123, display_name="SameName", bot=False)
-        after_member = make_discord_member(user_id=123, display_name="SameName", bot=False)
+        before_member = make_discord_member(
+            user_id=123, display_name="SameName", bot=False
+        )
+        after_member = make_discord_member(
+            user_id=123, display_name="SameName", bot=False
+        )
 
         # Mock API client to ensure it's not called
         cog.api_client.create_player = AsyncMock()
@@ -141,14 +151,19 @@ class TestSyncIntegration:
         cog = AdminCog(mock_bot)
 
         # Test successful health check
-        mock_response = {"player_id": "health_check_test", "username": "Health Check User"}
+        mock_response = {
+            "player_id": "health_check_test",
+            "username": "Health Check User",
+        }
         cog.api_client.create_player = AsyncMock(return_value=mock_response)
 
         result = await cog._check_backend_health()
         assert result is True
 
         # Test failed health check
-        cog.api_client.create_player = AsyncMock(side_effect=Exception("Connection error"))
+        cog.api_client.create_player = AsyncMock(
+            side_effect=Exception("Connection error")
+        )
 
         result = await cog._check_backend_health()
         assert result is False
@@ -159,7 +174,9 @@ class TestSyncIntegration:
         interaction = make_discord_interaction(is_admin=True)
 
         # Mock guild with problematic members
-        mock_member = make_discord_member(user_id=123, display_name="TestUser", bot=False)
+        mock_member = make_discord_member(
+            user_id=123, display_name="TestUser", bot=False
+        )
         mock_guild = MagicMock()
         mock_guild.members = [mock_member]
         mock_guild.chunk = AsyncMock()
@@ -184,7 +201,9 @@ class TestSyncIntegration:
         interaction = make_discord_interaction(is_admin=True)
 
         # Mock guild with mix of bot and human members
-        human_member = make_discord_member(user_id=123, display_name="HumanUser", bot=False)
+        human_member = make_discord_member(
+            user_id=123, display_name="HumanUser", bot=False
+        )
         bot_member = make_discord_member(user_id=124, display_name="BotUser", bot=True)
         mock_guild = MagicMock()
         mock_guild.members = [human_member, bot_member]

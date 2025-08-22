@@ -61,7 +61,8 @@ async def test_not_found_error_404(client):
 async def test_pydantic_validation_error_422(client):
     """Test Pydantic ValidationError (422 status code) by sending invalid data."""
     # Send invalid data to trigger Pydantic ValidationError
-    response = await client.put(ROUTES.server_config(1234567890),
+    response = await client.put(
+        ROUTES.server_config(1234567890),
         json={
             "api_key": "test-key",
             "dm_roll_visibility": "invalid-value",
@@ -94,7 +95,7 @@ async def test_ai_api_error_502(client, monkeypatch):
         raise AIAPIError(
             error_code=ErrorCode.AI_API_ERROR,
             service="Mock AI",
-            reason="Service unavailable"
+            reason="Service unavailable",
         )
 
     # Make a request to the new test endpoint
@@ -107,19 +108,18 @@ async def test_ai_api_error_502(client, monkeypatch):
 
 # ===== Direct Exception Handler Tests =====
 
+
 def create_test_app():
     """Create a test FastAPI app with endpoints that raise specific exceptions."""
-    from packages.backend.main import app as main_app
 
     # Create a copy of the main app for testing
     test_app = FastAPI()
 
     # Include the same exception handlers from main.py
-    from packages.shared.exceptions import CustomException
-    from fastapi.exceptions import RequestValidationError
-    from fastapi.responses import JSONResponse
     from fastapi import Request
-    from pydantic import ValidationError as PydanticValidationError
+    from fastapi.responses import JSONResponse
+
+    from packages.shared.exceptions import CustomException
 
     @test_app.exception_handler(CustomException)
     async def custom_exception_handler(request: Request, exc: CustomException):
@@ -240,5 +240,7 @@ def test_generic_error_handler():
     assert "error" in data
     error = data["error"]
     assert error["error_code"] == "INTERNAL_SERVER_ERROR"
-    assert error["message"] == "An unexpected error occurred. Our team has been notified."
+    assert (
+        error["message"] == "An unexpected error occurred. Our team has been notified."
+    )
     assert error["details"] == "Test generic error"

@@ -9,16 +9,17 @@ Tests cover:
 - Compliance reporting
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from packages.shared.models import Monster, Spell, Weapon, SRDCompliance, DataSource
+import pytest
+
 from packages.backend.components.srd_compliance_service import (
-    SRDComplianceService,
     ComplianceResult,
-    LicenseRestriction
+    LicenseRestriction,
+    SRDComplianceService,
 )
+from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
 
 class TestSRDComplianceService:
@@ -39,7 +40,7 @@ class TestSRDComplianceService:
             version="5.1",
             checksum="test_checksum_123",
             is_official=True,
-            attribution_required=True
+            attribution_required=True,
         )
 
     @pytest.fixture
@@ -50,12 +51,12 @@ class TestSRDComplianceService:
             license_version="5.1",
             usage_restrictions=[
                 "Must include Wizards of the Coast attribution",
-                "Cannot be used in commercial products"
+                "Cannot be used in commercial products",
             ],
             last_verified=datetime.utcnow(),
             verification_hash="test_hash_123",
             compliance_officer="Test Officer",
-            audit_trail=["Initial import"]
+            audit_trail=["Initial import"],
         )
 
     @pytest.fixture
@@ -79,10 +80,12 @@ class TestSRDComplianceService:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
-    def test_verify_data_compliance_monster_valid(self, compliance_service, sample_monster):
+    def test_verify_data_compliance_monster_valid(
+        self, compliance_service, sample_monster
+    ):
         """Test compliance verification for a valid monster."""
         result = compliance_service.verify_data_compliance(
             sample_monster, "monster", "test_user"
@@ -93,7 +96,9 @@ class TestSRDComplianceService:
         assert len(result.issues) == 0
         assert result.verification_date is not None
 
-    def test_verify_data_compliance_monster_invalid_source(self, compliance_service, sample_monster):
+    def test_verify_data_compliance_monster_invalid_source(
+        self, compliance_service, sample_monster
+    ):
         """Test compliance verification for monster with invalid source."""
         sample_monster.data_source.is_official = False
 
@@ -105,7 +110,9 @@ class TestSRDComplianceService:
         assert len(result.issues) > 0
         assert any("official" in issue.lower() for issue in result.issues)
 
-    def test_verify_data_compliance_monster_expired(self, compliance_service, sample_monster):
+    def test_verify_data_compliance_monster_expired(
+        self, compliance_service, sample_monster
+    ):
         """Test compliance verification for monster with expired verification."""
         sample_monster.srd_compliance.last_verified = datetime(2020, 1, 1)
 
@@ -116,7 +123,9 @@ class TestSRDComplianceService:
         assert result.is_compliant is False
         assert len(result.issues) > 0
 
-    def test_verify_data_compliance_spell_valid(self, compliance_service, sample_compliance, sample_data_source):
+    def test_verify_data_compliance_spell_valid(
+        self, compliance_service, sample_compliance, sample_data_source
+    ):
         """Test compliance verification for a valid spell."""
         spell = Spell(
             spell_name="Test Spell",
@@ -133,7 +142,7 @@ class TestSRDComplianceService:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         result = compliance_service.verify_data_compliance(spell, "spell", "test_user")
@@ -141,7 +150,9 @@ class TestSRDComplianceService:
         assert result.is_compliant is True
         assert len(result.issues) == 0
 
-    def test_verify_data_compliance_weapon_valid(self, compliance_service, sample_compliance, sample_data_source):
+    def test_verify_data_compliance_weapon_valid(
+        self, compliance_service, sample_compliance, sample_data_source
+    ):
         """Test compliance verification for a valid weapon."""
         weapon = Weapon(
             weapon_name="Test Weapon",
@@ -155,18 +166,24 @@ class TestSRDComplianceService:
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
-        result = compliance_service.verify_data_compliance(weapon, "weapon", "test_user")
+        result = compliance_service.verify_data_compliance(
+            weapon, "weapon", "test_user"
+        )
 
         assert result.is_compliant is True
         assert len(result.issues) == 0
 
-    def test_verify_data_compliance_invalid_type(self, compliance_service, sample_monster):
+    def test_verify_data_compliance_invalid_type(
+        self, compliance_service, sample_monster
+    ):
         """Test compliance verification with invalid data type."""
         with pytest.raises(ValueError, match="Unsupported data type"):
-            compliance_service.verify_data_compliance(sample_monster, "invalid_type", "test_user")
+            compliance_service.verify_data_compliance(
+                sample_monster, "invalid_type", "test_user"
+            )
 
     def test_generate_compliance_report(self, compliance_service, sample_monster):
         """Test compliance report generation."""
@@ -195,7 +212,9 @@ class TestSRDComplianceService:
         # Official SRD source should have no issues
         assert len(issues) == 0
 
-    def test_validate_data_source_unofficial(self, compliance_service, sample_data_source):
+    def test_validate_data_source_unofficial(
+        self, compliance_service, sample_data_source
+    ):
         """Test data source validation with unofficial source."""
         sample_data_source.is_official = False
         sample_data_source.source_name = "Homebrew Content"
@@ -228,7 +247,7 @@ class TestSRDComplianceService:
         assert "test_action" in updated_compliance.audit_trail[-1]
         assert "test_user" in updated_compliance.audit_trail[-1]
 
-    @patch('packages.backend.components.srd_compliance_service.datetime')
+    @patch("packages.backend.components.srd_compliance_service.datetime")
     def test_is_verification_expired(self, mock_datetime, compliance_service):
         """Test verification expiration checking."""
         # Set current time to 2024
@@ -268,9 +287,7 @@ class TestComplianceResult:
         """Test ComplianceResult creation."""
         issues = ["Issue 1", "Issue 2"]
         result = ComplianceResult(
-            is_compliant=False,
-            issues=issues,
-            verification_date=datetime.utcnow()
+            is_compliant=False, issues=issues, verification_date=datetime.utcnow()
         )
 
         assert result.is_compliant is False

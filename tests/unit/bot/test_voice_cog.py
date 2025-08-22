@@ -10,15 +10,16 @@ Tests cover:
 - Discord interaction handling
 """
 
-import pytest
-from unittest.mock import patch, AsyncMock, MagicMock
-from discord import VoiceChannel, VoiceState, Member, Guild, PermissionOverwrite
-from discord.ext import commands
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import discord
+import pytest
+from discord import Guild, Member, VoiceChannel, VoiceState
+from discord.ext import commands
 
 from packages.bot.cogs.voice_cog import VoiceCog
 from packages.bot.services.voice_manager import voice_manager_service
-from packages.shared.models import VoiceConnection, VoiceChannelResponse
+from packages.shared.models import VoiceChannelResponse
 
 
 class TestVoiceCogInitialization:
@@ -55,10 +56,10 @@ class TestVoiceChannelPermissions:
         cached_perms = {"can_connect": True, "can_speak": False}
         cog._permission_cache[cache_key] = {
             "permissions": cached_perms,
-            "timestamp": 1234567890.0
+            "timestamp": 1234567890.0,
         }
 
-        with patch.object(cog, '_get_permission_cache_key', return_value=cache_key):
+        with patch.object(cog, "_get_permission_cache_key", return_value=cache_key):
             result = cog._get_cached_permissions(cache_key)
             assert result == cached_perms
 
@@ -70,10 +71,10 @@ class TestVoiceChannelPermissions:
         cache_key = "123:456:789"
         cog._permission_cache[cache_key] = {
             "permissions": {"can_connect": True},
-            "timestamp": 0  # Very old timestamp
+            "timestamp": 0,  # Very old timestamp
         }
 
-        with patch.object(cog, '_get_permission_cache_key', return_value=cache_key):
+        with patch.object(cog, "_get_permission_cache_key", return_value=cache_key):
             result = cog._get_cached_permissions(cache_key)
             assert result is None
             assert cache_key not in cog._permission_cache
@@ -86,7 +87,7 @@ class TestVoiceChannelPermissions:
         cache_key = "123:456:789"
         permissions = {"can_connect": True, "can_speak": True}
 
-        with patch('time.time', return_value=1234567890.0):
+        with patch("time.time", return_value=1234567890.0):
             cog._cache_permissions(cache_key, permissions)
 
         assert cache_key in cog._permission_cache
@@ -133,16 +134,22 @@ class TestVoiceChannelInfo:
 
         channel.permissions_for.return_value = permissions
 
-        with patch.object(guild, 'get_member', return_value=bot_member), \
-             patch.object(cog, '_check_voice_permissions', return_value={
-                 "can_connect": True,
-                 "can_speak": True,
-                 "can_mute_members": False,
-                 "can_deafen_members": False,
-                 "can_move_members": False,
-                 "can_use_voice_activity": True,
-                 "can_priority_speaker": False
-             }):
+        with (
+            patch.object(guild, "get_member", return_value=bot_member),
+            patch.object(
+                cog,
+                "_check_voice_permissions",
+                return_value={
+                    "can_connect": True,
+                    "can_speak": True,
+                    "can_mute_members": False,
+                    "can_deafen_members": False,
+                    "can_move_members": False,
+                    "can_use_voice_activity": True,
+                    "can_priority_speaker": False,
+                },
+            ),
+        ):
             result = await cog._get_channel_info(channel)
 
         assert isinstance(result, VoiceChannelResponse)
@@ -199,15 +206,16 @@ class TestVoiceJoinCommand:
             "can_deafen_members": False,
             "can_move_members": False,
             "can_use_voice_activity": True,
-            "can_priority_speaker": False
+            "can_priority_speaker": False,
         }
 
-        with patch.object(cog, '_get_channel_info') as mock_get_info, \
-             patch.object(cog, '_check_voice_permissions', return_value=user_perms), \
-             patch.object(voice_manager_service, 'start_connection') as mock_start, \
-             patch.object(voice_manager_service, 'complete_connection') as mock_complete, \
-             patch.object(voice_manager_service, 'add_participant') as mock_add:
-
+        with (
+            patch.object(cog, "_get_channel_info") as mock_get_info,
+            patch.object(cog, "_check_voice_permissions", return_value=user_perms),
+            patch.object(voice_manager_service, "start_connection") as mock_start,
+            patch.object(voice_manager_service, "complete_connection") as mock_complete,
+            patch.object(voice_manager_service, "add_participant") as mock_add,
+        ):
             # Setup mocks
             mock_get_info.return_value.bot_can_join = True
             mock_start.return_value = MagicMock(connection_id="test_conn_id")
@@ -215,15 +223,13 @@ class TestVoiceJoinCommand:
 
             # Mock Discord voice connection
             mock_voice_client = AsyncMock()
-            with patch.object(channel, 'connect', return_value=mock_voice_client):
+            with patch.object(channel, "connect", return_value=mock_voice_client):
                 await cog.voice_join(interaction, channel)
 
             # Verify calls
             interaction.response.defer.assert_called_once_with(ephemeral=True)
             mock_start.assert_called_once_with(
-                guild_id="987654",
-                channel_id="555666",
-                user_id="123456"
+                guild_id="987654", channel_id="555666", user_id="123456"
             )
             mock_complete.assert_called_once()
             mock_add.assert_called_once()
@@ -233,8 +239,7 @@ class TestVoiceJoinCommand:
             assert cog._voice_clients[987654] == mock_voice_client
 
             interaction.followup.send.assert_called_once_with(
-                "Successfully joined Test Voice! 🎤",
-                ephemeral=True
+                "Successfully joined Test Voice! 🎤", ephemeral=True
             )
 
     @pytest.mark.asyncio
@@ -257,7 +262,7 @@ class TestVoiceJoinCommand:
         interaction.followup.send.assert_called_once_with(
             "I'm already connected to a voice channel in this server. "
             "Use `/voice_leave` to disconnect first.",
-            ephemeral=True
+            ephemeral=True,
         )
 
     @pytest.mark.asyncio
@@ -272,14 +277,13 @@ class TestVoiceJoinCommand:
 
         channel = MagicMock(spec=VoiceChannel)
 
-        with patch.object(cog, '_get_channel_info') as mock_get_info:
+        with patch.object(cog, "_get_channel_info") as mock_get_info:
             mock_get_info.return_value.bot_can_join = False
 
             await cog.voice_join(interaction, channel)
 
             interaction.followup.send.assert_called_once_with(
-                "I don't have permission to join that voice channel.",
-                ephemeral=True
+                "I don't have permission to join that voice channel.", ephemeral=True
             )
 
     @pytest.mark.asyncio
@@ -294,15 +298,19 @@ class TestVoiceJoinCommand:
 
         channel = MagicMock(spec=VoiceChannel)
 
-        with patch.object(cog, '_get_channel_info') as mock_get_info, \
-             patch.object(cog, '_check_voice_permissions', return_value={"can_connect": False}):
+        with (
+            patch.object(cog, "_get_channel_info") as mock_get_info,
+            patch.object(
+                cog, "_check_voice_permissions", return_value={"can_connect": False}
+            ),
+        ):
             mock_get_info.return_value.bot_can_join = True
 
             await cog.voice_join(interaction, channel)
 
             interaction.followup.send.assert_called_once_with(
                 "You don't have permission to connect to that voice channel.",
-                ephemeral=True
+                ephemeral=True,
             )
 
 
@@ -324,18 +332,19 @@ class TestVoiceLeaveCommand:
         interaction.guild_id = 987654
         interaction.user.id = 123456
 
-        with patch.object(voice_manager_service, 'get_guild_connection') as mock_get, \
-             patch.object(voice_manager_service, 'disconnect_connection') as mock_disconnect:
-
+        with (
+            patch.object(voice_manager_service, "get_guild_connection") as mock_get,
+            patch.object(
+                voice_manager_service, "disconnect_connection"
+            ) as mock_disconnect,
+        ):
             mock_get.return_value = MagicMock(connection_id="test_conn_id")
 
             await cog.voice_leave(interaction, MagicMock())
 
             # Verify service calls
             mock_disconnect.assert_called_once_with(
-                connection_id="test_conn_id",
-                reason="user_request",
-                user_id="123456"
+                connection_id="test_conn_id", reason="user_request", user_id="123456"
             )
 
             # Verify Discord disconnect
@@ -345,8 +354,7 @@ class TestVoiceLeaveCommand:
             assert 987654 not in cog._voice_clients
 
             interaction.followup.send.assert_called_once_with(
-                "Successfully left the voice channel! 👋",
-                ephemeral=True
+                "Successfully left the voice channel! 👋", ephemeral=True
             )
 
     @pytest.mark.asyncio
@@ -362,7 +370,7 @@ class TestVoiceLeaveCommand:
 
         interaction.followup.send.assert_called_once_with(
             "I'm not currently connected to a voice channel in this server.",
-            ephemeral=True
+            ephemeral=True,
         )
 
 
@@ -392,13 +400,15 @@ class TestVoiceStatusCommand:
         channel.name = "Test Voice"
         interaction.guild.get_channel.return_value = channel
 
-        with patch.object(voice_manager_service, 'get_connection_status', return_value=status_response):
+        with patch.object(
+            voice_manager_service, "get_connection_status", return_value=status_response
+        ):
             await cog.voice_status(interaction)
 
             # Verify embed creation
             args, kwargs = interaction.followup.send.call_args
-            assert 'embed' in kwargs
-            embed = kwargs['embed']
+            assert "embed" in kwargs
+            embed = kwargs["embed"]
             assert isinstance(embed, discord.Embed)
             assert embed.title == "Voice Connection Status"
 
@@ -411,12 +421,14 @@ class TestVoiceStatusCommand:
         interaction = AsyncMock()
         interaction.guild_id = 987654
 
-        with patch.object(voice_manager_service, 'get_connection_status', return_value=None):
+        with patch.object(
+            voice_manager_service, "get_connection_status", return_value=None
+        ):
             await cog.voice_status(interaction)
 
             interaction.followup.send.assert_called_once_with(
                 "I'm not currently connected to a voice channel in this server.",
-                ephemeral=True
+                ephemeral=True,
             )
 
 
@@ -445,14 +457,16 @@ class TestVoiceStateUpdate:
         connection = MagicMock()
         connection.channel_id = "555666"
 
-        with patch.object(voice_manager_service, 'get_guild_connection', return_value=connection), \
-             patch.object(voice_manager_service, 'add_participant') as mock_add:
-
+        with (
+            patch.object(
+                voice_manager_service, "get_guild_connection", return_value=connection
+            ),
+            patch.object(voice_manager_service, "add_participant") as mock_add,
+        ):
             await cog.on_voice_state_update(member, before, after)
 
             mock_add.assert_called_once_with(
-                connection_id=connection.connection_id,
-                user_id="123456"
+                connection_id=connection.connection_id, user_id="123456"
             )
 
     @pytest.mark.asyncio
@@ -477,14 +491,16 @@ class TestVoiceStateUpdate:
         connection = MagicMock()
         connection.channel_id = "555666"
 
-        with patch.object(voice_manager_service, 'get_guild_connection', return_value=connection), \
-             patch.object(voice_manager_service, 'remove_participant') as mock_remove:
-
+        with (
+            patch.object(
+                voice_manager_service, "get_guild_connection", return_value=connection
+            ),
+            patch.object(voice_manager_service, "remove_participant") as mock_remove,
+        ):
             await cog.on_voice_state_update(member, before, after)
 
             mock_remove.assert_called_once_with(
-                connection_id=connection.connection_id,
-                user_id="123456"
+                connection_id=connection.connection_id, user_id="123456"
             )
 
     @pytest.mark.asyncio
@@ -498,7 +514,7 @@ class TestVoiceStateUpdate:
         member.id = 987654  # Bot's ID
 
         # Should not call any service methods
-        with patch.object(voice_manager_service, 'get_guild_connection') as mock_get:
+        with patch.object(voice_manager_service, "get_guild_connection") as mock_get:
             await cog.on_voice_state_update(member, MagicMock(), MagicMock())
 
             mock_get.assert_not_called()
@@ -523,15 +539,20 @@ class TestVoiceClientError:
         connection = MagicMock()
         connection.connection_id = "test_conn_id"
 
-        with patch.object(voice_manager_service, 'get_guild_connection', return_value=connection), \
-             patch.object(voice_manager_service, 'handle_connection_error') as mock_handle:
-
+        with (
+            patch.object(
+                voice_manager_service, "get_guild_connection", return_value=connection
+            ),
+            patch.object(
+                voice_manager_service, "handle_connection_error"
+            ) as mock_handle,
+        ):
             await cog.on_voice_client_error(voice_client, error)
 
             mock_handle.assert_called_once_with(
                 connection_id="test_conn_id",
                 error="Connection failed",
-                user_id="discord_voice_client"
+                user_id="discord_voice_client",
             )
 
 
@@ -547,18 +568,18 @@ class TestCogLifecycle:
         # Setup voice clients
         mock_client1 = AsyncMock()
         mock_client2 = AsyncMock()
-        cog._voice_clients = {
-            123: mock_client1,
-            456: mock_client2
-        }
+        cog._voice_clients = {123: mock_client1, 456: mock_client2}
 
         # Mock connections
-        with patch.object(voice_manager_service, 'get_guild_connection') as mock_get, \
-             patch.object(voice_manager_service, 'disconnect_connection') as mock_disconnect:
-
+        with (
+            patch.object(voice_manager_service, "get_guild_connection") as mock_get,
+            patch.object(
+                voice_manager_service, "disconnect_connection"
+            ) as mock_disconnect,
+        ):
             mock_get.side_effect = [
                 MagicMock(connection_id="conn_123"),
-                MagicMock(connection_id="conn_456")
+                MagicMock(connection_id="conn_456"),
             ]
 
             await cog.cog_unload()

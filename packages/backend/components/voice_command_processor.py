@@ -14,20 +14,16 @@ Features:
 - Command history and preference learning
 """
 
-import asyncio
-import time
 import re
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Set
+import time
 from dataclasses import dataclass, field
+from datetime import datetime
 from difflib import SequenceMatcher
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import (
-    VoiceCommandIntent, CommandPattern, CommandHistory,
-    CommandExecutionResult, CommandFeedback
-)
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import CommandHistory, CommandPattern, VoiceCommandIntent
 
 logger = get_logger(__name__)
 
@@ -82,10 +78,10 @@ class VoiceCommandProcessor:
 
         # Performance tracking
         self.processing_stats = {
-            'total_commands': 0,
-            'successful_recognition': 0,
-            'average_confidence': 0.0,
-            'average_processing_time': 0.0
+            "total_commands": 0,
+            "successful_recognition": 0,
+            "average_confidence": 0.0,
+            "average_processing_time": 0.0,
         }
 
         # Initialize default command patterns
@@ -100,184 +96,148 @@ class VoiceCommandProcessor:
         """Initialize default command patterns for game actions."""
 
         # Combat patterns
-        self.command_patterns['attack'] = CommandPattern(
-            pattern_id='attack_basic',
-            intent='attack',
+        self.command_patterns["attack"] = CommandPattern(
+            pattern_id="attack_basic",
+            intent="attack",
             patterns=[
-                'attack {target}',
-                'hit {target}',
-                'strike {target}',
-                'fight {target}',
-                'attack the {target}',
-                'kill {target}',
-                'slay {target}'
+                "attack {target}",
+                "hit {target}",
+                "strike {target}",
+                "fight {target}",
+                "attack the {target}",
+                "kill {target}",
+                "slay {target}",
             ],
-            entities={'target': 'MONSTER'},
+            entities={"target": "MONSTER"},
             priority=10,
-            examples=[
-                'attack the goblin',
-                'hit the orc',
-                'strike the dragon'
-            ]
+            examples=["attack the goblin", "hit the orc", "strike the dragon"],
         )
 
         # Movement patterns
-        self.command_patterns['move'] = CommandPattern(
-            pattern_id='move_basic',
-            intent='move',
+        self.command_patterns["move"] = CommandPattern(
+            pattern_id="move_basic",
+            intent="move",
             patterns=[
-                'move to {location}',
-                'go to {location}',
-                'walk to {location}',
-                'run to {location}',
-                'travel to {location}',
-                'head to {location}'
+                "move to {location}",
+                "go to {location}",
+                "walk to {location}",
+                "run to {location}",
+                "travel to {location}",
+                "head to {location}",
             ],
-            entities={'location': 'LOCATION'},
+            entities={"location": "LOCATION"},
             priority=8,
-            examples=[
-                'move to the dungeon',
-                'go to the tavern',
-                'walk to the forest'
-            ]
+            examples=["move to the dungeon", "go to the tavern", "walk to the forest"],
         )
 
         # Inventory patterns
-        self.command_patterns['inventory'] = CommandPattern(
-            pattern_id='inventory_basic',
-            intent='inventory',
+        self.command_patterns["inventory"] = CommandPattern(
+            pattern_id="inventory_basic",
+            intent="inventory",
             patterns=[
-                'check inventory',
-                'show inventory',
-                'what do I have',
-                'inventory',
-                'my items',
-                'my stuff'
+                "check inventory",
+                "show inventory",
+                "what do I have",
+                "inventory",
+                "my items",
+                "my stuff",
             ],
             priority=9,
-            examples=[
-                'check inventory',
-                'show my items',
-                'what do I have'
-            ]
+            examples=["check inventory", "show my items", "what do I have"],
         )
 
         # Character patterns
-        self.command_patterns['character'] = CommandPattern(
-            pattern_id='character_status',
-            intent='character',
+        self.command_patterns["character"] = CommandPattern(
+            pattern_id="character_status",
+            intent="character",
             patterns=[
-                'check {character}',
-                'status of {character}',
-                'how is {character}',
-                '{character} status',
-                'health of {character}'
+                "check {character}",
+                "status of {character}",
+                "how is {character}",
+                "{character} status",
+                "health of {character}",
             ],
-            entities={'character': 'PERSON'},
+            entities={"character": "PERSON"},
             priority=7,
-            examples=[
-                'check my character',
-                'how is Eldrin',
-                'status of Throg'
-            ]
+            examples=["check my character", "how is Eldrin", "status of Throg"],
         )
 
         # Item usage patterns
-        self.command_patterns['use_item'] = CommandPattern(
-            pattern_id='use_item_basic',
-            intent='use_item',
+        self.command_patterns["use_item"] = CommandPattern(
+            pattern_id="use_item_basic",
+            intent="use_item",
             patterns=[
-                'use {item}',
-                'drink {item}',
-                'eat {item}',
-                'equip {item}',
-                'use {quantity} {item}',
-                'drink {quantity} {item}'
+                "use {item}",
+                "drink {item}",
+                "eat {item}",
+                "equip {item}",
+                "use {quantity} {item}",
+                "drink {quantity} {item}",
             ],
-            entities={'item': 'ITEM', 'quantity': 'NUMBER'},
+            entities={"item": "ITEM", "quantity": "NUMBER"},
             priority=9,
             examples=[
-                'use health potion',
-                'drink mana potion',
-                'equip sword',
-                'use 2 potions'
-            ]
+                "use health potion",
+                "drink mana potion",
+                "equip sword",
+                "use 2 potions",
+            ],
         )
 
         # System patterns
-        self.command_patterns['save'] = CommandPattern(
-            pattern_id='save_game',
-            intent='system',
-            patterns=[
-                'save game',
-                'save',
-                'save progress'
-            ],
+        self.command_patterns["save"] = CommandPattern(
+            pattern_id="save_game",
+            intent="system",
+            patterns=["save game", "save", "save progress"],
             priority=10,
-            examples=[
-                'save game',
-                'save'
-            ]
+            examples=["save game", "save"],
         )
 
-        self.command_patterns['help'] = CommandPattern(
-            pattern_id='help_command',
-            intent='system',
-            patterns=[
-                'help',
-                'help me',
-                'what can I say',
-                'commands',
-                'how do I'
-            ],
+        self.command_patterns["help"] = CommandPattern(
+            pattern_id="help_command",
+            intent="system",
+            patterns=["help", "help me", "what can I say", "commands", "how do I"],
             priority=5,
-            examples=[
-                'help',
-                'what can I say'
-            ]
+            examples=["help", "what can I say"],
         )
 
     def _initialize_entity_patterns(self) -> None:
         """Initialize patterns for entity extraction."""
 
         # Monster patterns
-        self.entity_patterns['MONSTER'] = [
-            r'\b(goblin|orc|dragon|wolf|bear|spider|rat|bandit)\b',
-            r'\b(skeleton|zombie|ghost|vampire|werewolf)\b',
-            r'\b(demon|devil|angel|elemental|construct)\b'
+        self.entity_patterns["MONSTER"] = [
+            r"\b(goblin|orc|dragon|wolf|bear|spider|rat|bandit)\b",
+            r"\b(skeleton|zombie|ghost|vampire|werewolf)\b",
+            r"\b(demon|devil|angel|elemental|construct)\b",
         ]
 
         # Location patterns
-        self.entity_patterns['LOCATION'] = [
-            r'\b(dungeon|cave|tavern|forest|castle|town|village)\b',
-            r'\b(mountain|river|bridge|road|path|clearing)\b',
-            r'\b(room|chamber|hall|corridor|entrance|exit)\b'
+        self.entity_patterns["LOCATION"] = [
+            r"\b(dungeon|cave|tavern|forest|castle|town|village)\b",
+            r"\b(mountain|river|bridge|road|path|clearing)\b",
+            r"\b(room|chamber|hall|corridor|entrance|exit)\b",
         ]
 
         # Item patterns
-        self.entity_patterns['ITEM'] = [
-            r'\b(sword|axe|bow|shield|armor|helmet)\b',
-            r'\b(potion|elixir|scroll|wand|ring|amulet)\b',
-            r'\b(key|lockpick|torch|rope|backpack)\b'
+        self.entity_patterns["ITEM"] = [
+            r"\b(sword|axe|bow|shield|armor|helmet)\b",
+            r"\b(potion|elixir|scroll|wand|ring|amulet)\b",
+            r"\b(key|lockpick|torch|rope|backpack)\b",
         ]
 
         # Character patterns (generic)
-        self.entity_patterns['PERSON'] = [
-            r'\b(my character|me|myself|I)\b',
-            r'\b(Eldrin|Throg|Lyra|Finn|Mira|Kael)\b'  # Common fantasy names
+        self.entity_patterns["PERSON"] = [
+            r"\b(my character|me|myself|I)\b",
+            r"\b(Eldrin|Throg|Lyra|Finn|Mira|Kael)\b",  # Common fantasy names
         ]
 
         # Number patterns
-        self.entity_patterns['NUMBER'] = [
-            r'\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b'
+        self.entity_patterns["NUMBER"] = [
+            r"\b(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\b"
         ]
 
     async def process_voice_command(
-        self,
-        text: str,
-        session_id: str,
-        user_id: str,
-        context: Dict[str, Any] = None
+        self, text: str, session_id: str, user_id: str, context: Dict[str, Any] = None
     ) -> VoiceCommandIntent:
         """
         Process a voice command and return intent analysis.
@@ -298,9 +258,8 @@ class VoiceCommandProcessor:
                 operation_name="voice_command_processing",
                 session_id=session_id,
                 user_id=user_id,
-                text_length=len(text)
+                text_length=len(text),
             ) as trace_id:
-
                 # Normalize text
                 normalized_text = self._normalize_text(text)
 
@@ -333,11 +292,13 @@ class VoiceCommandProcessor:
                         "user_id": user_id,
                         "original_text": text,
                         "game_state": context.get("game_state") if context else None,
-                        "matched_pattern": best_match.pattern_id if best_match else None
+                        "matched_pattern": best_match.pattern_id
+                        if best_match
+                        else None,
                     },
                     original_text=text,
                     processed_text=normalized_text,
-                    processing_time=time.time() - start_time
+                    processing_time=time.time() - start_time,
                 )
 
                 # Update user history
@@ -354,7 +315,7 @@ class VoiceCommandProcessor:
                     confidence=intent.confidence_score,
                     entities=len(intent.entities),
                     processing_time=intent.processing_time,
-                    trace_id=trace_id
+                    trace_id=trace_id,
                 )
 
                 return intent
@@ -367,7 +328,7 @@ class VoiceCommandProcessor:
                 user_id=user_id,
                 text=text,
                 processing_time=processing_time,
-                error=str(e)
+                error=str(e),
             )
 
             # Return minimal intent on error
@@ -377,7 +338,7 @@ class VoiceCommandProcessor:
                 confidence_score=0.0,
                 original_text=text,
                 processed_text=text,
-                processing_time=processing_time
+                processing_time=processing_time,
             )
 
     def _normalize_text(self, text: str) -> str:
@@ -386,21 +347,18 @@ class VoiceCommandProcessor:
         normalized = text.lower()
 
         # Remove extra whitespace
-        normalized = ' '.join(normalized.split())
+        normalized = " ".join(normalized.split())
 
         # Remove punctuation except for entity-relevant chars
-        normalized = re.sub(r'[^\w\s]', ' ', normalized)
+        normalized = re.sub(r"[^\w\s]", " ", normalized)
 
         # Remove extra whitespace again
-        normalized = ' '.join(normalized.split())
+        normalized = " ".join(normalized.split())
 
         return normalized
 
     async def _find_intent_matches(
-        self,
-        text: str,
-        context: Dict[str, Any],
-        user_history: CommandHistory
+        self, text: str, context: Dict[str, Any], user_history: CommandHistory
     ) -> List[IntentMatch]:
         """Find intent matches for the given text."""
         matches = []
@@ -423,28 +381,39 @@ class VoiceCommandProcessor:
                     matches.append(fuzzy_match)
 
         # Sort by confidence and priority
-        matches.sort(key=lambda m: (m.confidence, self.command_patterns[m.intent].priority), reverse=True)
+        matches.sort(
+            key=lambda m: (m.confidence, self.command_patterns[m.intent].priority),
+            reverse=True,
+        )
 
         return matches
 
-    def _match_exact_pattern(self, text: str, pattern: CommandPattern) -> Optional[IntentMatch]:
+    def _match_exact_pattern(
+        self, text: str, pattern: CommandPattern
+    ) -> Optional[IntentMatch]:
         """Try to match text against a pattern exactly."""
         for pattern_text in pattern.patterns:
             # Simple placeholder matching (in real implementation, use NLP)
             if self._simple_pattern_match(text, pattern_text):
-                confidence = self._calculate_pattern_confidence(text, pattern_text, pattern)
+                confidence = self._calculate_pattern_confidence(
+                    text, pattern_text, pattern
+                )
 
                 return IntentMatch(
                     intent=pattern.intent,
                     confidence=confidence,
                     pattern_id=pattern.pattern_id,
                     matched_text=text,
-                    entities=self._extract_pattern_entities(text, pattern_text, pattern)
+                    entities=self._extract_pattern_entities(
+                        text, pattern_text, pattern
+                    ),
                 )
 
         return None
 
-    def _match_fuzzy_pattern(self, text: str, pattern: CommandPattern) -> Optional[IntentMatch]:
+    def _match_fuzzy_pattern(
+        self, text: str, pattern: CommandPattern
+    ) -> Optional[IntentMatch]:
         """Try fuzzy matching against a pattern."""
         best_match = None
         best_confidence = 0.0
@@ -466,7 +435,9 @@ class VoiceCommandProcessor:
                         confidence=confidence,
                         pattern_id=pattern.pattern_id,
                         matched_text=text,
-                        entities=self._extract_pattern_entities(text, pattern_text, pattern)
+                        entities=self._extract_pattern_entities(
+                            text, pattern_text, pattern
+                        ),
                     )
 
         return best_match
@@ -474,7 +445,7 @@ class VoiceCommandProcessor:
     def _simple_pattern_match(self, text: str, pattern: str) -> bool:
         """Simple pattern matching implementation."""
         # Remove entity placeholders for basic matching
-        clean_pattern = re.sub(r'\{[^}]+\}', '', pattern).strip()
+        clean_pattern = re.sub(r"\{[^}]+\}", "", pattern).strip()
 
         # Check if all significant words in pattern are in text
         pattern_words = set(clean_pattern.split())
@@ -486,16 +457,20 @@ class VoiceCommandProcessor:
 
         return match_ratio >= 0.7
 
-    def _calculate_pattern_confidence(self, text: str, pattern: str, pattern_obj: CommandPattern) -> float:
+    def _calculate_pattern_confidence(
+        self, text: str, pattern: str, pattern_obj: CommandPattern
+    ) -> float:
         """Calculate confidence score for a pattern match."""
         # Base confidence from word overlap
-        pattern_words = set(re.sub(r'\{[^}]+\}', '', pattern).split())
+        pattern_words = set(re.sub(r"\{[^}]+\}", "", pattern).split())
         text_words = set(text.split())
 
         overlap = len(pattern_words.intersection(text_words))
         total_pattern_words = len(pattern_words)
 
-        base_confidence = overlap / max(total_pattern_words, 1) if total_pattern_words > 0 else 0.0
+        base_confidence = (
+            overlap / max(total_pattern_words, 1) if total_pattern_words > 0 else 0.0
+        )
 
         # Boost confidence based on pattern priority
         priority_boost = min(pattern_obj.priority / 10.0, 0.2)
@@ -507,7 +482,9 @@ class VoiceCommandProcessor:
 
         return confidence
 
-    def _extract_pattern_entities(self, text: str, pattern: str, pattern_obj: CommandPattern) -> Dict[str, Any]:
+    def _extract_pattern_entities(
+        self, text: str, pattern: str, pattern_obj: CommandPattern
+    ) -> Dict[str, Any]:
         """Extract entities from matched pattern."""
         entities = {}
 
@@ -520,13 +497,15 @@ class VoiceCommandProcessor:
                         entities[entity_name] = {
                             "value": match.group(0),
                             "type": entity_type,
-                            "confidence": 0.9
+                            "confidence": 0.9,
                         }
                         break  # Take first match
 
         return entities
 
-    def _extract_entities(self, text: str, best_match: Optional[IntentMatch]) -> Dict[str, Any]:
+    def _extract_entities(
+        self, text: str, best_match: Optional[IntentMatch]
+    ) -> Dict[str, Any]:
         """Extract entities from text."""
         entities = {}
 
@@ -544,7 +523,7 @@ class VoiceCommandProcessor:
                         entities[entity_type.lower()] = {
                             "value": entity_value,
                             "type": entity_type,
-                            "confidence": 0.8
+                            "confidence": 0.8,
                         }
 
         return entities
@@ -557,7 +536,9 @@ class VoiceCommandProcessor:
         # Return the highest confidence match
         return max(matches, key=lambda m: m.confidence)
 
-    def _check_context_requirements(self, pattern: CommandPattern, context: Dict[str, Any]) -> bool:
+    def _check_context_requirements(
+        self, pattern: CommandPattern, context: Dict[str, Any]
+    ) -> bool:
         """Check if pattern context requirements are met."""
         if not pattern.context_requirements or not context:
             return True
@@ -576,29 +557,36 @@ class VoiceCommandProcessor:
 
         return self.user_histories[user_id]
 
-    def _update_user_history(self, user_id: str, intent: VoiceCommandIntent, history: CommandHistory) -> None:
+    def _update_user_history(
+        self, user_id: str, intent: VoiceCommandIntent, history: CommandHistory
+    ) -> None:
         """Update user command history with learning."""
         # Add to command history
-        history.command_history.append({
-            "intent": intent.primary_intent,
-            "confidence": intent.confidence_score,
-            "entities": intent.entities,
-            "timestamp": intent.created_at.isoformat(),
-            "success": intent.confidence_score >= 0.7  # Simple success metric
-        })
+        history.command_history.append(
+            {
+                "intent": intent.primary_intent,
+                "confidence": intent.confidence_score,
+                "entities": intent.entities,
+                "timestamp": intent.created_at.isoformat(),
+                "success": intent.confidence_score >= 0.7,  # Simple success metric
+            }
+        )
 
         # Update preferred patterns
         if intent.primary_intent != "unknown":
             pattern_key = f"{intent.primary_intent}_{intent.confidence_score:.1f}"
-            history.preferred_patterns[pattern_key] = history.preferred_patterns.get(pattern_key, 0) + 1
+            history.preferred_patterns[pattern_key] = (
+                history.preferred_patterns.get(pattern_key, 0) + 1
+            )
 
         # Update entity preferences
         for entity_type, entity_data in intent.entities.items():
             if entity_type not in history.common_entities:
                 history.common_entities[entity_type] = {}
             entity_value = entity_data["value"]
-            history.common_entities[entity_type][entity_value] = \
+            history.common_entities[entity_type][entity_value] = (
                 history.common_entities[entity_type].get(entity_value, 0) + 1
+            )
 
         # Update statistics
         history.total_commands += 1
@@ -607,29 +595,33 @@ class VoiceCommandProcessor:
         else:
             history.failed_commands += 1
 
-        history.command_success_rate = history.successful_commands / max(history.total_commands, 1)
+        history.command_success_rate = history.successful_commands / max(
+            history.total_commands, 1
+        )
         history.last_updated = datetime.utcnow()
 
-    def _update_processing_stats(self, intent: VoiceCommandIntent, processing_time: float) -> None:
+    def _update_processing_stats(
+        self, intent: VoiceCommandIntent, processing_time: float
+    ) -> None:
         """Update processing statistics."""
-        self.processing_stats['total_commands'] += 1
+        self.processing_stats["total_commands"] += 1
 
         if intent.primary_intent != "unknown" and intent.confidence_score >= 0.5:
-            self.processing_stats['successful_recognition'] += 1
+            self.processing_stats["successful_recognition"] += 1
 
         # Update rolling averages
-        current_avg_confidence = self.processing_stats['average_confidence']
-        current_avg_time = self.processing_stats['average_processing_time']
+        current_avg_confidence = self.processing_stats["average_confidence"]
+        current_avg_time = self.processing_stats["average_processing_time"]
 
-        self.processing_stats['average_confidence'] = (
-            (current_avg_confidence * (self.processing_stats['total_commands'] - 1)) +
-            intent.confidence_score
-        ) / self.processing_stats['total_commands']
+        self.processing_stats["average_confidence"] = (
+            (current_avg_confidence * (self.processing_stats["total_commands"] - 1))
+            + intent.confidence_score
+        ) / self.processing_stats["total_commands"]
 
-        self.processing_stats['average_processing_time'] = (
-            (current_avg_time * (self.processing_stats['total_commands'] - 1)) +
-            processing_time
-        ) / self.processing_stats['total_commands']
+        self.processing_stats["average_processing_time"] = (
+            (current_avg_time * (self.processing_stats["total_commands"] - 1))
+            + processing_time
+        ) / self.processing_stats["total_commands"]
 
     def add_custom_pattern(self, pattern: CommandPattern) -> bool:
         """Add a custom command pattern."""
@@ -639,7 +631,11 @@ class VoiceCommandProcessor:
                 return False
 
             self.command_patterns[pattern.pattern_id] = pattern
-            logger.info("custom_pattern_added", pattern_id=pattern.pattern_id, intent=pattern.intent)
+            logger.info(
+                "custom_pattern_added",
+                pattern_id=pattern.pattern_id,
+                intent=pattern.intent,
+            )
             return True
 
         except Exception as e:
@@ -668,7 +664,7 @@ class VoiceCommandProcessor:
         return {
             "total_patterns": total_patterns,
             "patterns_by_intent": patterns_by_intent,
-            "processing_stats": self.processing_stats.copy()
+            "processing_stats": self.processing_stats.copy(),
         }
 
     def get_user_preferences(self, user_id: str) -> Dict[str, Any]:
@@ -682,7 +678,7 @@ class VoiceCommandProcessor:
             "preferred_intents": history.preferred_patterns,
             "common_entities": history.common_entities,
             "success_rate": history.command_success_rate,
-            "total_commands": history.total_commands
+            "total_commands": history.total_commands,
         }
 
     def reset_user_history(self, user_id: str) -> bool:
@@ -697,8 +693,11 @@ class VoiceCommandProcessor:
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the command processor."""
         success_rate = 0.0
-        if self.processing_stats['total_commands'] > 0:
-            success_rate = self.processing_stats['successful_recognition'] / self.processing_stats['total_commands']
+        if self.processing_stats["total_commands"] > 0:
+            success_rate = (
+                self.processing_stats["successful_recognition"]
+                / self.processing_stats["total_commands"]
+            )
 
         return {
             "status": "healthy" if success_rate >= 0.7 else "degraded",
@@ -706,8 +705,8 @@ class VoiceCommandProcessor:
             "total_users": len(self.user_histories),
             "processing_stats": self.processing_stats.copy(),
             "success_rate": success_rate,
-            "average_confidence": self.processing_stats['average_confidence'],
-            "average_processing_time": self.processing_stats['average_processing_time']
+            "average_confidence": self.processing_stats["average_confidence"],
+            "average_processing_time": self.processing_stats["average_processing_time"],
         }
 
 

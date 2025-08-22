@@ -13,22 +13,21 @@ Features:
 - Comprehensive error handling and logging
 """
 
-import asyncio
-import time
 import hashlib
+import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import (
-    TextToSpeechRequest, SpeechSynthesisResult,
-    ProviderHealthStatus, TTSServiceStatus,
-    AudioProcessingConfig
-)
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.audio_utils import audio_utils
 from packages.shared.logging_config import get_logger
+from packages.shared.models import (
+    ProviderHealthStatus,
+    SpeechSynthesisResult,
+    TextToSpeechRequest,
+    TTSServiceStatus,
+)
 
 logger = get_logger(__name__)
 
@@ -91,10 +90,12 @@ class TTSCache:
 
         return entry.audio_data
 
-    def put(self, key: str, audio_data: bytes, voice_id: str, text: str, format: str) -> None:
+    def put(
+        self, key: str, audio_data: bytes, voice_id: str, text: str, format: str
+    ) -> None:
         """Cache audio data."""
         # Generate text hash for cache key
-        text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+        text_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
 
         entry = TTSCacheEntry(
             cache_key=key,
@@ -103,7 +104,7 @@ class TTSCache:
             voice_id=voice_id,
             text_hash=text_hash,
             created_at=datetime.utcnow(),
-            size_bytes=len(audio_data)
+            size_bytes=len(audio_data),
         )
 
         # Check cache size and evict if necessary
@@ -143,7 +144,7 @@ class TTSCache:
             "entries": len(self._cache),
             "total_size_mb": total_size / (1024 * 1024),
             "total_accesses": total_accesses,
-            "hit_rate": total_accesses / max(len(self._cache), 1)
+            "hit_rate": total_accesses / max(len(self._cache), 1),
         }
 
 
@@ -165,13 +166,15 @@ class TTSProvider(ABC):
         speed: float = 1.0,
         pitch: float = 1.0,
         volume: float = 1.0,
-        output_format: str = "wav"
+        output_format: str = "wav",
     ) -> SpeechSynthesisResult:
         """Synthesize speech from text."""
         pass
 
     @abstractmethod
-    async def get_available_voices(self, language: Optional[str] = None) -> List[VoiceInfo]:
+    async def get_available_voices(
+        self, language: Optional[str] = None
+    ) -> List[VoiceInfo]:
         """Get list of available voices."""
         pass
 
@@ -188,7 +191,7 @@ class TTSProvider(ABC):
             status="unknown",
             response_time=0.0,
             success_rate=0.0,
-            last_check=datetime.utcnow()
+            last_check=datetime.utcnow(),
         )
 
     async def check_health(self) -> ProviderHealthStatus:
@@ -252,7 +255,7 @@ class OpenAITTSProvider(TTSProvider):
         speed: float = 1.0,
         pitch: float = 1.0,
         volume: float = 1.0,
-        output_format: str = "wav"
+        output_format: str = "wav",
     ) -> SpeechSynthesisResult:
         """Synthesize speech using OpenAI TTS."""
         start_time = time.time()
@@ -263,7 +266,7 @@ class OpenAITTSProvider(TTSProvider):
             processing_time = time.time() - start_time
 
             # Mock audio data (would be real audio from OpenAI)
-            mock_audio_data = b"mock_openai_audio_data_" + text.encode('utf-8')[:50]
+            mock_audio_data = b"mock_openai_audio_data_" + text.encode("utf-8")[:50]
 
             return SpeechSynthesisResult(
                 audio_data=mock_audio_data,
@@ -274,14 +277,16 @@ class OpenAITTSProvider(TTSProvider):
                 voice_used=voice_id,
                 provider=self.provider_name,
                 processing_time=processing_time,
-                file_size=len(mock_audio_data)
+                file_size=len(mock_audio_data),
             )
 
         except Exception as e:
             self.logger.error("OpenAI TTS synthesis failed", error=str(e))
             raise
 
-    async def get_available_voices(self, language: Optional[str] = None) -> List[VoiceInfo]:
+    async def get_available_voices(
+        self, language: Optional[str] = None
+    ) -> List[VoiceInfo]:
         """Get available OpenAI voices."""
         voices = [
             VoiceInfo(
@@ -291,7 +296,7 @@ class OpenAITTSProvider(TTSProvider):
                 gender="neutral",
                 provider="openai",
                 quality="high",
-                description="Clear and confident voice"
+                description="Clear and confident voice",
             ),
             VoiceInfo(
                 voice_id="echo",
@@ -300,7 +305,7 @@ class OpenAITTSProvider(TTSProvider):
                 gender="male",
                 provider="openai",
                 quality="high",
-                description="Warm and friendly male voice"
+                description="Warm and friendly male voice",
             ),
             VoiceInfo(
                 voice_id="fable",
@@ -309,7 +314,7 @@ class OpenAITTSProvider(TTSProvider):
                 gender="female",
                 provider="openai",
                 quality="high",
-                description="Expressive female voice"
+                description="Expressive female voice",
             ),
             VoiceInfo(
                 voice_id="onyx",
@@ -318,7 +323,7 @@ class OpenAITTSProvider(TTSProvider):
                 gender="male",
                 provider="openai",
                 quality="high",
-                description="Deep and authoritative male voice"
+                description="Deep and authoritative male voice",
             ),
             VoiceInfo(
                 voice_id="nova",
@@ -327,7 +332,7 @@ class OpenAITTSProvider(TTSProvider):
                 gender="female",
                 provider="openai",
                 quality="high",
-                description="Bright and energetic female voice"
+                description="Bright and energetic female voice",
             ),
             VoiceInfo(
                 voice_id="shimmer",
@@ -336,8 +341,8 @@ class OpenAITTSProvider(TTSProvider):
                 gender="female",
                 provider="openai",
                 quality="high",
-                description="Gentle and soft female voice"
-            )
+                description="Gentle and soft female voice",
+            ),
         ]
 
         if language:
@@ -352,10 +357,17 @@ class OpenAITTSProvider(TTSProvider):
             "provider": "openai",
             "model": self.model,
             "supported_formats": ["mp3", "opus", "aac", "flac"],
-            "supported_languages": ["en-US", "en-GB", "es-ES", "fr-FR", "de-DE", "it-IT"],
+            "supported_languages": [
+                "en-US",
+                "en-GB",
+                "es-ES",
+                "fr-FR",
+                "de-DE",
+                "it-IT",
+            ],
             "voice_count": 6,
             "quality": "high",
-            "pricing": "per_character"
+            "pricing": "per_character",
         }
 
 
@@ -377,7 +389,7 @@ class ElevenLabsTTSProvider(TTSProvider):
         speed: float = 1.0,
         pitch: float = 1.0,
         volume: float = 1.0,
-        output_format: str = "wav"
+        output_format: str = "wav",
     ) -> SpeechSynthesisResult:
         """Synthesize speech using ElevenLabs."""
         start_time = time.time()
@@ -387,7 +399,7 @@ class ElevenLabsTTSProvider(TTSProvider):
             processing_time = time.time() - start_time
 
             # Mock audio data (would be real audio from ElevenLabs)
-            mock_audio_data = b"mock_elevenlabs_audio_data_" + text.encode('utf-8')[:50]
+            mock_audio_data = b"mock_elevenlabs_audio_data_" + text.encode("utf-8")[:50]
 
             return SpeechSynthesisResult(
                 audio_data=mock_audio_data,
@@ -398,14 +410,16 @@ class ElevenLabsTTSProvider(TTSProvider):
                 voice_used=voice_id,
                 provider=self.provider_name,
                 processing_time=processing_time,
-                file_size=len(mock_audio_data)
+                file_size=len(mock_audio_data),
             )
 
         except Exception as e:
             self.logger.error("ElevenLabs TTS synthesis failed", error=str(e))
             raise
 
-    async def get_available_voices(self, language: Optional[str] = None) -> List[VoiceInfo]:
+    async def get_available_voices(
+        self, language: Optional[str] = None
+    ) -> List[VoiceInfo]:
         """Get available ElevenLabs voices."""
         voices = [
             VoiceInfo(
@@ -416,7 +430,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="young",
                 provider="elevenlabs",
                 quality="premium",
-                description="Calm and professional female voice"
+                description="Calm and professional female voice",
             ),
             VoiceInfo(
                 voice_id="29vD33N1CtxCmqQRPOHJ",
@@ -426,7 +440,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="middle-aged",
                 provider="elevenlabs",
                 quality="premium",
-                description="Deep and resonant male voice"
+                description="Deep and resonant male voice",
             ),
             VoiceInfo(
                 voice_id="2EiwWnXFnvU5JabPnv8n",
@@ -436,7 +450,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="middle-aged",
                 provider="elevenlabs",
                 quality="premium",
-                description="Warm and friendly male voice"
+                description="Warm and friendly male voice",
             ),
             VoiceInfo(
                 voice_id="EXAVITQu4vr4xnSDxMaL",
@@ -446,7 +460,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="middle-aged",
                 provider="elevenlabs",
                 quality="premium",
-                description="Confident and clear male voice"
+                description="Confident and clear male voice",
             ),
             VoiceInfo(
                 voice_id="ErXwobaYiN019PkySvjV",
@@ -456,7 +470,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="young",
                 provider="elevenlabs",
                 quality="premium",
-                description="Energetic and youthful male voice"
+                description="Energetic and youthful male voice",
             ),
             VoiceInfo(
                 voice_id="VR6AewLTigWG4xSOukaG",
@@ -466,7 +480,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="middle-aged",
                 provider="elevenlabs",
                 quality="premium",
-                description="Authoritative and strong male voice"
+                description="Authoritative and strong male voice",
             ),
             VoiceInfo(
                 voice_id="pNInz6obpgDQGcFmaJgB",
@@ -476,7 +490,7 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="young",
                 provider="elevenlabs",
                 quality="premium",
-                description="Sweet and approachable female voice"
+                description="Sweet and approachable female voice",
             ),
             VoiceInfo(
                 voice_id="yoZ06aMxZJJ28mfd3POQ",
@@ -486,8 +500,8 @@ class ElevenLabsTTSProvider(TTSProvider):
                 age="young",
                 provider="elevenlabs",
                 quality="premium",
-                description="Playful and fun male voice"
-            )
+                description="Playful and fun male voice",
+            ),
         ]
 
         if language:
@@ -502,10 +516,18 @@ class ElevenLabsTTSProvider(TTSProvider):
             "provider": "elevenlabs",
             "model": self.model,
             "supported_formats": ["mp3", "wav", "flac", "ogg"],
-            "supported_languages": ["en-US", "es-ES", "fr-FR", "de-DE", "it-IT", "pt-BR", "pl-PL"],
+            "supported_languages": [
+                "en-US",
+                "es-ES",
+                "fr-FR",
+                "de-DE",
+                "it-IT",
+                "pt-BR",
+                "pl-PL",
+            ],
             "voice_count": 8,
             "quality": "premium",
-            "pricing": "per_character"
+            "pricing": "per_character",
         }
 
 
@@ -533,7 +555,7 @@ class TTSService:
         # Caching
         self.cache = TTSCache(
             max_size=self.config.get("cache_size", 100),
-            max_age_hours=self.config.get("cache_age_hours", 24)
+            max_age_hours=self.config.get("cache_age_hours", 24),
         )
 
         # Voice mapping for consistency across providers
@@ -557,7 +579,9 @@ class TTSService:
 
         # ElevenLabs TTS
         if "elevenlabs" in provider_configs:
-            self.providers["elevenlabs"] = ElevenLabsTTSProvider(provider_configs["elevenlabs"])
+            self.providers["elevenlabs"] = ElevenLabsTTSProvider(
+                provider_configs["elevenlabs"]
+            )
 
         # Set up voice mappings for consistency
         self._setup_voice_mappings()
@@ -568,30 +592,28 @@ class TTSService:
         self.voice_mappings = {
             "female_young": {
                 "elevenlabs": "pNInz6obpgDQGcFmaJgB",  # Domi
-                "openai": "nova"  # Nova
+                "openai": "nova",  # Nova
             },
             "female_mature": {
                 "elevenlabs": "21m00Tcm4TlvDq8ikWAM",  # Rachel
-                "openai": "shimmer"  # Shimmer
+                "openai": "shimmer",  # Shimmer
             },
             "male_young": {
                 "elevenlabs": "ErXwobaYiN019PkySvjV",  # Antoni
-                "openai": "echo"  # Echo
+                "openai": "echo",  # Echo
             },
             "male_mature": {
                 "elevenlabs": "29vD33N1CtxCmqQRPOHJ",  # Drew
-                "openai": "onyx"  # Onyx
+                "openai": "onyx",  # Onyx
             },
             "neutral": {
                 "elevenlabs": "21m00Tcm4TlvDq8ikWAM",  # Rachel (neutral)
-                "openai": "alloy"  # Alloy
-            }
+                "openai": "alloy",  # Alloy
+            },
         }
 
     async def synthesize_speech(
-        self,
-        request: TextToSpeechRequest,
-        correlation_id: str = None
+        self, request: TextToSpeechRequest, correlation_id: str = None
     ) -> SpeechSynthesisResult:
         """
         Synthesize speech from text with provider failover.
@@ -609,9 +631,8 @@ class TTSService:
             with observability_service.trace_operation(
                 operation_name="tts_synthesis",
                 text_length=len(request.text),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
-
                 # Check cache first
                 cache_key = self._generate_cache_key(request)
                 cached_result = self.cache.get(cache_key)
@@ -621,7 +642,7 @@ class TTSService:
                     self.logger.debug(
                         "tts_cache_hit",
                         correlation_id=correlation_id,
-                        cache_key=cache_key
+                        cache_key=cache_key,
                     )
 
                     # Return cached result (would need to reconstruct SpeechSynthesisResult)
@@ -634,7 +655,7 @@ class TTSService:
                         voice_used=request.voice or "default",
                         provider="cached",
                         processing_time=0.001,
-                        file_size=len(cached_result)
+                        file_size=len(cached_result),
                     )
 
                 # Map voice ID to provider-specific voice
@@ -659,11 +680,13 @@ class TTSService:
                             provider=provider_name,
                             voice=request.voice,
                             mapped_voice=mapped_voice.get(provider_name),
-                            correlation_id=correlation_id
+                            correlation_id=correlation_id,
                         )
 
                         # Use mapped voice for this provider
-                        provider_voice = mapped_voice.get(provider_name, request.voice or "default")
+                        provider_voice = mapped_voice.get(
+                            provider_name, request.voice or "default"
+                        )
 
                         result = await provider.synthesize_speech(
                             text=request.text,
@@ -672,14 +695,20 @@ class TTSService:
                             speed=request.speed or 1.0,
                             pitch=request.pitch or 1.0,
                             volume=request.volume or 1.0,
-                            output_format=request.output_format or "wav"
+                            output_format=request.output_format or "wav",
                         )
 
                         # Update provider health on success
                         await provider.check_health()
 
                         # Cache the result
-                        self.cache.put(cache_key, result.audio_data, result.voice_used, request.text, result.audio_format)
+                        self.cache.put(
+                            cache_key,
+                            result.audio_data,
+                            result.voice_used,
+                            request.text,
+                            result.audio_format,
+                        )
 
                         # Update metrics
                         self._synthesis_count += 1
@@ -693,7 +722,7 @@ class TTSService:
                             duration=result.duration,
                             processing_time=result.processing_time,
                             correlation_id=correlation_id,
-                            trace_id=trace_id
+                            trace_id=trace_id,
                         )
 
                         return result
@@ -704,7 +733,7 @@ class TTSService:
                             "tts_provider_failed",
                             provider=provider_name,
                             error=str(e),
-                            correlation_id=correlation_id
+                            correlation_id=correlation_id,
                         )
 
                         # Update provider health on failure
@@ -722,7 +751,7 @@ class TTSService:
                     "tts_synthesis_failed_all_providers",
                     correlation_id=correlation_id,
                     execution_time=execution_time,
-                    error=error_msg
+                    error=error_msg,
                 )
 
                 # Return error result
@@ -736,7 +765,7 @@ class TTSService:
                     provider="error",
                     processing_time=execution_time,
                     file_size=0,
-                    error=error_msg
+                    error=error_msg,
                 )
 
         except Exception as e:
@@ -745,7 +774,7 @@ class TTSService:
                 "tts_synthesis_error",
                 correlation_id=correlation_id,
                 execution_time=execution_time,
-                error=str(e)
+                error=str(e),
             )
 
             return SpeechSynthesisResult(
@@ -758,7 +787,7 @@ class TTSService:
                 provider="error",
                 processing_time=execution_time,
                 file_size=0,
-                error=str(e)
+                error=str(e),
             )
 
     def _generate_cache_key(self, request: TextToSpeechRequest) -> str:
@@ -770,9 +799,9 @@ class TTSService:
             str(request.speed or 1.0),
             str(request.pitch or 1.0),
             str(request.volume or 1.0),
-            request.output_format or "wav"
+            request.output_format or "wav",
         ]
-        return hashlib.md5("|".join(key_components).encode('utf-8')).hexdigest()
+        return hashlib.md5("|".join(key_components).encode("utf-8")).hexdigest()
 
     def _map_voice_id(self, voice_id: str) -> Dict[str, str]:
         """Map a generic voice ID to provider-specific voice IDs."""
@@ -788,10 +817,12 @@ class TTSService:
         # Default mapping
         return {
             "elevenlabs": "21m00Tcm4TlvDq8ikWAM",  # Rachel
-            "openai": "alloy"  # Alloy
+            "openai": "alloy",  # Alloy
         }
 
-    async def get_available_voices(self, provider: Optional[str] = None) -> List[VoiceInfo]:
+    async def get_available_voices(
+        self, provider: Optional[str] = None
+    ) -> List[VoiceInfo]:
         """Get all available voices across providers."""
         all_voices = []
 
@@ -809,7 +840,7 @@ class TTSService:
                     self.logger.warning(
                         "failed_to_get_voices_from_provider",
                         provider=provider_instance.provider_name,
-                        error=str(e)
+                        error=str(e),
                     )
 
         return all_voices
@@ -823,9 +854,7 @@ class TTSService:
                 health_status[name] = await provider.check_health()
             except Exception as e:
                 self.logger.error(
-                    "provider_health_check_failed",
-                    provider=name,
-                    error=str(e)
+                    "provider_health_check_failed", provider=name, error=str(e)
                 )
                 health_status[name] = provider.get_health_status()
 
@@ -841,12 +870,13 @@ class TTSService:
         return TTSServiceStatus(
             is_available=healthy_providers > 0,
             active_syntheses=0,  # Would track active operations
-            queued_requests=0,   # Would track queued requests
+            queued_requests=0,  # Would track queued requests
             healthy_providers=healthy_providers,
             total_providers=len(self.providers),
-            average_response_time=sum(h.response_time for h in provider_health) / max(len(provider_health), 1),
+            average_response_time=sum(h.response_time for h in provider_health)
+            / max(len(provider_health), 1),
             last_activity=datetime.utcnow(),
-            service_uptime=0.0  # Would track actual uptime
+            service_uptime=0.0,  # Would track actual uptime
         )
 
     def get_health_status(self) -> Dict[str, Any]:
@@ -855,17 +885,22 @@ class TTSService:
         cache_stats = self.cache.stats()
 
         return {
-            "status": "healthy" if any(h.status == "healthy" for h in provider_health.values()) else "error",
-            "providers": {name: health.__dict__ for name, health in provider_health.items()},
+            "status": "healthy"
+            if any(h.status == "healthy" for h in provider_health.values())
+            else "error",
+            "providers": {
+                name: health.__dict__ for name, health in provider_health.items()
+            },
             "cache": cache_stats,
             "synthesis_count": self._synthesis_count,
             "cache_hit_rate": self._cache_hits / max(self._synthesis_count, 1),
-            "average_operation_time": sum(self._operation_times.values()) / max(len(self._operation_times), 1),
+            "average_operation_time": sum(self._operation_times.values())
+            / max(len(self._operation_times), 1),
             "config": {
                 "provider_order": self.provider_order,
                 "fallback_enabled": self.fallback_enabled,
-                "cache_size": self.cache.max_size
-            }
+                "cache_size": self.cache.max_size,
+            },
         }
 
     def clear_cache(self) -> bool:

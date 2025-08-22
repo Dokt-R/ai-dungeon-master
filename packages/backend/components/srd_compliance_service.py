@@ -17,13 +17,13 @@ Key Features:
 import hashlib
 import json
 import sqlite3
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass, field
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import SRDCompliance, DataSource, Monster, Spell, Weapon
 from packages.shared.logging_config import get_logger
+from packages.shared.models import DataSource
 
 logger = get_logger(__name__)
 
@@ -147,7 +147,7 @@ class SRDComplianceService:
                 version="5.1",
                 checksum="",  # Would be calculated from actual source
                 is_official=True,
-                attribution_required=True
+                attribution_required=True,
             ),
             "players_handbook_srd": DataSource(
                 source_name="Player's Handbook SRD",
@@ -156,8 +156,8 @@ class SRDComplianceService:
                 version="5.0",
                 checksum="",  # Would be calculated from actual source
                 is_official=True,
-                attribution_required=True
-            )
+                attribution_required=True,
+            ),
         }
 
     def _load_compliance_rules(self) -> Dict[str, Any]:
@@ -168,25 +168,22 @@ class SRDComplianceService:
                 "Must attribute to Wizards of the Coast",
                 "Cannot use for commercial products",
                 "Cannot create derivative works for commercial use",
-                "Must include proper copyright notices"
+                "Must include proper copyright notices",
             ],
             "attribution_requirements": [
                 "© 2023 Wizards of the Coast LLC",
                 "Dungeons & Dragons, D&D, their respective logos, and all Wizards titles and characters are property of Wizards of the Coast LLC",
-                "System Reference Document 5.1"
+                "System Reference Document 5.1",
             ],
             "data_usage_limits": {
                 "max_data_export": 1000,  # Max records that can be exported
                 "require_verification": True,  # All data must be verified
-                "audit_required": True  # All usage must be audited
-            }
+                "audit_required": True,  # All usage must be audited
+            },
         }
 
     def verify_data_compliance(
-        self,
-        data: Any,
-        entity_type: str,
-        user: str = "system"
+        self, data: Any, entity_type: str, user: str = "system"
     ) -> ComplianceCheckResult:
         """
         Verify compliance for a piece of SRD data.
@@ -204,12 +201,10 @@ class SRDComplianceService:
         recommendations = []
 
         # Check if data has compliance information
-        if not hasattr(data, 'srd_compliance'):
+        if not hasattr(data, "srd_compliance"):
             issues.append("Missing SRD compliance information")
             return ComplianceCheckResult(
-                is_compliant=False,
-                issues=issues,
-                check_type="compliance_verification"
+                is_compliant=False, issues=issues, check_type="compliance_verification"
             )
 
         compliance = data.srd_compliance
@@ -222,7 +217,9 @@ class SRDComplianceService:
         if not compliance.data_source:
             issues.append("Missing data source information")
         elif compliance.data_source not in self._official_sources:
-            warnings.append(f"Data source '{compliance.data_source}' not in official sources list")
+            warnings.append(
+                f"Data source '{compliance.data_source}' not in official sources list"
+            )
 
         if not compliance.license_version:
             issues.append("Missing license version information")
@@ -249,9 +246,9 @@ class SRDComplianceService:
             details={
                 "found_issues": len(issues),
                 "found_warnings": len(warnings),
-                "verification_hash": current_hash
+                "verification_hash": current_hash,
             },
-            compliance_status="compliant" if not issues else "non_compliant"
+            compliance_status="compliant" if not issues else "non_compliant",
         )
 
         self._save_audit_entry(audit_entry)
@@ -275,8 +272,8 @@ class SRDComplianceService:
                 "entity_type": entity_type,
                 "entity_id": getattr(data, f"{entity_type}_id", None),
                 "verification_hash": current_hash,
-                "audit_id": self._get_last_audit_id()
-            }
+                "audit_id": self._get_last_audit_id(),
+            },
         )
 
     def _verify_data_source(self, data_source: DataSource) -> List[str]:
@@ -288,9 +285,13 @@ class SRDComplianceService:
             return issues
 
         # Check if it's an official source
-        official_source = self._official_sources.get(data_source.source_name.lower().replace(" ", "_"))
+        official_source = self._official_sources.get(
+            data_source.source_name.lower().replace(" ", "_")
+        )
         if not official_source:
-            issues.append(f"Source '{data_source.source_name}' not recognized as official")
+            issues.append(
+                f"Source '{data_source.source_name}' not recognized as official"
+            )
         else:
             # Verify source details match
             if data_source.source_url != official_source.source_url:
@@ -307,7 +308,7 @@ class SRDComplianceService:
         # This would check against usage quotas, export limits, etc.
         # For now, we'll just do basic validation
 
-        if hasattr(data, 'is_active') and not data.is_active:
+        if hasattr(data, "is_active") and not data.is_active:
             issues.append("Data is marked as inactive")
 
         return issues
@@ -330,7 +331,7 @@ class SRDComplianceService:
             data_str += data.category + data.damage
 
         # Add source information
-        if hasattr(data, 'data_source'):
+        if hasattr(data, "data_source"):
             data_str += data.data_source.source_name + data.data_source.version
 
         # Create SHA256 hash
@@ -341,20 +342,23 @@ class SRDComplianceService:
         with sqlite3.connect(self.database_path) as conn:
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO audit_trail
                 (timestamp, action, entity_type, entity_id, entity_name, user, details, compliance_status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                entry.timestamp.isoformat(),
-                entry.action,
-                entry.entity_type,
-                entry.entity_id,
-                entry.entity_name,
-                entry.user,
-                json.dumps(entry.details),
-                entry.compliance_status
-            ))
+            """,
+                (
+                    entry.timestamp.isoformat(),
+                    entry.action,
+                    entry.entity_type,
+                    entry.entity_id,
+                    entry.entity_name,
+                    entry.user,
+                    json.dumps(entry.details),
+                    entry.compliance_status,
+                ),
+            )
 
             conn.commit()
 
@@ -369,15 +373,20 @@ class SRDComplianceService:
         except Exception:
             return None
 
-    def get_compliance_status(self, entity_type: str, entity_id: int) -> Optional[Dict[str, Any]]:
+    def get_compliance_status(
+        self, entity_type: str, entity_id: int
+    ) -> Optional[Dict[str, Any]]:
         """Get compliance status for a specific entity."""
         try:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT * FROM compliance_status
                     WHERE entity_type = ? AND entity_id = ?
-                """, (entity_type, entity_id))
+                """,
+                    (entity_type, entity_id),
+                )
 
                 row = cursor.fetchone()
                 if row:
@@ -388,7 +397,7 @@ class SRDComplianceService:
                         "last_verified": row[3],
                         "verification_hash": row[4],
                         "compliance_status": row[5],
-                        "issues": json.loads(row[6]) if row[6] else None
+                        "issues": json.loads(row[6]) if row[6] else None,
                     }
         except Exception as e:
             self.logger.error("Failed to get compliance status", error=str(e))
@@ -399,7 +408,7 @@ class SRDComplianceService:
         self,
         entity_type: Optional[str] = None,
         entity_id: Optional[int] = None,
-        limit: int = 100
+        limit: int = 100,
     ) -> List[Dict[str, Any]]:
         """Get audit trail entries."""
         try:
@@ -425,17 +434,19 @@ class SRDComplianceService:
 
                 audit_trail = []
                 for row in rows:
-                    audit_trail.append({
-                        "id": row[0],
-                        "timestamp": row[1],
-                        "action": row[2],
-                        "entity_type": row[3],
-                        "entity_id": row[4],
-                        "entity_name": row[5],
-                        "user": row[6],
-                        "details": json.loads(row[7]),
-                        "compliance_status": row[8]
-                    })
+                    audit_trail.append(
+                        {
+                            "id": row[0],
+                            "timestamp": row[1],
+                            "action": row[2],
+                            "entity_type": row[3],
+                            "entity_id": row[4],
+                            "entity_name": row[5],
+                            "user": row[6],
+                            "details": json.loads(row[7]),
+                            "compliance_status": row[8],
+                        }
+                    )
 
                 return audit_trail
 
@@ -477,8 +488,10 @@ class SRDComplianceService:
                         "total_entries": stats[0],
                         "compliant_entries": stats[1],
                         "non_compliant_entries": stats[2],
-                        "compliance_rate": (stats[1] / stats[0]) * 100 if stats[0] > 0 else 0,
-                        "last_audit": stats[3]
+                        "compliance_rate": (stats[1] / stats[0]) * 100
+                        if stats[0] > 0
+                        else 0,
+                        "last_audit": stats[3],
                     },
                     "issues_by_type": issues_by_type,
                     "compliance_rules": self._compliance_rules,
@@ -486,18 +499,15 @@ class SRDComplianceService:
                         {
                             "name": source.source_name,
                             "version": source.version,
-                            "url": source.source_url
+                            "url": source.source_url,
                         }
                         for source in self._official_sources.values()
-                    ]
+                    ],
                 }
 
         except Exception as e:
             self.logger.error("Failed to generate compliance report", error=str(e))
-            return {
-                "error": "Failed to generate compliance report",
-                "details": str(e)
-            }
+            return {"error": "Failed to generate compliance report", "details": str(e)}
 
     def add_data_source(self, source: DataSource, user: str = "system") -> bool:
         """Add a new data source to the compliance database."""
@@ -505,21 +515,24 @@ class SRDComplianceService:
             with sqlite3.connect(self.database_path) as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT OR REPLACE INTO data_sources
                     (source_name, source_url, publication_date, version, checksum,
                      is_official, attribution_required, last_verified)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    source.source_name,
-                    source.source_url,
-                    source.publication_date.isoformat(),
-                    source.version,
-                    source.checksum,
-                    source.is_official,
-                    source.attribution_required,
-                    datetime.utcnow().isoformat()
-                ))
+                """,
+                    (
+                        source.source_name,
+                        source.source_url,
+                        source.publication_date.isoformat(),
+                        source.version,
+                        source.checksum,
+                        source.is_official,
+                        source.attribution_required,
+                        datetime.utcnow().isoformat(),
+                    ),
+                )
 
                 conn.commit()
 
@@ -530,7 +543,7 @@ class SRDComplianceService:
                     entity_name=source.source_name,
                     user=user,
                     details={"version": source.version},
-                    compliance_status="verified"
+                    compliance_status="verified",
                 )
 
                 self._save_audit_entry(audit_entry)
@@ -561,15 +574,11 @@ class SRDComplianceService:
                     "audit_entries": audit_count,
                     "data_sources": source_count,
                     "official_sources_loaded": len(self._official_sources),
-                    "compliance_rules_loaded": len(self._compliance_rules)
+                    "compliance_rules_loaded": len(self._compliance_rules),
                 }
 
         except Exception as e:
-            return {
-                "status": "unhealthy",
-                "database_connected": False,
-                "error": str(e)
-            }
+            return {"status": "unhealthy", "database_connected": False, "error": str(e)}
 
 
 # Global SRD compliance service instance

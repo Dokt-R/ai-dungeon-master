@@ -83,7 +83,11 @@ async def test_discord_error_handler_decorator():
         )
         # Verify warning log with stack trace
         print(cap_logs)
-        assert any(log["event"] == "Custom exception occurred" and log["exception_type"] == "ValidationError" for log in cap_logs)
+        assert any(
+            log["event"] == "Custom exception occurred"
+            and log["exception_type"] == "ValidationError"
+            for log in cap_logs
+        )
         assert any(log.get("exc_info") is True for log in cap_logs)
 
     # Reset mock for next test
@@ -96,7 +100,11 @@ async def test_discord_error_handler_decorator():
             ErrorCode.NOT_FOUND.message, ephemeral=True
         )
         # Verify warning log with stack trace
-        assert any(log["event"] == "Custom exception occurred" and log["exception_type"] == "NotFoundError" for log in cap_logs)
+        assert any(
+            log["event"] == "Custom exception occurred"
+            and log["exception_type"] == "NotFoundError"
+            for log in cap_logs
+        )
         assert any(log.get("exc_info") is True for log in cap_logs)
 
     # Reset mock for next test
@@ -109,7 +117,11 @@ async def test_discord_error_handler_decorator():
             ErrorCode.AI_API_ERROR.message, ephemeral=True
         )
         # Verify warning log with stack trace
-        assert any(log["event"] == "Custom exception occurred" and log["exception_type"] == "AIAPIError" for log in cap_logs)
+        assert any(
+            log["event"] == "Custom exception occurred"
+            and log["exception_type"] == "AIAPIError"
+            for log in cap_logs
+        )
         assert any(log.get("exc_info") is True for log in cap_logs)
 
     # Reset mock for next test
@@ -125,7 +137,9 @@ async def test_discord_error_handler_decorator():
         # Verify error log
         # The actual log message format may vary, so check for the key components
         error_logs = [log for log in cap_logs if log.get("log_level") == "error"]
-        assert len(error_logs) > 0, f"Expected error log not found. Captured logs: {cap_logs}"
+        assert len(error_logs) > 0, (
+            f"Expected error log not found. Captured logs: {cap_logs}"
+        )
         error_log = error_logs[0]
         assert "command_that_raises_generic_error" in str(error_log.get("command", ""))
         assert "Generic error" in str(error_log.get("error", ""))
@@ -138,11 +152,13 @@ async def test_safe_send_message_normal_case():
     mock_interaction = MagicMock()
     mock_interaction.response.send_message = AsyncMock()
     mock_interaction.followup.send = AsyncMock()
-    
+
     await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
-    
+
     # Verify that send_message was called
-    mock_interaction.response.send_message.assert_awaited_with("Test message", ephemeral=True)
+    mock_interaction.response.send_message.assert_awaited_with(
+        "Test message", ephemeral=True
+    )
     # Verify that followup.send was not called
     mock_interaction.followup.send.assert_not_awaited()
 
@@ -151,18 +167,28 @@ async def test_safe_send_message_normal_case():
 async def test_safe_send_message_fallback_to_followup():
     """Test _safe_send_message falls back to followup.send when response.send_message fails."""
     mock_interaction = MagicMock()
-    mock_interaction.response.send_message = AsyncMock(side_effect=Exception("Response failed"))
+    mock_interaction.response.send_message = AsyncMock(
+        side_effect=Exception("Response failed")
+    )
     mock_interaction.followup.send = AsyncMock()
-    
+
     with capture_logs() as cap_logs:
         await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
-        
+
         # Verify that both methods were called
-        mock_interaction.response.send_message.assert_awaited_with("Test message", ephemeral=True)
-        mock_interaction.followup.send.assert_awaited_with("Test message", ephemeral=True)
-        
+        mock_interaction.response.send_message.assert_awaited_with(
+            "Test message", ephemeral=True
+        )
+        mock_interaction.followup.send.assert_awaited_with(
+            "Test message", ephemeral=True
+        )
+
         # Verify warning log for the first failure
-        assert any("Failed to send message via interaction.response.send_message: Response failed" in log["event"] for log in cap_logs)
+        assert any(
+            "Failed to send message via interaction.response.send_message: Response failed"
+            in log["event"]
+            for log in cap_logs
+        )
 
 
 @pytest.mark.asyncio
@@ -172,18 +198,33 @@ async def test_safe_send_message_both_fail_logs_and_raises_runtimeerror():
     and raises RuntimeError when both response.send_message and followup.send fail.
     """
     mock_interaction = MagicMock()
-    mock_interaction.response.send_message = AsyncMock(side_effect=Exception("Response failed"))
+    mock_interaction.response.send_message = AsyncMock(
+        side_effect=Exception("Response failed")
+    )
     mock_interaction.followup = MagicMock()
     mock_interaction.followup.send = AsyncMock(side_effect=Exception("Followup failed"))
 
-
     with capture_logs() as cap_logs:
-        with pytest.raises(RuntimeError, match="Failed to send error message to Discord interaction"):
+        with pytest.raises(
+            RuntimeError, match="Failed to send error message to Discord interaction"
+        ):
             await _safe_send_message(mock_interaction, "Test message", ephemeral=True)
 
         # Verify warning logs for each attempt
-        assert any("Failed to send message via interaction.response.send_message: Response failed" in log["event"] for log in cap_logs)
-        assert any("Failed to send message via interaction.followup.send: Followup failed" in log["event"] for log in cap_logs)
-        
+        assert any(
+            "Failed to send message via interaction.response.send_message: Response failed"
+            in log["event"]
+            for log in cap_logs
+        )
+        assert any(
+            "Failed to send message via interaction.followup.send: Followup failed"
+            in log["event"]
+            for log in cap_logs
+        )
+
         # Verify the final error log
-        assert any("Failed to send message via both response.send_message and followup.send" in log["event"] for log in cap_logs)
+        assert any(
+            "Failed to send message via both response.send_message and followup.send"
+            in log["event"]
+            for log in cap_logs
+        )

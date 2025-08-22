@@ -7,15 +7,14 @@ and receiving AI DM responses in the narrative interaction system.
 
 import asyncio
 import time
-from typing import Dict, Any, Optional
+from typing import Any, Dict
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request, status
-from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from packages.shared.models import ActionRequest, ActionResponse
 from packages.shared.logging_config import get_logger
+from packages.shared.models import ActionRequest, ActionResponse
 
 logger = get_logger(__name__)
 
@@ -24,8 +23,7 @@ router = APIRouter()
 
 @router.post("/action", response_model=ActionResponse)
 async def handle_action(
-    action_request: ActionRequest,
-    request: Request
+    action_request: ActionRequest, request: Request
 ) -> ActionResponse:
     """
     Handle player actions and return AI DM responses.
@@ -53,7 +51,7 @@ async def handle_action(
         user_id=action_request.user_id,
         prompt_length=len(action_request.prompt),
         has_campaign_context=bool(action_request.campaign_context),
-        correlation_id=correlation_id
+        correlation_id=correlation_id,
     )
 
     try:
@@ -63,15 +61,15 @@ async def handle_action(
             logger.warning(
                 "action_request_validation_failed",
                 errors=validation_errors,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={
                     "error": "Request validation failed",
                     "details": validation_errors,
-                    "correlation_id": correlation_id
-                }
+                    "correlation_id": correlation_id,
+                },
             )
 
         # Process the action (placeholder implementation)
@@ -92,12 +90,12 @@ async def handle_action(
                 "processing_details": {
                     "ai_model": "placeholder",  # TODO: Get from AI client
                     "tokens_used": 0,  # TODO: Get from AI client
-                    "prompt_template": "core_dm"  # TODO: Get from prompt system
-                }
+                    "prompt_template": "core_dm",  # TODO: Get from prompt system
+                },
             },
             processing_time=processing_time,
             status="success",
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
         logger.info(
@@ -105,7 +103,7 @@ async def handle_action(
             session_id=response.session_id,
             response_length=len(response.narrative),
             processing_time=processing_time,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
         return response
@@ -114,15 +112,15 @@ async def handle_action(
         logger.error(
             "action_request_pydantic_validation_error",
             error=str(e),
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={
                 "error": "Invalid request format",
                 "details": e.errors(),
-                "correlation_id": correlation_id
-            }
+                "correlation_id": correlation_id,
+            },
         )
 
     except HTTPException:
@@ -134,15 +132,15 @@ async def handle_action(
             "action_processing_unexpected_error",
             error=str(e),
             error_type=type(e).__name__,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error": "Internal server error processing action",
                 "correlation_id": correlation_id,
-                "error_code": "ACTION_PROCESSING_ERROR"
-            }
+                "error_code": "ACTION_PROCESSING_ERROR",
+            },
         )
 
 
@@ -193,11 +191,12 @@ def _contains_harmful_content(text: str) -> bool:
     harmful_patterns = [
         # Add patterns for harmful content detection
         # This is a placeholder implementation
-        r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>',  # Script tags
-        r'javascript:',  # JavaScript URLs
+        r"<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>",  # Script tags
+        r"javascript:",  # JavaScript URLs
     ]
 
     import re
+
     for pattern in harmful_patterns:
         if re.search(pattern, text, re.IGNORECASE):
             return True
@@ -250,5 +249,5 @@ async def test_action_endpoint() -> Dict[str, Any]:
         "status": "success",
         "message": "Action API is operational",
         "endpoint": "/api/action",
-        "test_endpoint": "/api/action/test"
+        "test_endpoint": "/api/action/test",
     }

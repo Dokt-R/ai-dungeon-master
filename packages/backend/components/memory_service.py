@@ -9,16 +9,14 @@ This module provides comprehensive memory management functionality including:
 - Integration with DM graph and system prompts
 """
 
-import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import MemoryState
-from packages.backend.agents.prompts import prompt_manager
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import MemoryState
 
 logger = get_logger(__name__)
 
@@ -42,7 +40,7 @@ class MemoryContext:
             "character_knowledge": self.character_knowledge,
             "world_state": self.world_state,
             "summary": self.summary,
-            "token_count": self.token_count
+            "token_count": self.token_count,
         }
 
 
@@ -84,10 +82,7 @@ class MemoryService:
         self._operation_times: Dict[str, float] = {}
 
     async def prepare_memory_context(
-        self,
-        session_id: str,
-        user_prompt: str,
-        correlation_id: str
+        self, session_id: str, user_prompt: str, correlation_id: str
     ) -> MemoryContext:
         """
         Prepare memory context for AI prompt generation.
@@ -106,9 +101,8 @@ class MemoryService:
             with observability_service.trace_operation(
                 operation_name="memory_context_preparation",
                 session_id=session_id,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
-
                 # Load or create memory state
                 memory_state = await self._load_memory_state(session_id)
 
@@ -137,7 +131,7 @@ class MemoryService:
                     relevant_memories=relevant_memories,
                     character_knowledge=character_knowledge,
                     world_state=world_state,
-                    summary=summary
+                    summary=summary,
                 )
 
                 # Optimize context size
@@ -155,7 +149,7 @@ class MemoryService:
                     execution_time=execution_time,
                     token_count=context.token_count,
                     recent_events=len(context.recent_events),
-                    relevant_memories=len(context.relevant_memories)
+                    relevant_memories=len(context.relevant_memories),
                 )
 
                 return context
@@ -167,43 +161,42 @@ class MemoryService:
                 session_id=session_id,
                 correlation_id=correlation_id,
                 execution_time=execution_time,
-                error=str(e)
+                error=str(e),
             )
             # Return minimal context on error
             return MemoryContext(summary="Memory context preparation failed")
 
     def _extract_recent_events(
-        self,
-        memory_state: MemoryState,
-        current_prompt: str
+        self, memory_state: MemoryState, current_prompt: str
     ) -> List[Dict[str, Any]]:
         """Extract recent events from memory state."""
-        recent_messages = memory_state.messages[-self.config.max_recent_events:]
+        recent_messages = memory_state.messages[-self.config.max_recent_events :]
 
         events = []
         for msg in recent_messages:
-            events.append({
-                "type": "message",
-                "role": msg["role"],
-                "content": msg["content"],
-                "timestamp": memory_state.last_activity.isoformat()
-            })
+            events.append(
+                {
+                    "type": "message",
+                    "role": msg["role"],
+                    "content": msg["content"],
+                    "timestamp": memory_state.last_activity.isoformat(),
+                }
+            )
 
         # Add current prompt as pending event
-        events.append({
-            "type": "current_prompt",
-            "role": "user",
-            "content": current_prompt,
-            "timestamp": datetime.utcnow().isoformat()
-        })
+        events.append(
+            {
+                "type": "current_prompt",
+                "role": "user",
+                "content": current_prompt,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
         return events
 
     async def _find_relevant_memories(
-        self,
-        memory_state: MemoryState,
-        user_prompt: str,
-        correlation_id: str
+        self, memory_state: MemoryState, user_prompt: str, correlation_id: str
     ) -> List[str]:
         """Find relevant memories based on user prompt and conversation context."""
         if len(memory_state.messages) <= self.config.summarization_threshold:
@@ -228,14 +221,17 @@ class MemoryService:
                         if normalized_score >= self.config.memory_relevance_threshold:
                             relevant_memories.append(msg["content"])
 
-                            if len(relevant_memories) >= self.config.max_relevant_memories:
+                            if (
+                                len(relevant_memories)
+                                >= self.config.max_relevant_memories
+                            ):
                                 break
 
             self.logger.debug(
                 "relevant_memories_found",
                 correlation_id=correlation_id,
                 count=len(relevant_memories),
-                prompt_keywords=list(prompt_keywords)
+                prompt_keywords=list(prompt_keywords),
             )
 
             return relevant_memories
@@ -244,11 +240,13 @@ class MemoryService:
             self.logger.warning(
                 "memory_relevance_search_failed",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return []
 
-    def _extract_character_knowledge(self, memory_state: MemoryState) -> Dict[str, List[str]]:
+    def _extract_character_knowledge(
+        self, memory_state: MemoryState
+    ) -> Dict[str, List[str]]:
         """Extract character-specific knowledge from memory."""
         character_knowledge = {}
 
@@ -277,11 +275,20 @@ class MemoryService:
             content = msg["content"].lower()
 
             # Extract location, time, weather, etc.
-            if any(keyword in content for keyword in ["location", "place", "area", "room", "city", "town"]):
+            if any(
+                keyword in content
+                for keyword in ["location", "place", "area", "room", "city", "town"]
+            ):
                 world_state["current_location"] = msg["content"]
-            elif any(keyword in content for keyword in ["time", "hour", "day", "night", "morning", "evening"]):
+            elif any(
+                keyword in content
+                for keyword in ["time", "hour", "day", "night", "morning", "evening"]
+            ):
                 world_state["current_time"] = msg["content"]
-            elif any(keyword in content for keyword in ["weather", "storm", "rain", "sun", "cloud"]):
+            elif any(
+                keyword in content
+                for keyword in ["weather", "storm", "rain", "sun", "cloud"]
+            ):
                 world_state["current_weather"] = msg["content"]
 
         return world_state
@@ -291,13 +298,15 @@ class MemoryService:
         memory_state: MemoryState,
         recent_events: List[Dict[str, Any]],
         relevant_memories: List[str],
-        correlation_id: str
+        correlation_id: str,
     ) -> str:
         """Generate a concise memory summary for AI context."""
         try:
             if len(memory_state.messages) <= self.config.summarization_threshold:
                 # For shorter conversations, create simple summary
-                user_messages = [msg for msg in memory_state.messages if msg["role"] == "user"]
+                user_messages = [
+                    msg for msg in memory_state.messages if msg["role"] == "user"
+                ]
                 if user_messages:
                     last_user_message = user_messages[-1]["content"]
                     return f"Recent context: {last_user_message[:200]}..."
@@ -308,17 +317,25 @@ class MemoryService:
 
             # Add conversation overview
             total_messages = len(memory_state.messages)
-            user_message_count = len([msg for msg in memory_state.messages if msg["role"] == "user"])
-            summary_parts.append(f"Conversation with {total_messages} messages ({user_message_count} player actions).")
+            user_message_count = len(
+                [msg for msg in memory_state.messages if msg["role"] == "user"]
+            )
+            summary_parts.append(
+                f"Conversation with {total_messages} messages ({user_message_count} player actions)."
+            )
 
             # Add recent context
             if recent_events:
-                recent_summary = recent_events[-1]["content"][:100] + "..." if recent_events else ""
+                recent_summary = (
+                    recent_events[-1]["content"][:100] + "..." if recent_events else ""
+                )
                 summary_parts.append(f"Most recent: {recent_summary}")
 
             # Add relevant memories
             if relevant_memories:
-                memory_summary = relevant_memories[0][:100] + "..." if relevant_memories[0] else ""
+                memory_summary = (
+                    relevant_memories[0][:100] + "..." if relevant_memories[0] else ""
+                )
                 summary_parts.append(f"Key context: {memory_summary}")
 
             return " | ".join(summary_parts)
@@ -327,14 +344,12 @@ class MemoryService:
             self.logger.warning(
                 "memory_summary_generation_failed",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return "Memory summary unavailable."
 
     async def _optimize_context_size(
-        self,
-        context: MemoryContext,
-        correlation_id: str
+        self, context: MemoryContext, correlation_id: str
     ) -> MemoryContext:
         """Optimize context size to stay within token limits."""
         try:
@@ -354,7 +369,7 @@ class MemoryService:
             self.logger.error(
                 "context_optimization_failed",
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
             return context
 
@@ -384,9 +399,7 @@ class MemoryService:
         return estimated_tokens + self.config.token_estimation_buffer
 
     async def _reduce_context_size(
-        self,
-        context: MemoryContext,
-        correlation_id: str
+        self, context: MemoryContext, correlation_id: str
     ) -> MemoryContext:
         """Reduce context size to fit within token limits."""
         # Remove least important information first
@@ -417,17 +430,13 @@ class MemoryService:
             self.logger.info(
                 "context_size_reduced",
                 correlation_id=correlation_id,
-                reductions=reductions
+                reductions=reductions,
             )
 
         return context
 
     async def update_memory_after_interaction(
-        self,
-        session_id: str,
-        user_prompt: str,
-        ai_response: str,
-        correlation_id: str
+        self, session_id: str, user_prompt: str, ai_response: str, correlation_id: str
     ) -> None:
         """Update memory state after a conversation interaction."""
         try:
@@ -450,7 +459,7 @@ class MemoryService:
                 "memory_updated_after_interaction",
                 session_id=session_id,
                 correlation_id=correlation_id,
-                total_messages=len(memory_state.messages)
+                total_messages=len(memory_state.messages),
             )
 
         except Exception as e:
@@ -458,7 +467,7 @@ class MemoryService:
                 "memory_update_failed",
                 session_id=session_id,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
 
     async def _load_memory_state(self, session_id: str) -> MemoryState:
@@ -475,9 +484,7 @@ class MemoryService:
         self._session_memory[memory_state.session_id] = memory_state
 
     async def _cleanup_old_memories(
-        self,
-        memory_state: MemoryState,
-        correlation_id: str
+        self, memory_state: MemoryState, correlation_id: str
     ) -> None:
         """Clean up old memories to prevent unlimited growth."""
         try:
@@ -491,7 +498,7 @@ class MemoryService:
                     "old_memories_cleaned",
                     session_id=memory_state.session_id,
                     correlation_id=correlation_id,
-                    messages_removed=len(memory_state.messages) - keep_count
+                    messages_removed=len(memory_state.messages) - keep_count,
                 )
 
         except Exception as e:
@@ -499,7 +506,7 @@ class MemoryService:
                 "memory_cleanup_failed",
                 session_id=memory_state.session_id,
                 correlation_id=correlation_id,
-                error=str(e)
+                error=str(e),
             )
 
     def get_health_status(self) -> Dict[str, Any]:
@@ -508,12 +515,13 @@ class MemoryService:
             "status": "healthy",
             "active_sessions": len(self._session_memory),
             "total_operations": len(self._operation_times),
-            "average_operation_time": sum(self._operation_times.values()) / max(len(self._operation_times), 1),
+            "average_operation_time": sum(self._operation_times.values())
+            / max(len(self._operation_times), 1),
             "config": {
                 "max_context_tokens": self.config.max_context_tokens,
                 "max_memory_items": self.config.max_memory_items,
-                "memory_relevance_threshold": self.config.memory_relevance_threshold
-            }
+                "memory_relevance_threshold": self.config.memory_relevance_threshold,
+            },
         }
 
     def clear_session_memory(self, session_id: str) -> bool:

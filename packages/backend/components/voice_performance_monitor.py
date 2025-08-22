@@ -15,17 +15,18 @@ Features:
 
 import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
 from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import (
-    VoiceLatencyMetrics, PerformanceAlert, PerformanceReport,
-    AudioQualityMetrics
-)
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models import (
+    PerformanceAlert,
+    PerformanceReport,
+    VoiceLatencyMetrics,
+)
 
 logger = get_logger(__name__)
 
@@ -94,15 +95,15 @@ class VoicePerformanceMonitor:
 
         # Latency thresholds
         self.thresholds = LatencyThreshold(
-            warning_threshold=self.config.get('warning_threshold', 2.0),
-            critical_threshold=self.config.get('critical_threshold', 3.5),
-            target_threshold=self.config.get('target_threshold', 4.0),
-            max_threshold=self.config.get('max_threshold', 6.0)
+            warning_threshold=self.config.get("warning_threshold", 2.0),
+            critical_threshold=self.config.get("critical_threshold", 3.5),
+            target_threshold=self.config.get("target_threshold", 4.0),
+            max_threshold=self.config.get("max_threshold", 6.0),
         )
 
         # Metrics storage
         self.metrics_buffer = PerformanceMetricsBuffer(
-            max_size=self.config.get('metrics_buffer_size', 1000)
+            max_size=self.config.get("metrics_buffer_size", 1000)
         )
 
         # Active sessions tracking
@@ -114,19 +115,21 @@ class VoicePerformanceMonitor:
 
         # Performance statistics
         self.performance_stats = {
-            'total_sessions': 0,
-            'sessions_meeting_target': 0,
-            'average_latency': 0.0,
-            'p95_latency': 0.0,
-            'p99_latency': 0.0,
-            'alerts_generated': 0,
-            'critical_alerts': 0
+            "total_sessions": 0,
+            "sessions_meeting_target": 0,
+            "average_latency": 0.0,
+            "p95_latency": 0.0,
+            "p99_latency": 0.0,
+            "alerts_generated": 0,
+            "critical_alerts": 0,
         }
 
         # Monitoring configuration
         self.monitoring_enabled = True
         self.alerting_enabled = True
-        self.reporting_interval = self.config.get('reporting_interval', 300)  # 5 minutes
+        self.reporting_interval = self.config.get(
+            "reporting_interval", 300
+        )  # 5 minutes
 
         # Start background monitoring
         self._monitoring_task: Optional[asyncio.Task] = None
@@ -159,9 +162,7 @@ class VoicePerformanceMonitor:
                 self.logger.error("monitoring_loop_error", error=str(e))
 
     def start_voice_interaction(
-        self,
-        session_id: str,
-        correlation_id: Optional[str] = None
+        self, session_id: str, correlation_id: Optional[str] = None
     ) -> VoiceLatencyMetrics:
         """
         Start tracking a voice interaction.
@@ -180,35 +181,31 @@ class VoicePerformanceMonitor:
             user_speech_start=start_time,
             correlation_id=correlation_id,
             metadata={
-                'monitoring_start': start_time.isoformat(),
-                'monitoring_enabled': self.monitoring_enabled
-            }
+                "monitoring_start": start_time.isoformat(),
+                "monitoring_enabled": self.monitoring_enabled,
+            },
         )
 
         self.active_sessions[session_id] = metrics
-        self.performance_stats['total_sessions'] += 1
+        self.performance_stats["total_sessions"] += 1
 
         with observability_service.trace_operation(
             operation_name="voice_interaction_started",
             session_id=session_id,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         ) as trace_id:
-
             self.logger.info(
                 "voice_interaction_started",
                 session_id=session_id,
                 correlation_id=correlation_id,
                 trace_id=trace_id,
-                start_time=start_time.isoformat()
+                start_time=start_time.isoformat(),
             )
 
         return metrics
 
     def update_latency_stage(
-        self,
-        session_id: str,
-        stage: str,
-        correlation_id: Optional[str] = None
+        self, session_id: str, stage: str, correlation_id: Optional[str] = None
     ) -> Optional[VoiceLatencyMetrics]:
         """
         Update the current processing stage for latency tracking.
@@ -226,7 +223,7 @@ class VoicePerformanceMonitor:
                 "session_not_found_for_stage_update",
                 session_id=session_id,
                 stage=stage,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             return None
 
@@ -235,11 +232,11 @@ class VoicePerformanceMonitor:
 
         # Update stage-specific timestamps
         stage_mapping = {
-            'stt_complete': 'transcription_complete',
-            'ai_processing_start': 'ai_processing_start',
-            'ai_response_complete': 'ai_response_complete',
-            'tts_complete': 'tts_generation_complete',
-            'audio_playback_start': 'audio_playback_start'
+            "stt_complete": "transcription_complete",
+            "ai_processing_start": "ai_processing_start",
+            "ai_response_complete": "ai_response_complete",
+            "tts_complete": "tts_generation_complete",
+            "audio_playback_start": "audio_playback_start",
         }
 
         if stage in stage_mapping:
@@ -258,24 +255,21 @@ class VoicePerformanceMonitor:
             operation_name="voice_interaction_stage_updated",
             session_id=session_id,
             stage=stage,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         ) as trace_id:
-
             self.logger.debug(
                 "voice_interaction_stage_updated",
                 session_id=session_id,
                 stage=stage,
                 correlation_id=correlation_id,
                 trace_id=trace_id,
-                current_time=current_time.isoformat()
+                current_time=current_time.isoformat(),
             )
 
         return metrics
 
     def complete_voice_interaction(
-        self,
-        session_id: str,
-        correlation_id: Optional[str] = None
+        self, session_id: str, correlation_id: Optional[str] = None
     ) -> Optional[VoiceLatencyMetrics]:
         """
         Complete tracking of a voice interaction.
@@ -291,7 +285,7 @@ class VoicePerformanceMonitor:
             self.logger.warning(
                 "session_not_found_for_completion",
                 session_id=session_id,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             return None
 
@@ -314,15 +308,14 @@ class VoicePerformanceMonitor:
         # Check final latency against targets
         if metrics.total_latency is not None:
             if metrics.total_latency <= self.thresholds.target_threshold:
-                self.performance_stats['sessions_meeting_target'] += 1
+                self.performance_stats["sessions_meeting_target"] += 1
 
         with observability_service.trace_operation(
             operation_name="voice_interaction_completed",
             session_id=session_id,
             total_latency=metrics.total_latency,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         ) as trace_id:
-
             self.logger.info(
                 "voice_interaction_completed",
                 session_id=session_id,
@@ -332,7 +325,9 @@ class VoicePerformanceMonitor:
                 stt_latency=metrics.stt_latency,
                 ai_latency=metrics.ai_latency,
                 tts_latency=metrics.tts_latency,
-                meets_target=metrics.total_latency <= self.thresholds.target_threshold if metrics.total_latency else None
+                meets_target=metrics.total_latency <= self.thresholds.target_threshold
+                if metrics.total_latency
+                else None,
             )
 
         return metrics
@@ -342,31 +337,43 @@ class VoicePerformanceMonitor:
         start_time = metrics.user_speech_start
 
         if metrics.transcription_complete:
-            metrics.stt_latency = (metrics.transcription_complete - start_time).total_seconds()
+            metrics.stt_latency = (
+                metrics.transcription_complete - start_time
+            ).total_seconds()
 
         if metrics.ai_response_complete and metrics.ai_processing_start:
-            metrics.ai_latency = (metrics.ai_response_complete - metrics.ai_processing_start).total_seconds()
+            metrics.ai_latency = (
+                metrics.ai_response_complete - metrics.ai_processing_start
+            ).total_seconds()
 
         if metrics.tts_generation_complete and metrics.ai_response_complete:
-            metrics.tts_latency = (metrics.tts_generation_complete - metrics.ai_response_complete).total_seconds()
+            metrics.tts_latency = (
+                metrics.tts_generation_complete - metrics.ai_response_complete
+            ).total_seconds()
 
         if metrics.audio_playback_start and metrics.tts_generation_complete:
-            metrics.audio_delivery_latency = (metrics.audio_playback_start - metrics.tts_generation_complete).total_seconds()
+            metrics.audio_delivery_latency = (
+                metrics.audio_playback_start - metrics.tts_generation_complete
+            ).total_seconds()
 
     def _calculate_final_latencies(self, metrics: VoiceLatencyMetrics) -> None:
         """Calculate final total latency."""
         if metrics.audio_playback_start:
-            metrics.total_latency = (metrics.audio_playback_start - metrics.user_speech_start).total_seconds()
+            metrics.total_latency = (
+                metrics.audio_playback_start - metrics.user_speech_start
+            ).total_seconds()
 
             # Estimate network latency (rough approximation)
             if metrics.stt_latency and metrics.tts_latency and metrics.ai_latency:
-                processing_latency = metrics.stt_latency + metrics.ai_latency + metrics.tts_latency
-                metrics.network_latency = max(0, metrics.total_latency - processing_latency)
+                processing_latency = (
+                    metrics.stt_latency + metrics.ai_latency + metrics.tts_latency
+                )
+                metrics.network_latency = max(
+                    0, metrics.total_latency - processing_latency
+                )
 
     def _check_latency_alerts(
-        self,
-        metrics: VoiceLatencyMetrics,
-        correlation_id: Optional[str] = None
+        self, metrics: VoiceLatencyMetrics, correlation_id: Optional[str] = None
     ) -> None:
         """Check for latency threshold violations and generate alerts."""
         if not metrics.total_latency:
@@ -382,15 +389,15 @@ class VoicePerformanceMonitor:
                 threshold=self.thresholds.target_threshold,
                 current_value=metrics.total_latency,
                 session_id=metrics.session_id,
-                message=self._generate_latency_alert_message(metrics, severity)
+                message=self._generate_latency_alert_message(metrics, severity),
             )
 
             self.active_alerts[alert.alert_id] = alert
             self.alert_history.append(alert)
-            self.performance_stats['alerts_generated'] += 1
+            self.performance_stats["alerts_generated"] += 1
 
             if severity == "critical":
-                self.performance_stats['critical_alerts'] += 1
+                self.performance_stats["critical_alerts"] += 1
 
             self.logger.warning(
                 "latency_alert_generated",
@@ -399,21 +406,21 @@ class VoicePerformanceMonitor:
                 severity=severity,
                 total_latency=metrics.total_latency,
                 threshold=self.thresholds.target_threshold,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
-    def _generate_latency_alert_message(self, metrics: VoiceLatencyMetrics, severity: str) -> str:
+    def _generate_latency_alert_message(
+        self, metrics: VoiceLatencyMetrics, severity: str
+    ) -> str:
         """Generate alert message for latency violations."""
         latency = metrics.total_latency or 0
         target = self.thresholds.target_threshold
 
-        messages = {
-            "medium": ".2f",
-            "high": ".2f",
-            "critical": ".2f"
-        }
+        messages = {"medium": ".2f", "high": ".2f", "critical": ".2f"}
 
-        return messages.get(severity, f"High latency detected: {latency:.2f}s (target: {target}s)")
+        return messages.get(
+            severity, f"High latency detected: {latency:.2f}s (target: {target}s)"
+        )
 
     def _update_performance_stats(self, metrics: VoiceLatencyMetrics) -> None:
         """Update rolling performance statistics."""
@@ -421,10 +428,10 @@ class VoicePerformanceMonitor:
             return
 
         # Update average latency (simple moving average)
-        total_sessions = self.performance_stats['total_sessions']
-        current_avg = self.performance_stats['average_latency']
+        total_sessions = self.performance_stats["total_sessions"]
+        current_avg = self.performance_stats["average_latency"]
 
-        self.performance_stats['average_latency'] = (
+        self.performance_stats["average_latency"] = (
             (current_avg * (total_sessions - 1)) + metrics.total_latency
         ) / total_sessions
 
@@ -434,12 +441,15 @@ class VoicePerformanceMonitor:
             latencies = [m.total_latency for m in recent_metrics if m.total_latency]
             if latencies:
                 latencies.sort()
-                self.performance_stats['p95_latency'] = latencies[int(len(latencies) * 0.95)]
-                self.performance_stats['p99_latency'] = latencies[int(len(latencies) * 0.99)]
+                self.performance_stats["p95_latency"] = latencies[
+                    int(len(latencies) * 0.95)
+                ]
+                self.performance_stats["p99_latency"] = latencies[
+                    int(len(latencies) * 0.99)
+                ]
 
     async def generate_performance_report(
-        self,
-        time_range_seconds: int = 3600
+        self, time_range_seconds: int = 3600
     ) -> PerformanceReport:
         """Generate a performance report for the specified time range."""
         end_time = datetime.utcnow()
@@ -447,7 +457,8 @@ class VoicePerformanceMonitor:
 
         # Get metrics for time range
         recent_metrics = [
-            m for m in self.metrics_buffer.get_all_metrics()
+            m
+            for m in self.metrics_buffer.get_all_metrics()
             if start_time <= m.user_speech_start <= end_time
         ]
 
@@ -463,10 +474,13 @@ class VoicePerformanceMonitor:
             p95_latency = latencies[int(len(latencies) * 0.95)] if latencies else None
             p99_latency = latencies[int(len(latencies) * 0.99)] if latencies else None
 
-            sessions_meeting_target = len([
-                m for m in completed_sessions
-                if m.total_latency <= self.thresholds.target_threshold
-            ])
+            sessions_meeting_target = len(
+                [
+                    m
+                    for m in completed_sessions
+                    if m.total_latency <= self.thresholds.target_threshold
+                ]
+            )
         else:
             average_latency = p95_latency = p99_latency = None
             sessions_meeting_target = 0
@@ -485,7 +499,7 @@ class VoicePerformanceMonitor:
             p95_latency=p95_latency,
             p99_latency=p99_latency,
             sessions_meeting_latency_target=sessions_meeting_target,
-            recommendations=recommendations
+            recommendations=recommendations,
         )
 
         self.logger.info(
@@ -494,23 +508,19 @@ class VoicePerformanceMonitor:
             time_range_seconds=time_range_seconds,
             total_sessions=total_sessions,
             average_latency=average_latency,
-            sessions_meeting_target=sessions_meeting_target
+            sessions_meeting_target=sessions_meeting_target,
         )
 
         return report
 
     def _generate_performance_recommendations(
-        self,
-        metrics: List[VoiceLatencyMetrics],
-        average_latency: float
+        self, metrics: List[VoiceLatencyMetrics], average_latency: float
     ) -> List[str]:
         """Generate performance improvement recommendations."""
         recommendations = []
 
         if average_latency > self.thresholds.target_threshold:
-            recommendations.append(
-                ".2f"
-            )
+            recommendations.append(".2f")
 
         if average_latency > self.thresholds.critical_threshold:
             recommendations.append("Consider implementing audio streaming optimization")
@@ -521,18 +531,20 @@ class VoicePerformanceMonitor:
         stage_latencies = defaultdict(list)
         for metric in metrics:
             if metric.stt_latency:
-                stage_latencies['stt'].append(metric.stt_latency)
+                stage_latencies["stt"].append(metric.stt_latency)
             if metric.ai_latency:
-                stage_latencies['ai'].append(metric.ai_latency)
+                stage_latencies["ai"].append(metric.ai_latency)
             if metric.tts_latency:
-                stage_latencies['tts'].append(metric.tts_latency)
+                stage_latencies["tts"].append(metric.tts_latency)
 
         # Find bottleneck stages
         for stage, latencies in stage_latencies.items():
             if latencies:
                 avg_stage_latency = sum(latencies) / len(latencies)
                 if avg_stage_latency > 1.5:  # Stage taking more than 1.5 seconds
-                    recommendations.append(f"Optimize {stage.upper()} processing (avg: {avg_stage_latency:.2f}s)")
+                    recommendations.append(
+                        f"Optimize {stage.upper()} processing (avg: {avg_stage_latency:.2f}s)"
+                    )
 
         if len(recommendations) == 0:
             recommendations.append("Performance is within acceptable ranges")
@@ -551,15 +563,18 @@ class VoicePerformanceMonitor:
                 average_latency=report.average_latency,
                 p95_latency=report.p95_latency,
                 sessions_meeting_target=report.sessions_meeting_latency_target,
-                recommendations_count=len(report.recommendations)
+                recommendations_count=len(report.recommendations),
             )
 
             # Log warnings for concerning metrics
-            if report.average_latency and report.average_latency > self.thresholds.warning_threshold:
+            if (
+                report.average_latency
+                and report.average_latency > self.thresholds.warning_threshold
+            ):
                 self.logger.warning(
                     "high_average_latency_detected",
                     average_latency=report.average_latency,
-                    threshold=self.thresholds.warning_threshold
+                    threshold=self.thresholds.warning_threshold,
                 )
 
         except Exception as e:
@@ -599,8 +614,11 @@ class VoicePerformanceMonitor:
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the performance monitor."""
         recent_metrics = self.metrics_buffer.get_recent_metrics(300)  # Last 5 minutes
-        recent_alerts = [a for a in self.active_alerts.values()
-                        if datetime.utcnow() - a.triggered_at < timedelta(minutes=5)]
+        recent_alerts = [
+            a
+            for a in self.active_alerts.values()
+            if datetime.utcnow() - a.triggered_at < timedelta(minutes=5)
+        ]
 
         # Determine health status
         if len(recent_alerts) > 5:
@@ -620,7 +638,7 @@ class VoicePerformanceMonitor:
             "active_sessions": len(self.active_sessions),
             "performance_stats": self.get_performance_stats(),
             "monitoring_enabled": self.monitoring_enabled,
-            "alerting_enabled": self.alerting_enabled
+            "alerting_enabled": self.alerting_enabled,
         }
 
     def reset_metrics(self) -> None:
@@ -629,13 +647,13 @@ class VoicePerformanceMonitor:
         self.active_sessions.clear()
         self.active_alerts.clear()
         self.performance_stats = {
-            'total_sessions': 0,
-            'sessions_meeting_target': 0,
-            'average_latency': 0.0,
-            'p95_latency': 0.0,
-            'p99_latency': 0.0,
-            'alerts_generated': 0,
-            'critical_alerts': 0
+            "total_sessions": 0,
+            "sessions_meeting_target": 0,
+            "average_latency": 0.0,
+            "p95_latency": 0.0,
+            "p99_latency": 0.0,
+            "alerts_generated": 0,
+            "critical_alerts": 0,
         }
         self.logger.info("performance_metrics_reset")
 

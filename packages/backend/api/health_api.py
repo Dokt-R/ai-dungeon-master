@@ -6,12 +6,13 @@ including observability, database, and general application health.
 """
 
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException
 
-from packages.backend.components.observability_service import observability_service
-from packages.backend.components.ai_client import ai_client
 from packages.backend.agents.prompts import prompt_manager
+from packages.backend.components.ai_client import ai_client
+from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -55,7 +56,7 @@ async def get_ai_health() -> Dict[str, Any]:
             with observability_service.trace_operation(
                 operation_name="ai_health_check_tracing_test",
                 health_check_type="comprehensive",
-                endpoint="/api/health/ai"
+                endpoint="/api/health/ai",
             ) as trace:
                 trace_id = trace
                 tracing_works = True
@@ -69,6 +70,7 @@ async def get_ai_health() -> Dict[str, Any]:
         try:
             # Check if we can access prompt templates
             from packages.backend.agents.prompts import PromptType
+
             core_template = prompt_manager.get_default_template(PromptType.CORE_DM)
             if core_template:
                 prompt_count = len(prompt_manager._templates)
@@ -85,8 +87,7 @@ async def get_ai_health() -> Dict[str, Any]:
             try:
                 # Simple connection test - just verify the client can make a basic call
                 with observability_service.trace_operation(
-                    operation_name="ai_connection_test",
-                    test_type="health_check"
+                    operation_name="ai_connection_test", test_type="health_check"
                 ) as conn_trace_id:
                     # For health check, we don't actually make an expensive API call
                     # Just verify the client is properly configured
@@ -100,7 +101,7 @@ async def get_ai_health() -> Dict[str, Any]:
         components_healthy = [
             ai_health["status"] == "healthy",
             tracing_works,
-            prompt_system_healthy
+            prompt_system_healthy,
         ]
 
         overall_status = "healthy" if all(components_healthy) else "degraded"
@@ -115,12 +116,12 @@ async def get_ai_health() -> Dict[str, Any]:
             "traced": tracing_works,
             "prompt_system": {
                 "status": "healthy" if prompt_system_healthy else "unhealthy",
-                "template_count": prompt_count
+                "template_count": prompt_count,
             },
             "connection_test": connection_test_result,
             "circuit_breaker_state": ai_health.get("circuit_breaker_state", "unknown"),
             "timestamp": datetime.utcnow().isoformat() + "Z",
-            "components_checked": ["ai_client", "tracing", "prompt_system"]
+            "components_checked": ["ai_client", "tracing", "prompt_system"],
         }
 
         # Add error information if any component failed
@@ -157,8 +158,8 @@ async def get_ai_health() -> Dict[str, Any]:
                 "model": "unknown",
                 "traced": False,
                 "error": "internal_comprehensive_health_check_error",
-                "timestamp": datetime.utcnow().isoformat() + "Z"
-            }
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+            },
         )
 
 
@@ -202,8 +203,8 @@ async def get_observability_health() -> Dict[str, Any]:
                 "status": "unhealthy",
                 "provider": "langsmith",
                 "project": "unknown",
-                "error": "internal_health_check_error"
-            }
+                "error": "internal_health_check_error",
+            },
         )
 
 
@@ -227,8 +228,8 @@ async def get_general_health() -> Dict[str, Any]:
 
         # Determine overall health status
         components_healthy = (
-            observability_health["status"] == "healthy" and
-            ai_health["status"] == "healthy"
+            observability_health["status"] == "healthy"
+            and ai_health["status"] == "healthy"
         )
         overall_status = "healthy" if components_healthy else "degraded"
 
@@ -245,7 +246,7 @@ async def get_general_health() -> Dict[str, Any]:
                 overall_status=overall_status,
                 unhealthy_components=unhealthy_components,
                 observability_status=observability_health["status"],
-                ai_status=ai_health["status"]
+                ai_status=ai_health["status"],
             )
 
         return {
@@ -254,9 +255,9 @@ async def get_general_health() -> Dict[str, Any]:
             "version": "1.0.0",
             "components": {
                 "observability": observability_health,
-                "ai_client": ai_health
+                "ai_client": ai_health,
             },
-            "timestamp": "2024-01-01T00:00:00Z"  # TODO: Use actual timestamp
+            "timestamp": "2024-01-01T00:00:00Z",  # TODO: Use actual timestamp
         }
 
     except Exception as e:
@@ -269,8 +270,8 @@ async def get_general_health() -> Dict[str, Any]:
             "error": "internal_health_check_error",
             "components": {
                 "observability": {"status": "unknown", "error": "health_check_failed"},
-                "ai_client": {"status": "unknown", "error": "health_check_failed"}
-            }
+                "ai_client": {"status": "unknown", "error": "health_check_failed"},
+            },
         }
 
 
@@ -292,15 +293,14 @@ async def test_observability_trace() -> Dict[str, Any]:
         with observability_service.trace_operation(
             operation_name="test_observability_trace",
             test_type="health_check",
-            endpoint="/api/health/observability/test-trace"
+            endpoint="/api/health/observability/test-trace",
         ) as trace_id:
-
             # Simulate some operations that would be traced
             test_data = {
                 "message": "Test observability trace",
                 "timestamp": "2024-01-01T00:00:00Z",
                 "trace_id": trace_id,
-                "operations": ["validate_config", "initialize_client", "send_trace"]
+                "operations": ["validate_config", "initialize_client", "send_trace"],
             }
 
             # Log additional structured data
@@ -308,11 +308,12 @@ async def test_observability_trace() -> Dict[str, Any]:
                 "test_trace_operations",
                 trace_id=trace_id,
                 operations=test_data["operations"],
-                test_data=test_data
+                test_data=test_data,
             )
 
             # Add a small delay to simulate real work
             import asyncio
+
             await asyncio.sleep(0.1)
 
             return {
@@ -320,7 +321,7 @@ async def test_observability_trace() -> Dict[str, Any]:
                 "message": "Observability trace test completed",
                 "trace_id": trace_id,
                 "observability_status": observability_service.get_health_status(),
-                "test_data": test_data
+                "test_data": test_data,
             }
 
     except Exception as e:
@@ -331,5 +332,5 @@ async def test_observability_trace() -> Dict[str, Any]:
             "status": "error",
             "message": "Observability trace test failed",
             "error": error_msg,
-            "observability_status": observability_service.get_health_status()
+            "observability_status": observability_service.get_health_status(),
         }

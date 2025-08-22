@@ -13,8 +13,9 @@ async def test_api_client_list_characters_real():
     assert isinstance(response, dict)
     assert "characters" in response
 
+
 # Test ApiClient error handling
-@pytest.mark.asyncio  
+@pytest.mark.asyncio
 async def test_api_client_handles_network_errors():
     client = ApiClient("http://nonexistent:8000")
     with pytest.raises(httpx.ConnectError):

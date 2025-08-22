@@ -10,7 +10,13 @@ class CustomException(Exception):
         details (dict, optional): Additional structured error details
     """
 
-    def __init__(self, error_code: ErrorCode = ErrorCode.UNKNOWN, *, details: dict | None = None, **kwargs):
+    def __init__(
+        self,
+        error_code: ErrorCode = ErrorCode.UNKNOWN,
+        *,
+        details: dict | None = None,
+        **kwargs,
+    ):
         if error_code not in ERRORS:
             raise ValueError(f"Unknown error code: {error_code}")
 

@@ -10,20 +10,20 @@ Tests cover:
 - Edge cases and error conditions
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
 from pydantic import ValidationError
 
 from packages.shared.models import (
-    MemoryEvent,
-    MemoryFact,
-    MemoryContext,
-    MemoryOperation,
     CreateMemoryEventRequest,
     CreateMemoryFactRequest,
+    MemoryContext,
+    MemoryEvent,
+    MemoryFact,
+    MemoryOperation,
+    MemoryQueryRequest,
     UpdateMemoryEventRequest,
-    UpdateMemoryFactRequest,
-    MemoryQueryRequest
 )
 
 
@@ -39,7 +39,7 @@ class TestMemoryEventModel:
             "description": "The party encounters a mysterious stranger in the tavern",
             "participants": ["Eldrin", "Throg", "Lyra"],
             "location": "The Rusty Dragon Tavern",
-            "metadata": {"weather": "stormy", "time_of_day": "evening"}
+            "metadata": {"weather": "stormy", "time_of_day": "evening"},
         }
 
         event = MemoryEvent(**event_data)
@@ -59,7 +59,7 @@ class TestMemoryEventModel:
             "timestamp": datetime.utcnow(),
             "event_type": "combat",
             "description": "A brief fight",
-            "participants": ["Hero"]
+            "participants": ["Hero"],
         }
 
         event = MemoryEvent(**event_data)
@@ -76,7 +76,7 @@ class TestMemoryEventModel:
             "timestamp": datetime.utcnow(),
             "event_type": invalid_event_type,
             "description": "Test description",
-            "participants": ["Test"]
+            "participants": ["Test"],
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -91,7 +91,7 @@ class TestMemoryEventModel:
             "timestamp": datetime.utcnow(),
             "event_type": "narrative",
             "description": "Test description",
-            "participants": []
+            "participants": [],
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -107,7 +107,7 @@ class TestMemoryEventModel:
             "timestamp": datetime.utcnow(),
             "event_type": "narrative",
             "description": long_description,
-            "participants": ["Test"]
+            "participants": ["Test"],
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -125,7 +125,7 @@ class TestMemoryEventModel:
                 "timestamp": datetime.utcnow(),
                 "event_type": "narrative",
                 "description": "Test description",
-                "participants": ["Test"]
+                "participants": ["Test"],
             }
 
             with pytest.raises(ValidationError):
@@ -139,7 +139,7 @@ class TestMemoryEventModel:
             "event_type": "narrative",
             "description": "Test description",
             "participants": ["Test"],
-            "version": 5
+            "version": 5,
         }
 
         event = MemoryEvent(**event_data)
@@ -153,7 +153,7 @@ class TestMemoryEventModel:
             "timestamp": future_time,
             "event_type": "narrative",
             "description": "Future event",
-            "participants": ["Test"]
+            "participants": ["Test"],
         }
 
         event = MemoryEvent(**event_data)
@@ -173,7 +173,7 @@ class TestMemoryFactModel:
             "confidence": 0.85,
             "source": "player_description",
             "tags": ["warrior", "mysterious", "seasoned"],
-            "related_events": ["event_001", "event_002"]
+            "related_events": ["event_001", "event_002"],
         }
 
         fact = MemoryFact(**fact_data)
@@ -193,7 +193,7 @@ class TestMemoryFactModel:
             "subject": "Ancient Ruins",
             "description": "Ruins of an ancient civilization",
             "confidence": 0.7,
-            "source": "discovered"
+            "source": "discovered",
         }
 
         fact = MemoryFact(**fact_data)
@@ -210,7 +210,7 @@ class TestMemoryFactModel:
             "subject": "Test Subject",
             "description": "Test description",
             "confidence": 0.5,
-            "source": "test"
+            "source": "test",
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -229,7 +229,7 @@ class TestMemoryFactModel:
                 "subject": "Test Subject",
                 "description": "Test description",
                 "confidence": invalid_confidence,
-                "source": "test"
+                "source": "test",
             }
 
             with pytest.raises(ValidationError) as exc_info:
@@ -246,7 +246,7 @@ class TestMemoryFactModel:
             "description": "Test description",
             "confidence": 0.5,
             "source": "test",
-            "tags": [f"tag_{i}" for i in range(12)]  # 12 tags, exceeds limit of 10
+            "tags": [f"tag_{i}" for i in range(12)],  # 12 tags, exceeds limit of 10
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -263,7 +263,9 @@ class TestMemoryFactModel:
             "description": "Test quest description",
             "confidence": 0.5,
             "source": "test",
-            "related_events": [f"event_{i}" for i in range(52)]  # 52 events, exceeds limit of 50
+            "related_events": [
+                f"event_{i}" for i in range(52)
+            ],  # 52 events, exceeds limit of 50
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -282,7 +284,7 @@ class TestMemoryFactModel:
                 "subject": "Test Subject",
                 "description": "Test description",
                 "confidence": 0.5,
-                "source": "test"
+                "source": "test",
             }
 
             with pytest.raises(ValidationError):
@@ -299,7 +301,7 @@ class TestMemoryContextModel:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
 
         fact = MemoryFact(
@@ -308,7 +310,7 @@ class TestMemoryContextModel:
             subject="Test NPC",
             description="Test NPC description",
             confidence=0.8,
-            source="test"
+            source="test",
         )
 
         context_data = {
@@ -316,15 +318,15 @@ class TestMemoryContextModel:
             "relevant_facts": [fact],
             "character_knowledge": {
                 "Eldrin": ["knows about ancient ruins", "skilled fighter"],
-                "Lyra": ["magic user", "healer"]
+                "Lyra": ["magic user", "healer"],
             },
             "world_state": {
                 "current_location": "Forest",
                 "time_of_day": "morning",
-                "weather": "sunny"
+                "weather": "sunny",
             },
             "summary": "Current campaign context summary",
-            "context_size": 1500
+            "context_size": 1500,
         }
 
         context = MemoryContext(**context_data)
@@ -343,7 +345,7 @@ class TestMemoryContextModel:
             "character_knowledge": {},
             "world_state": {},
             "summary": "Empty context",
-            "context_size": 0
+            "context_size": 0,
         }
 
         context = MemoryContext(**context_data)
@@ -363,7 +365,7 @@ class TestMemoryContextModel:
             "character_knowledge": {},
             "world_state": {},
             "summary": "",
-            "context_size": 100
+            "context_size": 100,
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -379,7 +381,7 @@ class TestMemoryContextModel:
             "character_knowledge": {},
             "world_state": {},
             "summary": "Test summary",
-            "context_size": -1
+            "context_size": -1,
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -397,7 +399,7 @@ class TestMemoryOperationModel:
             "operation": "create",
             "success": True,
             "memory_id": "event_123",
-            "memory_type": "event"
+            "memory_type": "event",
         }
 
         operation = MemoryOperation(**operation_data)
@@ -416,7 +418,7 @@ class TestMemoryOperationModel:
             "success": False,
             "memory_id": "fact_456",
             "memory_type": "fact",
-            "error": "Validation failed: invalid confidence value"
+            "error": "Validation failed: invalid confidence value",
         }
 
         operation = MemoryOperation(**operation_data)
@@ -432,7 +434,7 @@ class TestMemoryOperationModel:
             "operation": invalid_operation,
             "success": True,
             "memory_id": "test_123",
-            "memory_type": "event"
+            "memory_type": "event",
         }
 
         with pytest.raises(ValidationError) as exc_info:
@@ -451,7 +453,7 @@ class TestCRUDRequestModels:
             "description": "Epic battle in the arena",
             "participants": ["Hero", "Villain"],
             "location": "Grand Arena",
-            "metadata": {"difficulty": "hard", "rounds": 5}
+            "metadata": {"difficulty": "hard", "rounds": 5},
         }
 
         request = CreateMemoryEventRequest(**request_data)
@@ -465,7 +467,7 @@ class TestCRUDRequestModels:
         request_data = {
             "event_type": "narrative",
             "description": "Simple story event",
-            "participants": ["Narrator"]
+            "participants": ["Narrator"],
         }
 
         request = CreateMemoryEventRequest(**request_data)
@@ -479,7 +481,7 @@ class TestCRUDRequestModels:
         request_data = {
             "event_type": "narrative",
             "description": "",
-            "participants": ["Test"]
+            "participants": ["Test"],
         }
 
         with pytest.raises(ValidationError):
@@ -494,7 +496,7 @@ class TestCRUDRequestModels:
             "confidence": 0.75,
             "source": "rumor",
             "tags": ["merchant", "mysterious", "suspicious"],
-            "related_events": ["event_001"]
+            "related_events": ["event_001"],
         }
 
         request = CreateMemoryFactRequest(**request_data)
@@ -510,7 +512,7 @@ class TestCRUDRequestModels:
             "subject": "Dark Forest",
             "description": "A foreboding forest",
             "confidence": 0.6,
-            "source": "common_knowledge"
+            "source": "common_knowledge",
         }
 
         request = CreateMemoryFactRequest(**request_data)
@@ -524,7 +526,7 @@ class TestCRUDRequestModels:
             "event_id": "event_123",
             "description": "Updated event description",
             "participants": ["NewHero", "OldHero"],
-            "location": "Updated Location"
+            "location": "Updated Location",
         }
 
         request = UpdateMemoryEventRequest(**request_data)
@@ -537,11 +539,8 @@ class TestCRUDRequestModels:
         """Test creating a valid memory query request."""
         request_data = {
             "query_type": "events",
-            "filters": {
-                "event_type": "combat",
-                "participant": "Hero"
-            },
-            "limit": 50
+            "filters": {"event_type": "combat", "participant": "Hero"},
+            "limit": 50,
         }
 
         request = MemoryQueryRequest(**request_data)
@@ -552,9 +551,7 @@ class TestCRUDRequestModels:
 
     def test_query_request_defaults(self):
         """Test query request with default values."""
-        request_data = {
-            "query_type": "facts"
-        }
+        request_data = {"query_type": "facts"}
 
         request = MemoryQueryRequest(**request_data)
 
@@ -573,14 +570,16 @@ class TestModelSerialization:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
 
         event_dict = event.model_dump()
 
         assert event_dict["event_id"] == "event_123"
         assert event_dict["event_type"] == "narrative"
-        assert isinstance(event_dict["timestamp"], str)  # datetime serialized to ISO string
+        assert isinstance(
+            event_dict["timestamp"], str
+        )  # datetime serialized to ISO string
         assert isinstance(event_dict["created_at"], str)
 
     def test_memory_fact_serialization(self):
@@ -591,7 +590,7 @@ class TestModelSerialization:
             subject="Test NPC",
             description="Test description",
             confidence=0.8,
-            source="test"
+            source="test",
         )
 
         fact_dict = fact.model_dump()
@@ -607,7 +606,7 @@ class TestModelSerialization:
             timestamp=datetime.utcnow(),
             event_type="narrative",
             description="Test event",
-            participants=["Test"]
+            participants=["Test"],
         )
 
         json_str = event.model_dump_json()
@@ -623,7 +622,7 @@ class TestModelSerialization:
             event_type="narrative",
             description="Original event",
             participants=["Test"],
-            version=1
+            version=1,
         )
 
         # Test shallow copy
@@ -633,7 +632,11 @@ class TestModelSerialization:
         assert copied_event is not original_event  # Different object
 
         # Test copy with updates
-        updated_event = original_event.model_copy(update={"description": "Updated event", "version": 2})
+        updated_event = original_event.model_copy(
+            update={"description": "Updated event", "version": 2}
+        )
         assert updated_event.description == "Updated event"
         assert updated_event.version == 2
-        assert updated_event.event_id == original_event.event_id  # Unchanged fields remain the same
+        assert (
+            updated_event.event_id == original_event.event_id
+        )  # Unchanged fields remain the same

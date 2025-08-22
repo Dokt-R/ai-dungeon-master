@@ -14,19 +14,18 @@ Features:
 """
 
 import asyncio
-import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
 
-from packages.shared.models import (
-    VoiceSessionConfig, VoiceLatencyMetrics, AudioStreamInfo,
-    PrivacyComplianceRecord
-)
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.voice_performance_monitor import voice_performance_monitor
 from packages.shared.logging_config import get_logger
+from packages.shared.models import (
+    PrivacyComplianceRecord,
+    VoiceLatencyMetrics,
+    VoiceSessionConfig,
+)
 
 logger = get_logger(__name__)
 
@@ -81,11 +80,15 @@ class ManagedVoiceSession:
 
     def is_expired(self) -> bool:
         """Check if session has expired based on timeout."""
-        return datetime.utcnow() - self.started_at > timedelta(seconds=self.config.session_timeout)
+        return datetime.utcnow() - self.started_at > timedelta(
+            seconds=self.config.session_timeout
+        )
 
     def is_duration_exceeded(self) -> bool:
         """Check if session duration exceeds maximum."""
-        return datetime.utcnow() - self.started_at > timedelta(seconds=self.config.max_session_duration)
+        return datetime.utcnow() - self.started_at > timedelta(
+            seconds=self.config.max_session_duration
+        )
 
     def should_cleanup(self) -> bool:
         """Check if session should be cleaned up."""
@@ -131,9 +134,9 @@ class VoiceSessionManager:
 
         # Resource limits
         self.resource_limits = ResourceLimits(
-            max_concurrent_sessions=self.config.get('max_concurrent_sessions', 10),
-            max_sessions_per_user=self.config.get('max_sessions_per_user', 3),
-            max_sessions_per_guild=self.config.get('max_sessions_per_guild', 5)
+            max_concurrent_sessions=self.config.get("max_concurrent_sessions", 10),
+            max_sessions_per_user=self.config.get("max_sessions_per_user", 3),
+            max_sessions_per_guild=self.config.get("max_sessions_per_guild", 5),
         )
 
         # User and guild tracking
@@ -149,12 +152,12 @@ class VoiceSessionManager:
 
         # Performance tracking
         self.session_stats = {
-            'total_sessions_created': 0,
-            'total_sessions_completed': 0,
-            'total_sessions_timed_out': 0,
-            'total_sessions_error': 0,
-            'average_session_duration': 0.0,
-            'max_concurrent_sessions': 0
+            "total_sessions_created": 0,
+            "total_sessions_completed": 0,
+            "total_sessions_timed_out": 0,
+            "total_sessions_error": 0,
+            "average_session_duration": 0.0,
+            "max_concurrent_sessions": 0,
         }
 
         # Background tasks
@@ -203,7 +206,7 @@ class VoiceSessionManager:
         user_id: str,
         channel_id: str,
         guild_id: str,
-        correlation_id: Optional[str] = None
+        correlation_id: Optional[str] = None,
     ) -> Optional[ManagedVoiceSession]:
         """
         Create a new voice session with validation and limits checking.
@@ -223,9 +226,8 @@ class VoiceSessionManager:
                 operation_name="voice_session_creation",
                 session_id=session_id,
                 user_id=user_id,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
-
                 # Check resource limits
                 if not self._check_resource_limits(user_id, guild_id):
                     logger.warning(
@@ -233,7 +235,7 @@ class VoiceSessionManager:
                         session_id=session_id,
                         user_id=user_id,
                         guild_id=guild_id,
-                        correlation_id=correlation_id
+                        correlation_id=correlation_id,
                     )
                     return None
 
@@ -243,7 +245,7 @@ class VoiceSessionManager:
                         "session_creation_denied_rate_limit",
                         session_id=session_id,
                         user_id=user_id,
-                        correlation_id=correlation_id
+                        correlation_id=correlation_id,
                     )
                     return None
 
@@ -254,7 +256,7 @@ class VoiceSessionManager:
                     channel_id=channel_id,
                     guild_id=guild_id,
                     started_at=datetime.utcnow(),
-                    state=SessionState.INITIALIZING
+                    state=SessionState.INITIALIZING,
                 )
 
                 # Register session
@@ -270,10 +272,10 @@ class VoiceSessionManager:
                     self.privacy_records[session_id] = privacy_record
 
                 # Update statistics
-                self.session_stats['total_sessions_created'] += 1
-                self.session_stats['max_concurrent_sessions'] = max(
-                    self.session_stats['max_concurrent_sessions'],
-                    len(self.active_sessions)
+                self.session_stats["total_sessions_created"] += 1
+                self.session_stats["max_concurrent_sessions"] = max(
+                    self.session_stats["max_concurrent_sessions"],
+                    len(self.active_sessions),
                 )
 
                 logger.info(
@@ -284,7 +286,7 @@ class VoiceSessionManager:
                     guild_id=guild_id,
                     concurrent_sessions=len(self.active_sessions),
                     correlation_id=correlation_id,
-                    trace_id=trace_id
+                    trace_id=trace_id,
                 )
 
                 return session
@@ -295,7 +297,7 @@ class VoiceSessionManager:
                 session_id=session_id,
                 user_id=user_id,
                 error=str(e),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             return None
 
@@ -303,7 +305,7 @@ class VoiceSessionManager:
         self,
         session_id: str,
         new_state: SessionState,
-        correlation_id: Optional[str] = None
+        correlation_id: Optional[str] = None,
     ) -> bool:
         """
         Update the state of an active session.
@@ -321,7 +323,7 @@ class VoiceSessionManager:
                 logger.warning(
                     "session_not_found_for_state_update",
                     session_id=session_id,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
                 return False
 
@@ -343,7 +345,7 @@ class VoiceSessionManager:
                 session_id=session_id,
                 old_state=old_state.value,
                 new_state=new_state.value,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             return True
@@ -354,7 +356,7 @@ class VoiceSessionManager:
                 session_id=session_id,
                 new_state=new_state.value,
                 error=str(e),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             return False
 
@@ -362,7 +364,7 @@ class VoiceSessionManager:
         self,
         session_id: str,
         reason: str = "terminated_by_request",
-        correlation_id: Optional[str] = None
+        correlation_id: Optional[str] = None,
     ) -> bool:
         """
         Terminate a voice session.
@@ -380,7 +382,7 @@ class VoiceSessionManager:
                 logger.warning(
                     "session_not_found_for_termination",
                     session_id=session_id,
-                    correlation_id=correlation_id
+                    correlation_id=correlation_id,
                 )
                 return False
 
@@ -401,7 +403,7 @@ class VoiceSessionManager:
                 session_id=session_id,
                 reason=reason,
                 duration=(datetime.utcnow() - session.started_at).total_seconds(),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             return True
@@ -411,7 +413,7 @@ class VoiceSessionManager:
                 "session_termination_failed",
                 session_id=session_id,
                 error=str(e),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
             return False
 
@@ -435,7 +437,10 @@ class VoiceSessionManager:
         """Check if creating a new session would exceed resource limits."""
         try:
             # Check total concurrent sessions
-            if len(self.active_sessions) >= self.resource_limits.max_concurrent_sessions:
+            if (
+                len(self.active_sessions)
+                >= self.resource_limits.max_concurrent_sessions
+            ):
                 return False
 
             # Check user session limit
@@ -468,7 +473,10 @@ class VoiceSessionManager:
             # User-specific rate limit
             user_starts = self.user_session_start_times.get(user_id, [])
             recent_user_starts = [t for t in user_starts if t > cutoff_time]
-            if len(recent_user_starts) >= self.resource_limits.max_session_starts_per_user_per_minute:
+            if (
+                len(recent_user_starts)
+                >= self.resource_limits.max_session_starts_per_user_per_minute
+            ):
                 return False
 
             return True
@@ -498,18 +506,28 @@ class VoiceSessionManager:
 
             # Clean old rate limit data
             cutoff_time = datetime.utcnow() - timedelta(minutes=5)
-            self.session_start_times = [t for t in self.session_start_times if t > cutoff_time]
+            self.session_start_times = [
+                t for t in self.session_start_times if t > cutoff_time
+            ]
             for user_id in self.user_session_start_times:
                 self.user_session_start_times[user_id] = [
                     t for t in self.user_session_start_times[user_id] if t > cutoff_time
                 ]
 
         except Exception as e:
-            logger.error("session_registration_failed", session_id=session.session_id, error=str(e))
+            logger.error(
+                "session_registration_failed",
+                session_id=session.session_id,
+                error=str(e),
+            )
 
-    def _create_privacy_record(self, session: ManagedVoiceSession) -> PrivacyComplianceRecord:
+    def _create_privacy_record(
+        self, session: ManagedVoiceSession
+    ) -> PrivacyComplianceRecord:
         """Create privacy compliance record for session."""
-        deletion_date = datetime.utcnow() + timedelta(days=session.config.audio_retention_days)
+        deletion_date = datetime.utcnow() + timedelta(
+            days=session.config.audio_retention_days
+        )
 
         return PrivacyComplianceRecord(
             session_id=session.session_id,
@@ -519,18 +537,20 @@ class VoiceSessionManager:
             privacy_consent_obtained=True,  # Assume obtained for voice sessions
             data_encrypted=True,  # Assume encrypted in transit
             compliance_officer="voice_session_manager",
-            audit_trail=[{
-                "timestamp": datetime.utcnow().isoformat(),
-                "action": "session_created",
-                "details": "Voice session initialized with privacy compliance"
-            }]
+            audit_trail=[
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "session_created",
+                    "details": "Voice session initialized with privacy compliance",
+                }
+            ],
         )
 
     def _complete_session(
         self,
         session: ManagedVoiceSession,
         correlation_id: Optional[str] = None,
-        completion_reason: str = "normal_completion"
+        completion_reason: str = "normal_completion",
     ) -> None:
         """Complete a session and move to completed tracking."""
         try:
@@ -551,12 +571,12 @@ class VoiceSessionManager:
 
             # Update statistics
             session_duration = (datetime.utcnow() - session.started_at).total_seconds()
-            self.session_stats['total_sessions_completed'] += 1
+            self.session_stats["total_sessions_completed"] += 1
 
             # Update average duration
-            total_completed = self.session_stats['total_sessions_completed']
-            current_avg = self.session_stats['average_session_duration']
-            self.session_stats['average_session_duration'] = (
+            total_completed = self.session_stats["total_sessions_completed"]
+            current_avg = self.session_stats["average_session_duration"]
+            self.session_stats["average_session_duration"] = (
                 (current_avg * (total_completed - 1)) + session_duration
             ) / total_completed
 
@@ -565,26 +585,30 @@ class VoiceSessionManager:
                 "session_completion_failed",
                 session_id=session.session_id,
                 error=str(e),
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
-    def _handle_session_error(self, session: ManagedVoiceSession, correlation_id: Optional[str] = None) -> None:
+    def _handle_session_error(
+        self, session: ManagedVoiceSession, correlation_id: Optional[str] = None
+    ) -> None:
         """Handle session error state."""
-        self.session_stats['total_sessions_error'] += 1
+        self.session_stats["total_sessions_error"] += 1
         logger.warning(
             "session_entered_error_state",
             session_id=session.session_id,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
-    def _handle_session_timeout(self, session: ManagedVoiceSession, correlation_id: Optional[str] = None) -> None:
+    def _handle_session_timeout(
+        self, session: ManagedVoiceSession, correlation_id: Optional[str] = None
+    ) -> None:
         """Handle session timeout."""
-        self.session_stats['total_sessions_timed_out'] += 1
+        self.session_stats["total_sessions_timed_out"] += 1
         logger.info(
             "session_timed_out",
             session_id=session.session_id,
             timeout_duration=session.config.session_timeout,
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
 
     def _unregister_session(self, session: ManagedVoiceSession) -> None:
@@ -603,7 +627,11 @@ class VoiceSessionManager:
                     del self.guild_sessions[session.guild_id]
 
         except Exception as e:
-            logger.error("session_unregistration_failed", session_id=session.session_id, error=str(e))
+            logger.error(
+                "session_unregistration_failed",
+                session_id=session.session_id,
+                error=str(e),
+            )
 
     async def _cleanup_session_resources(self, session: ManagedVoiceSession) -> None:
         """Clean up resources used by a session."""
@@ -620,7 +648,11 @@ class VoiceSessionManager:
             logger.debug("session_resources_cleaned", session_id=session.session_id)
 
         except Exception as e:
-            logger.error("session_resource_cleanup_failed", session_id=session.session_id, error=str(e))
+            logger.error(
+                "session_resource_cleanup_failed",
+                session_id=session.session_id,
+                error=str(e),
+            )
 
     async def _cleanup_loop(self) -> None:
         """Background cleanup loop for expired sessions."""
@@ -633,14 +665,24 @@ class VoiceSessionManager:
 
                 # Find expired sessions
                 for session_id, session in self.active_sessions.items():
-                    if session.is_expired() or session.is_duration_exceeded() or session.should_cleanup():
+                    if (
+                        session.is_expired()
+                        or session.is_duration_exceeded()
+                        or session.should_cleanup()
+                    ):
                         expired_sessions.append(session_id)
 
                 # Clean up expired sessions
                 for session_id in expired_sessions:
                     session = self.active_sessions.get(session_id)
                     if session:
-                        reason = "expired" if session.is_expired() else "duration_exceeded" if session.is_duration_exceeded() else "inactivity"
+                        reason = (
+                            "expired"
+                            if session.is_expired()
+                            else "duration_exceeded"
+                            if session.is_duration_exceeded()
+                            else "inactivity"
+                        )
                         await self.terminate_session(session_id, reason)
 
                 if expired_sessions:
@@ -669,47 +711,63 @@ class VoiceSessionManager:
 
             # Check for timeout warnings
             if not session.timeout_warning_sent:
-                time_remaining = session.config.session_timeout - (current_time - session.started_at).total_seconds()
+                time_remaining = (
+                    session.config.session_timeout
+                    - (current_time - session.started_at).total_seconds()
+                )
                 if time_remaining <= 300:  # 5 minutes warning
                     session.timeout_warning_sent = True
                     logger.warning(
                         "session_timeout_warning",
                         session_id=session.session_id,
-                        time_remaining=time_remaining
+                        time_remaining=time_remaining,
                     )
 
             # Check for duration warnings
             if not session.max_duration_reached:
-                duration_remaining = session.config.max_session_duration - (current_time - session.started_at).total_seconds()
+                duration_remaining = (
+                    session.config.max_session_duration
+                    - (current_time - session.started_at).total_seconds()
+                )
                 if duration_remaining <= 600:  # 10 minutes warning
                     session.max_duration_reached = True
                     logger.warning(
                         "session_duration_warning",
                         session_id=session.session_id,
-                        duration_remaining=duration_remaining
+                        duration_remaining=duration_remaining,
                     )
 
         except Exception as e:
-            logger.error("session_health_check_failed", session_id=session.session_id, error=str(e))
+            logger.error(
+                "session_health_check_failed",
+                session_id=session.session_id,
+                error=str(e),
+            )
 
     def get_session_statistics(self) -> Dict[str, Any]:
         """Get comprehensive session statistics."""
         return {
             "active_sessions": len(self.active_sessions),
             "completed_sessions": len(self.completed_sessions),
-            "total_sessions_created": self.session_stats['total_sessions_created'],
-            "total_sessions_completed": self.session_stats['total_sessions_completed'],
-            "total_sessions_timed_out": self.session_stats['total_sessions_timed_out'],
-            "total_sessions_error": self.session_stats['total_sessions_error'],
-            "average_session_duration": self.session_stats['average_session_duration'],
-            "max_concurrent_sessions": self.session_stats['max_concurrent_sessions'],
-            "sessions_by_user": {user_id: len(sessions) for user_id, sessions in self.user_sessions.items()},
-            "sessions_by_guild": {guild_id: len(sessions) for guild_id, sessions in self.guild_sessions.items()},
+            "total_sessions_created": self.session_stats["total_sessions_created"],
+            "total_sessions_completed": self.session_stats["total_sessions_completed"],
+            "total_sessions_timed_out": self.session_stats["total_sessions_timed_out"],
+            "total_sessions_error": self.session_stats["total_sessions_error"],
+            "average_session_duration": self.session_stats["average_session_duration"],
+            "max_concurrent_sessions": self.session_stats["max_concurrent_sessions"],
+            "sessions_by_user": {
+                user_id: len(sessions)
+                for user_id, sessions in self.user_sessions.items()
+            },
+            "sessions_by_guild": {
+                guild_id: len(sessions)
+                for guild_id, sessions in self.guild_sessions.items()
+            },
             "resource_limits": {
                 "max_concurrent_sessions": self.resource_limits.max_concurrent_sessions,
                 "max_sessions_per_user": self.resource_limits.max_sessions_per_user,
-                "max_sessions_per_guild": self.resource_limits.max_sessions_per_guild
-            }
+                "max_sessions_per_guild": self.resource_limits.max_sessions_per_guild,
+            },
         }
 
     def get_privacy_compliance_status(self) -> Dict[str, Any]:
@@ -717,18 +775,23 @@ class VoiceSessionManager:
         return {
             "privacy_mode_enabled": self.enable_privacy_mode,
             "total_privacy_records": len(self.privacy_records),
-            "records_pending_deletion": len([
-                r for r in self.privacy_records.values()
-                if r.data_deletion_date <= datetime.utcnow()
-            ]),
-            "compliance_officer": "voice_session_manager"
+            "records_pending_deletion": len(
+                [
+                    r
+                    for r in self.privacy_records.values()
+                    if r.data_deletion_date <= datetime.utcnow()
+                ]
+            ),
+            "compliance_officer": "voice_session_manager",
         }
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the session manager."""
         # Determine overall health
         active_sessions = len(self.active_sessions)
-        resource_usage_percent = (active_sessions / self.resource_limits.max_concurrent_sessions) * 100
+        resource_usage_percent = (
+            active_sessions / self.resource_limits.max_concurrent_sessions
+        ) * 100
 
         if resource_usage_percent >= 90:
             status = "critical"
@@ -746,12 +809,14 @@ class VoiceSessionManager:
             "session_limits": {
                 "max_concurrent": self.resource_limits.max_concurrent_sessions,
                 "max_per_user": self.resource_limits.max_sessions_per_user,
-                "max_per_guild": self.resource_limits.max_sessions_per_guild
+                "max_per_guild": self.resource_limits.max_sessions_per_guild,
             },
             "background_tasks": {
-                "cleanup_task_running": self._cleanup_task is not None and not self._cleanup_task.done(),
-                "monitoring_task_running": self._monitoring_task is not None and not self._monitoring_task.done()
-            }
+                "cleanup_task_running": self._cleanup_task is not None
+                and not self._cleanup_task.done(),
+                "monitoring_task_running": self._monitoring_task is not None
+                and not self._monitoring_task.done(),
+            },
         }
 
 

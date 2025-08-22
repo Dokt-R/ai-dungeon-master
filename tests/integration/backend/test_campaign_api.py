@@ -38,7 +38,9 @@ class TestCampaignAPI(BaseTestData):
             },
         )
 
-        response = await client.get(ROUTES.campaign_details(self.server_id, self.campaign_name))
+        response = await client.get(
+            ROUTES.campaign_details(self.server_id, self.campaign_name)
+        )
         assert response.status_code == 200
         data = response.json()
         assert data["campaign_name"] == self.campaign_name

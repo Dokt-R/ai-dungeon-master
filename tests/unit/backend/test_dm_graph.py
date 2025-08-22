@@ -9,22 +9,11 @@ Tests cover:
 - Tracing integration and performance monitoring
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, patch, AsyncMock
-from datetime import datetime
+from unittest.mock import AsyncMock, Mock, patch
 
-from packages.backend.agents.dm_graph import (
-    DMGraphService,
-    DMGraphState,
-    DMGraphConfig,
-    DMGraphError,
-    MemoryError,
-    AIError,
-    PromptError
-)
+from packages.backend.agents.dm_graph import DMGraphConfig, DMGraphService, DMGraphState
 from packages.shared.models import MemoryState
-from packages.backend.agents.prompts import PromptType
 
 
 class TestDMGraphConfig:
@@ -53,18 +42,20 @@ class TestDMGraphService:
 
     def test_initialization_without_langgraph(self):
         """Test initialization when LangGraph is not available."""
-        with patch('packages.backend.agents.dm_graph.LANGGRAPH_AVAILABLE', False):
+        with patch("packages.backend.agents.dm_graph.LANGGRAPH_AVAILABLE", False):
             service = DMGraphService()
             result = asyncio.run(service.initialize())
             assert result is False
             assert not service.is_initialized()
 
-    @patch('packages.backend.agents.dm_graph.ai_client')
+    @patch("packages.backend.agents.dm_graph.ai_client")
     def test_initialization_success(self, mock_ai_client):
         """Test successful service initialization."""
         mock_ai_client.is_initialized.return_value = True
 
-        with patch.object(self.service, '_build_graph', new_callable=AsyncMock) as mock_build:
+        with patch.object(
+            self.service, "_build_graph", new_callable=AsyncMock
+        ) as mock_build:
             mock_build.return_value = Mock()
 
             result = asyncio.run(self.service.initialize())
@@ -85,7 +76,9 @@ class TestDMGraphService:
 
     def test_extract_narrative_basic(self):
         """Test basic narrative extraction from AI response."""
-        ai_response = "As the DM, you carefully examine the room and find a hidden door."
+        ai_response = (
+            "As the DM, you carefully examine the room and find a hidden door."
+        )
         narrative = self.service._extract_narrative(ai_response)
 
         assert "you carefully examine" in narrative.lower()
@@ -131,7 +124,9 @@ class TestMemoryStateIntegration:
         assert memory_state.messages[0]["role"] == "user"
 
         memory_state.add_message("assistant", "You examine the room carefully.")
-        assert memory_state.turn_count == 1  # Should not increment for assistant messages
+        assert (
+            memory_state.turn_count == 1
+        )  # Should not increment for assistant messages
         assert len(memory_state.messages) == 2
 
     def test_memory_state_scratchpad(self):
@@ -150,9 +145,7 @@ class TestMemoryStateIntegration:
     def test_memory_state_serialization(self):
         """Test memory state serialization."""
         memory_state = MemoryState(
-            session_id="test_session",
-            context={"campaign": "Lost Mines"},
-            turn_count=5
+            session_id="test_session", context={"campaign": "Lost Mines"}, turn_count=5
         )
         memory_state.add_message("user", "test message")
 
@@ -189,7 +182,7 @@ class TestDMGraphErrorHandling:
             ai_response=None,
             narrative_response=None,
             error=None,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         result = asyncio.run(self.service._process_prompt_node(state))
@@ -206,12 +199,16 @@ class TestDMGraphErrorHandling:
             ai_response=None,
             narrative_response=None,
             error=None,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Mock prompt manager to raise error
-        with patch('packages.backend.agents.dm_graph.prompt_manager') as mock_prompt_manager:
-            mock_prompt_manager.create_core_dm_prompt.side_effect = Exception("Prompt creation failed")
+        with patch(
+            "packages.backend.agents.dm_graph.prompt_manager"
+        ) as mock_prompt_manager:
+            mock_prompt_manager.create_core_dm_prompt.side_effect = Exception(
+                "Prompt creation failed"
+            )
 
             result = asyncio.run(self.service._compile_context_node(state))
 
@@ -228,7 +225,7 @@ class TestDMGraphErrorHandling:
             ai_response=None,
             narrative_response=None,
             error="Some error occurred",
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         result = self.service._should_handle_error(state_with_error)
@@ -242,7 +239,7 @@ class TestDMGraphErrorHandling:
             ai_response=None,
             narrative_response=None,
             error=None,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         result = self.service._should_handle_error(state_without_error)

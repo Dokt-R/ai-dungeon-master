@@ -255,6 +255,71 @@ class ApiClient:
         resp = await self._request("POST", url, json=data)
         return await self._handle_response(resp)
 
+    # --------------------------- Voice API Methods ---------------------------
+
+    async def get_voice_status(self) -> Dict[str, Any]:
+        """Get the status of all voice features."""
+        url = "/api/v1/voice/status"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def create_voice_session(
+        self, session_id: str, config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a new voice session."""
+        url = f"/api/v1/voice/session/{session_id}/create"
+        resp = await self._request("POST", url, json=config or {})
+        return await self._handle_response(resp)
+
+    async def add_audio_source(
+        self, session_id: str, source_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Add an audio source to a voice session."""
+        url = f"/api/v1/voice/session/{session_id}/source"
+        resp = await self._request("POST", url, json=source_config)
+        return await self._handle_response(resp)
+
+    async def update_audio_source_position(
+        self, session_id: str, source_id: str, position: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update the spatial position of an audio source."""
+        url = f"/api/v1/voice/session/{session_id}/source/{source_id}/position"
+        resp = await self._request("PUT", url, json=position)
+        return await self._handle_response(resp)
+
+    async def set_focus_mode(
+        self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True
+    ) -> Dict[str, Any]:
+        """Enable or disable focus mode for a session."""
+        url = f"/api/v1/voice/session/{session_id}/focus"
+        data = {"focus_speaker": focus_speaker, "enable": enable}
+        resp = await self._request("PUT", url, json=data)
+        return await self._handle_response(resp)
+
+    async def get_voice_session_stats(self, session_id: str) -> Dict[str, Any]:
+        """Get statistics for a voice session."""
+        url = f"/api/v1/voice/session/{session_id}/stats"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def cleanup_voice_session(self, session_id: str) -> Dict[str, Any]:
+        """Clean up a voice session and all associated resources."""
+        url = f"/api/v1/voice/session/{session_id}"
+        resp = await self._request("DELETE", url)
+        return await self._handle_response(resp)
+
+    async def get_conversation_summary(self, conversation_id: str) -> Dict[str, Any]:
+        """Get a summary of conversation intelligence analysis."""
+        url = f"/api/v1/voice/conversation/{conversation_id}/summary"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def get_voice_system_health(self) -> Dict[str, Any]:
+        """Get the health status of all voice system components."""
+        url = "/api/v1/voice/health"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
 
 # Example usage:
 # import asyncio

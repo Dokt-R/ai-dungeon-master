@@ -10,15 +10,16 @@ Tests cover:
 - Provider-specific features and calculations
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import Mock
 
-from packages.shared.models import RulesQuery, RulesResponse
+import pytest
+
 from packages.backend.components.providers.monster_provider import MonsterRuleProvider
 from packages.backend.components.providers.spell_provider import SpellRuleProvider
 from packages.backend.components.providers.weapon_provider import WeaponRuleProvider
 from packages.backend.components.rules_engine import RuleProviderType
+from packages.shared.models import RulesQuery, RulesResponse
 
 
 class TestMonsterRuleProvider:
@@ -38,7 +39,7 @@ class TestMonsterRuleProvider:
             query_type="monster",
             name="Goblin",
             context="encounter",
-            filters={"min_cr": 0.25, "max_cr": 1}
+            filters={"min_cr": 0.25, "max_cr": 1},
         )
 
     def test_provider_initialization(self, monster_provider):
@@ -62,9 +63,7 @@ class TestMonsterRuleProvider:
     async def test_query_with_filters(self, monster_provider):
         """Test monster query with filters."""
         query = RulesQuery(
-            query_type="monster",
-            name="Test",
-            filters={"min_cr": 1, "max_cr": 5}
+            query_type="monster", name="Test", filters={"min_cr": 1, "max_cr": 5}
         )
 
         response = await monster_provider.query(query)
@@ -76,6 +75,7 @@ class TestMonsterRuleProvider:
         """Test caching functionality."""
         # First query should cache the result
         import asyncio
+
         async def run_query():
             return await monster_provider.query(sample_monster_query)
 
@@ -104,7 +104,9 @@ class TestMonsterRuleProvider:
         key3 = monster_provider._generate_cache_key(query3)
 
         assert key1 != key2  # Different names should have different keys
-        assert key1 != key3  # Same name but different filters should have different keys
+        assert (
+            key1 != key3
+        )  # Same name but different filters should have different keys
 
     def test_provider_stats(self, monster_provider):
         """Test provider statistics."""
@@ -146,10 +148,7 @@ class TestSpellRuleProvider:
     def sample_spell_query(self):
         """Create a sample spell query."""
         return RulesQuery(
-            query_type="spell",
-            name="Fire Bolt",
-            context="combat",
-            filters={"level": 0}
+            query_type="spell", name="Fire Bolt", context="combat", filters={"level": 0}
         )
 
     def test_provider_initialization(self, spell_provider):
@@ -172,11 +171,7 @@ class TestSpellRuleProvider:
     @pytest.mark.asyncio
     async def test_query_with_level_filter(self, spell_provider):
         """Test spell query with level filter."""
-        query = RulesQuery(
-            query_type="spell",
-            name="Test",
-            filters={"level": 1}
-        )
+        query = RulesQuery(query_type="spell", name="Test", filters={"level": 1})
 
         response = await spell_provider.query(query)
 
@@ -187,9 +182,7 @@ class TestSpellRuleProvider:
     async def test_query_with_school_filter(self, spell_provider):
         """Test spell query with school filter."""
         query = RulesQuery(
-            query_type="spell",
-            name="Test",
-            filters={"school": "Evocation"}
+            query_type="spell", name="Test", filters={"school": "Evocation"}
         )
 
         response = await spell_provider.query(query)
@@ -200,7 +193,7 @@ class TestSpellRuleProvider:
     def test_spell_mechanics_analysis(self, spell_provider):
         """Test spell mechanics analysis functionality."""
         # Create a mock spell for testing
-        from packages.shared.models import Spell, SRDCompliance, DataSource
+        from packages.shared.models import DataSource, Spell, SRDCompliance
 
         test_spell = Spell(
             spell_id=1,
@@ -220,7 +213,7 @@ class TestSpellRuleProvider:
                 usage_restrictions=[],
                 last_verified=datetime.utcnow(),
                 verification_hash="test_hash",
-                compliance_officer="Test"
+                compliance_officer="Test",
             ),
             data_source=DataSource(
                 source_name="D&D 5.1 SRD",
@@ -229,11 +222,11 @@ class TestSpellRuleProvider:
                 version="5.1",
                 checksum="test_checksum",
                 is_official=True,
-                attribution_required=True
+                attribution_required=True,
             ),
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
-            is_active=True
+            is_active=True,
         )
 
         # Test spell mechanics analysis
@@ -290,7 +283,7 @@ class TestWeaponRuleProvider:
             query_type="weapon",
             name="Longsword",
             context="character creation",
-            filters={"category": "Martial Melee Weapons"}
+            filters={"category": "Martial Melee Weapons"},
         )
 
     def test_provider_initialization(self, weapon_provider):
@@ -316,7 +309,7 @@ class TestWeaponRuleProvider:
         query = RulesQuery(
             query_type="weapon",
             name="Test",
-            filters={"category": "Simple Melee Weapons"}
+            filters={"category": "Simple Melee Weapons"},
         )
 
         response = await weapon_provider.query(query)
@@ -353,9 +346,9 @@ class TestWeaponRuleProvider:
         """Test weapon cost parsing."""
         test_cases = [
             ("15 gp", 1500),  # 15 gold pieces
-            ("5 sp", 50),     # 5 silver pieces
-            ("1 pp", 1000),   # 1 platinum piece
-            ("2 cp", 2),      # 2 copper pieces
+            ("5 sp", 50),  # 5 silver pieces
+            ("1 pp", 1000),  # 1 platinum piece
+            ("2 cp", 2),  # 2 copper pieces
         ]
 
         for cost_str, expected in test_cases:

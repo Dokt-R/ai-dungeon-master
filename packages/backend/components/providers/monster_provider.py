@@ -12,16 +12,14 @@ Features:
 - Caching for frequently queried monsters
 """
 
-import time
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from packages.shared.models import Monster, RulesQuery, RulesResponse
-from packages.backend.components.srd_database_manager import srd_database_manager
-from packages.backend.components.srd_compliance_service import srd_compliance_service
-from packages.backend.components.srd_audit_service import srd_audit_service
 from packages.backend.components.rules_engine import BaseRuleProvider, RuleProviderType
+from packages.backend.components.srd_audit_service import srd_audit_service
+from packages.backend.components.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
+from packages.shared.models import Monster, RulesQuery, RulesResponse
 
 
 class MonsterRuleProvider(BaseRuleProvider):
@@ -47,7 +45,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Monster query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     async def _handle_name_query(self, query: RulesQuery) -> RulesResponse:
@@ -63,7 +61,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Monster not found in SRD database",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
         except Exception as e:
@@ -72,7 +70,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Database query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     async def _handle_filtered_query(self, query: RulesQuery) -> RulesResponse:
@@ -84,7 +82,9 @@ class MonsterRuleProvider(BaseRuleProvider):
             if "min_cr" in filters or "max_cr" in filters:
                 min_cr = float(filters.get("min_cr", 0))
                 max_cr = float(filters.get("max_cr", 30))
-                monsters = srd_database_manager.get_monsters_by_challenge_rating(min_cr, max_cr)
+                monsters = srd_database_manager.get_monsters_by_challenge_rating(
+                    min_cr, max_cr
+                )
 
                 # Apply additional filters
                 filtered_monsters = self._apply_additional_filters(monsters, filters)
@@ -94,7 +94,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=len(filtered_monsters) > 0,
                     data=filtered_monsters if filtered_monsters else None,
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Default to name-based search if no recognized filters
@@ -106,10 +106,12 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Filtered query failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
-    async def _process_monster_result(self, monster: Monster, query: RulesQuery) -> RulesResponse:
+    async def _process_monster_result(
+        self, monster: Monster, query: RulesQuery
+    ) -> RulesResponse:
         """Process and validate monster query result."""
         try:
             # Verify compliance
@@ -123,7 +125,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                     name=query.name,
                     found=False,
                     error="Data compliance check failed",
-                    query_time=0.0
+                    query_time=0.0,
                 )
 
             # Log audit event
@@ -139,7 +141,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=True,
                 data=monster_data,
-                query_time=0.0
+                query_time=0.0,
             )
 
         except Exception as e:
@@ -148,7 +150,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 name=query.name,
                 found=False,
                 error=f"Monster data processing failed: {str(e)}",
-                query_time=0.0
+                query_time=0.0,
             )
 
     def _format_monster_data(self, monster: Monster) -> Dict[str, Any]:
@@ -164,7 +166,7 @@ class MonsterRuleProvider(BaseRuleProvider):
                 "constitution": monster.constitution,
                 "intelligence": monster.intelligence,
                 "wisdom": monster.wisdom,
-                "charisma": monster.charisma
+                "charisma": monster.charisma,
             },
             "challenge_rating": monster.challenge_rating,
             "actions": monster.actions,
@@ -172,10 +174,12 @@ class MonsterRuleProvider(BaseRuleProvider):
             "description": monster.description,
             "source": monster.data_source.source_name,
             "compliance_status": monster.srd_compliance.data_source,
-            "last_updated": monster.updated_at.isoformat()
+            "last_updated": monster.updated_at.isoformat(),
         }
 
-    def _apply_additional_filters(self, monsters: List[Monster], filters: Dict[str, Any]) -> List[Monster]:
+    def _apply_additional_filters(
+        self, monsters: List[Monster], filters: Dict[str, Any]
+    ) -> List[Monster]:
         """Apply additional filters to monster list."""
         filtered_monsters = monsters
 
@@ -191,24 +195,34 @@ class MonsterRuleProvider(BaseRuleProvider):
         # Filter by armor class range
         if "min_ac" in filters:
             min_ac = int(filters["min_ac"])
-            filtered_monsters = [m for m in filtered_monsters if m.armor_class >= min_ac]
+            filtered_monsters = [
+                m for m in filtered_monsters if m.armor_class >= min_ac
+            ]
 
         if "max_ac" in filters:
             max_ac = int(filters["max_ac"])
-            filtered_monsters = [m for m in filtered_monsters if m.armor_class <= max_ac]
+            filtered_monsters = [
+                m for m in filtered_monsters if m.armor_class <= max_ac
+            ]
 
         # Filter by name substring
         if "name_contains" in filters:
             name_filter = filters["name_contains"].lower()
-            filtered_monsters = [m for m in filtered_monsters if name_filter in m.monster_name.lower()]
+            filtered_monsters = [
+                m for m in filtered_monsters if name_filter in m.monster_name.lower()
+            ]
 
         return filtered_monsters
 
     # Specialized monster query methods
-    async def get_monsters_by_cr_range(self, min_cr: float, max_cr: float) -> List[Dict[str, Any]]:
+    async def get_monsters_by_cr_range(
+        self, min_cr: float, max_cr: float
+    ) -> List[Dict[str, Any]]:
         """Get monsters within challenge rating range."""
         try:
-            monsters = srd_database_manager.get_monsters_by_challenge_rating(min_cr, max_cr)
+            monsters = srd_database_manager.get_monsters_by_challenge_rating(
+                min_cr, max_cr
+            )
 
             # Verify compliance for all monsters
             compliant_monsters = []
@@ -225,7 +239,9 @@ class MonsterRuleProvider(BaseRuleProvider):
             self.logger.error("Failed to get monsters by CR range", error=str(e))
             return []
 
-    async def get_monster_combat_stats(self, monster_name: str) -> Optional[Dict[str, Any]]:
+    async def get_monster_combat_stats(
+        self, monster_name: str
+    ) -> Optional[Dict[str, Any]]:
         """Get detailed combat statistics for a monster."""
         try:
             monster = srd_database_manager.get_monster_by_name(monster_name)
@@ -246,7 +262,7 @@ class MonsterRuleProvider(BaseRuleProvider):
 
             return {
                 "monster": self._format_monster_data(monster),
-                "combat_stats": combat_stats
+                "combat_stats": combat_stats,
             }
 
         except Exception as e:
@@ -282,13 +298,13 @@ class MonsterRuleProvider(BaseRuleProvider):
                 "constitution": (monster.constitution - 10) // 2,
                 "intelligence": (monster.intelligence - 10) // 2,
                 "wisdom": (monster.wisdom - 10) // 2,
-                "charisma": (monster.charisma - 10) // 2
+                "charisma": (monster.charisma - 10) // 2,
             },
             "proficiency_bonus": proficiency_bonus,
             "attack_bonus": attack_bonus,
             "estimated_damage_per_round": damage_per_round,
             "effective_hp": self._calculate_effective_hp(monster),
-            "combat_role": self._determine_combat_role(monster)
+            "combat_role": self._determine_combat_role(monster),
         }
 
     def _parse_challenge_rating(self, cr: str) -> float:
@@ -370,7 +386,11 @@ class MonsterRuleProvider(BaseRuleProvider):
             elif cr >= 5:
                 return "Damage Dealer"
             # High spellcasting ability suggests controller
-            elif monster.intelligence >= 14 or monster.wisdom >= 14 or monster.charisma >= 14:
+            elif (
+                monster.intelligence >= 14
+                or monster.wisdom >= 14
+                or monster.charisma >= 14
+            ):
                 return "Controller/Support"
             # Default to balanced
             else:
@@ -386,11 +406,13 @@ class MonsterRuleProvider(BaseRuleProvider):
             "cache_ttl": self.default_ttl,
             "provider_type": self.provider_type.value,
             "supported_filters": [
-                "min_cr", "max_cr", "min_strength", "min_dexterity",
-                "min_ac", "max_ac", "name_contains"
+                "min_cr",
+                "max_cr",
+                "min_strength",
+                "min_dexterity",
+                "min_ac",
+                "max_ac",
+                "name_contains",
             ],
-            "special_methods": [
-                "get_monsters_by_cr_range",
-                "get_monster_combat_stats"
-            ]
+            "special_methods": ["get_monsters_by_cr_range", "get_monster_combat_stats"],
         }

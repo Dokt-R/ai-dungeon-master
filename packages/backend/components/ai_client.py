@@ -17,19 +17,19 @@ import asyncio
 import os
 import time
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union, AsyncIterator
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from packages.shared.logging_config import get_logger
 from packages.backend.components.observability_service import observability_service
+from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
 
 class AIProvider(Enum):
     """Supported AI providers."""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     # Add more providers as needed
@@ -37,26 +37,31 @@ class AIProvider(Enum):
 
 class AIClientError(Exception):
     """Base exception for AI client errors."""
+
     pass
 
 
 class ConfigurationError(AIClientError):
     """Raised when AI client configuration is invalid or missing."""
+
     pass
 
 
 class ConnectionError(AIClientError):
     """Raised when connection to AI provider fails."""
+
     pass
 
 
 class RateLimitError(AIClientError):
     """Raised when rate limit is exceeded."""
+
     pass
 
 
 class AuthenticationError(AIClientError):
     """Raised when authentication fails."""
+
     pass
 
 
@@ -67,6 +72,7 @@ class AIClientConfig:
 
     All sensitive information is loaded from environment variables to ensure security.
     """
+
     provider: AIProvider = AIProvider.OPENAI
     api_key: str = ""
     base_url: Optional[str] = None
@@ -95,7 +101,7 @@ class AIClientConfig:
             raise ConfigurationError("Circuit breaker threshold must be at least 1")
 
     @classmethod
-    def from_env(cls) -> 'AIClientConfig':
+    def from_env(cls) -> "AIClientConfig":
         """
         Create configuration from environment variables.
 
@@ -107,14 +113,14 @@ class AIClientConfig:
         """
         try:
             # Load required API key
-            api_key = os.getenv('AI_PROVIDER_API_KEY')
+            api_key = os.getenv("AI_PROVIDER_API_KEY")
             if not api_key:
                 raise ConfigurationError(
                     "AI_PROVIDER_API_KEY environment variable is required"
                 )
 
             # Load optional configuration with defaults
-            provider_str = os.getenv('AI_PROVIDER', 'openai')
+            provider_str = os.getenv("AI_PROVIDER", "openai")
             try:
                 provider = AIProvider(provider_str.lower())
             except ValueError:
@@ -123,16 +129,22 @@ class AIClientConfig:
             config = cls(
                 provider=provider,
                 api_key=api_key.strip(),
-                base_url=os.getenv('AI_PROVIDER_BASE_URL'),
-                model=os.getenv('AI_PROVIDER_MODEL', 'gpt-4'),
-                timeout=float(os.getenv('AI_PROVIDER_TIMEOUT', '30.0')),
-                max_retries=int(os.getenv('AI_PROVIDER_MAX_RETRIES', '3')),
-                retry_delay=float(os.getenv('AI_PROVIDER_RETRY_DELAY', '1.0')),
-                max_retry_delay=float(os.getenv('AI_PROVIDER_MAX_RETRY_DELAY', '60.0')),
-                backoff_multiplier=float(os.getenv('AI_PROVIDER_BACKOFF_MULTIPLIER', '2.0')),
-                circuit_breaker_threshold=int(os.getenv('AI_CIRCUIT_BREAKER_THRESHOLD', '5')),
-                circuit_breaker_timeout=float(os.getenv('AI_CIRCUIT_BREAKER_TIMEOUT', '300.0')),
-                connection_pool_size=int(os.getenv('AI_CONNECTION_POOL_SIZE', '10'))
+                base_url=os.getenv("AI_PROVIDER_BASE_URL"),
+                model=os.getenv("AI_PROVIDER_MODEL", "gpt-4"),
+                timeout=float(os.getenv("AI_PROVIDER_TIMEOUT", "30.0")),
+                max_retries=int(os.getenv("AI_PROVIDER_MAX_RETRIES", "3")),
+                retry_delay=float(os.getenv("AI_PROVIDER_RETRY_DELAY", "1.0")),
+                max_retry_delay=float(os.getenv("AI_PROVIDER_MAX_RETRY_DELAY", "60.0")),
+                backoff_multiplier=float(
+                    os.getenv("AI_PROVIDER_BACKOFF_MULTIPLIER", "2.0")
+                ),
+                circuit_breaker_threshold=int(
+                    os.getenv("AI_CIRCUIT_BREAKER_THRESHOLD", "5")
+                ),
+                circuit_breaker_timeout=float(
+                    os.getenv("AI_CIRCUIT_BREAKER_TIMEOUT", "300.0")
+                ),
+                connection_pool_size=int(os.getenv("AI_CONNECTION_POOL_SIZE", "10")),
             )
 
             logger.info(
@@ -141,7 +153,7 @@ class AIClientConfig:
                 model=config.model,
                 has_base_url=bool(config.base_url),
                 timeout=config.timeout,
-                max_retries=config.max_retries
+                max_retries=config.max_retries,
             )
 
             return config
@@ -155,6 +167,7 @@ class AIClientConfig:
 @dataclass
 class CircuitBreakerState:
     """State tracking for circuit breaker pattern."""
+
     failure_count: int = 0
     last_failure_time: float = 0.0
     state: str = "CLOSED"  # CLOSED, OPEN, HALF_OPEN
@@ -212,7 +225,7 @@ class AICircuitBreaker:
             logger.warning(
                 "circuit_breaker_opened",
                 failure_count=self.state.failure_count,
-                threshold=self.threshold
+                threshold=self.threshold,
             )
 
 
@@ -239,7 +252,7 @@ class AIProviderInterface(ABC):
         prompt: str,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """
         Generate text using the AI provider.
@@ -261,7 +274,7 @@ class AIProviderInterface(ABC):
         messages: List[Dict[str, str]],
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """
         Generate chat response using the AI provider.
@@ -299,7 +312,7 @@ class OpenAIProvider(AIProviderInterface):
                 api_key=self.config.api_key,
                 base_url=self.config.base_url,
                 timeout=self.config.timeout,
-                max_retries=0  # We handle retries ourselves
+                max_retries=0,  # We handle retries ourselves
             )
 
             # Test the connection
@@ -320,7 +333,7 @@ class OpenAIProvider(AIProviderInterface):
         prompt: str,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """Generate text using OpenAI."""
         if not self.client:
@@ -332,7 +345,7 @@ class OpenAIProvider(AIProviderInterface):
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature or 0.7,
-                **kwargs
+                **kwargs,
             )
 
             return response.choices[0].message.content
@@ -346,7 +359,7 @@ class OpenAIProvider(AIProviderInterface):
         messages: List[Dict[str, str]],
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """Generate chat response using OpenAI."""
         if not self.client:
@@ -358,7 +371,7 @@ class OpenAIProvider(AIProviderInterface):
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature or 0.7,
-                **kwargs
+                **kwargs,
             )
 
             return response.choices[0].message.content
@@ -398,17 +411,17 @@ class AIClient:
     - LangSmith tracing integration
     """
 
-    _instance: Optional['AIClient'] = None
+    _instance: Optional["AIClient"] = None
     _is_initialized: bool = False
 
-    def __new__(cls) -> 'AIClient':
+    def __new__(cls) -> "AIClient":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self) -> None:
         """Initialize the AI client."""
-        if not hasattr(self, '_config'):
+        if not hasattr(self, "_config"):
             self._config: Optional[AIClientConfig] = None
             self._provider: Optional[AIProviderInterface] = None
             self._circuit_breaker: Optional[AICircuitBreaker] = None
@@ -443,7 +456,7 @@ class AIClient:
             # Initialize circuit breaker
             self._circuit_breaker = AICircuitBreaker(
                 threshold=self._config.circuit_breaker_threshold,
-                timeout=self._config.circuit_breaker_timeout
+                timeout=self._config.circuit_breaker_timeout,
             )
 
             # Initialize provider
@@ -455,7 +468,7 @@ class AIClient:
             logger.info(
                 "ai_client_initialized",
                 provider=self._config.provider.value,
-                model=self._config.model
+                model=self._config.model,
             )
 
             return True
@@ -483,7 +496,7 @@ class AIClient:
         prompt: str,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """
         Generate text with retry logic and error handling.
@@ -508,7 +521,7 @@ class AIClient:
             prompt=prompt,
             max_tokens=max_tokens,
             temperature=temperature,
-            **kwargs
+            **kwargs,
         )
 
     async def generate_chat(
@@ -516,7 +529,7 @@ class AIClient:
         messages: List[Dict[str, str]],
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> str:
         """
         Generate chat response with retry logic and error handling.
@@ -541,7 +554,7 @@ class AIClient:
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
-            **kwargs
+            **kwargs,
         )
 
     async def _execute_with_retry(self, method_name: str, **kwargs: Any) -> str:
@@ -559,7 +572,9 @@ class AIClient:
             AIClientError: If execution fails
         """
         if not self._circuit_breaker or not self._circuit_breaker.can_execute():
-            raise ConnectionError("Circuit breaker is open, AI service temporarily unavailable")
+            raise ConnectionError(
+                "Circuit breaker is open, AI service temporarily unavailable"
+            )
 
         method = getattr(self._provider, method_name)
         delay = self._config.retry_delay
@@ -571,14 +586,13 @@ class AIClient:
                     provider=self._config.provider.value,
                     model=self._config.model,
                     attempt=attempt + 1,
-                    max_attempts=self._config.max_retries + 1
+                    max_attempts=self._config.max_retries + 1,
                 ) as trace_id:
-
                     logger.info(
                         "ai_request_started",
                         method=method_name,
                         trace_id=trace_id,
-                        attempt=attempt + 1
+                        attempt=attempt + 1,
                     )
 
                     result = await method(**kwargs)
@@ -591,33 +605,39 @@ class AIClient:
                         "ai_request_success",
                         method=method_name,
                         trace_id=trace_id,
-                        attempt=attempt + 1
+                        attempt=attempt + 1,
                     )
 
                     return result
 
             except AuthenticationError:
                 # Don't retry authentication errors
-                logger.error("ai_authentication_error", method=method_name, attempt=attempt + 1)
+                logger.error(
+                    "ai_authentication_error", method=method_name, attempt=attempt + 1
+                )
                 if self._circuit_breaker:
                     self._circuit_breaker.record_failure()
                 raise
 
-            except RateLimitError as e:
+            except RateLimitError:
                 # Special handling for rate limits
                 if attempt == self._config.max_retries:
-                    logger.error("ai_rate_limit_exceeded", method=method_name, attempt=attempt + 1)
+                    logger.error(
+                        "ai_rate_limit_exceeded",
+                        method=method_name,
+                        attempt=attempt + 1,
+                    )
                     if self._circuit_breaker:
                         self._circuit_breaker.record_failure()
                     raise
 
                 # Exponential backoff for rate limits
-                wait_time = min(delay * (2 ** attempt), self._config.max_retry_delay)
+                wait_time = min(delay * (2**attempt), self._config.max_retry_delay)
                 logger.warning(
                     "ai_rate_limit_waiting",
                     method=method_name,
                     attempt=attempt + 1,
-                    wait_time=wait_time
+                    wait_time=wait_time,
                 )
                 await asyncio.sleep(wait_time)
 
@@ -627,22 +647,27 @@ class AIClient:
                         "ai_request_failed_final",
                         method=method_name,
                         attempt=attempt + 1,
-                        error=str(e)
+                        error=str(e),
                     )
                     if self._circuit_breaker:
                         self._circuit_breaker.record_failure()
-                    raise AIClientError(f"AI request failed after {self._config.max_retries + 1} attempts: {str(e)}") from e
+                    raise AIClientError(
+                        f"AI request failed after {self._config.max_retries + 1} attempts: {str(e)}"
+                    ) from e
 
                 logger.warning(
                     "ai_request_failed_retry",
                     method=method_name,
                     attempt=attempt + 1,
                     error=str(e),
-                    delay=delay
+                    delay=delay,
                 )
 
                 await asyncio.sleep(delay)
-                delay = min(delay * self._config.backoff_multiplier, self._config.max_retry_delay)
+                delay = min(
+                    delay * self._config.backoff_multiplier,
+                    self._config.max_retry_delay,
+                )
 
     def get_health_status(self) -> Dict[str, Any]:
         """
@@ -656,7 +681,7 @@ class AIClient:
                 "status": "unhealthy",
                 "provider": "unknown",
                 "model": "unknown",
-                "error": self._initialization_error or "not_initialized"
+                "error": self._initialization_error or "not_initialized",
             }
 
         try:
@@ -670,7 +695,7 @@ class AIClient:
                 "model": self._config.model if self._config else "unknown",
                 "circuit_breaker_state": circuit_breaker_status,
                 "timeout": self._config.timeout if self._config else "unknown",
-                "max_retries": self._config.max_retries if self._config else "unknown"
+                "max_retries": self._config.max_retries if self._config else "unknown",
             }
 
         except Exception as e:
@@ -679,7 +704,7 @@ class AIClient:
                 "status": "unhealthy",
                 "provider": self._config.provider.value if self._config else "unknown",
                 "model": self._config.model if self._config else "unknown",
-                "error": f"health_check_failed: {str(e)}"
+                "error": f"health_check_failed: {str(e)}",
             }
 
     async def close(self) -> None:
