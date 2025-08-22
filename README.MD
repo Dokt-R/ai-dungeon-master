@@ -125,8 +125,34 @@ The recommended way to run the project is with Docker Compose. This will start b
 
 ---
 
-**Note:**  
+**Note:**
 If the bot does not respond to commands in servers, ensure that the "Message Content Intent" is enabled in the Discord Developer Portal for your bot, and that the bot has the required permissions in your server.
+
+---
+
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or suggesting ideas, your help is appreciated.
+
+### Getting Started
+- Read our [Contributing Guide](CONTRIBUTING.md) for detailed instructions
+- Check the [Issues](https://github.com/your-org/ai-dungeon-master/issues) for good first issues
+- Join our community discussions on GitHub Discussions
+
+### Development Workflow
+1. Fork the repository and create a feature branch
+2. Make your changes with tests
+3. Ensure all tests pass: `pytest --maxfail=1 --disable-warnings -v`
+4. Submit a pull request with a clear description
+
+### Areas for Contribution
+- **Bot Features**: New Discord commands and interactions
+- **Backend Services**: API endpoints and business logic
+- **Documentation**: Architecture docs, user guides, and tutorials
+- **Testing**: Unit tests, integration tests, and test coverage
+- **Performance**: Optimization and monitoring improvements
+
+For questions or help, see our [Contributing Guide](CONTRIBUTING.md) or open a discussion.
 
 ---
 

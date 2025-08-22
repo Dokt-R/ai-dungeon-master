@@ -12,7 +12,7 @@ This project is architected as a cloud-hosted, service-oriented application with
 
 ### High Level Project Diagram
 
-This diagram illustrates the main components of the system and their interactions.
+This diagram illustrates the main components of the system and their interactions, including the new SRD (D&D 5.1 System Reference Document) infrastructure.
 
 ```mermaid
 graph TD
@@ -25,12 +25,30 @@ graph TD
         C -- API Calls --> D[AI DM Backend Service];
         D -- API Calls --> E[AI Language Model API];
         D -- Read/Write --> F[Data Stores];
+        D -- SRD Queries --> G[RulesEngine];
     end
 
     subgraph "Our Application (Cloud-Hosted)"
         C;
         D;
         F;
+        G;
+    end
+
+    subgraph "SRD Infrastructure"
+        G --> H[SRD Database Manager];
+        G --> I[SRD Compliance Service];
+        G --> J[SRD Data Verification Service];
+        H --> K[SQLite SRD Database];
+        I --> L[OGL 1.0a Compliance Tracking];
+        J --> M[Source Verification & Integrity];
+    end
+
+    subgraph "AI Integration Layer"
+        D --> N[SRD Tool Service];
+        D --> O[AI Validation Service];
+        N --> G;
+        O --> P[AI Response Accuracy Validation];
     end
 ```
 
@@ -42,4 +60,4 @@ graph TD
    * **Polyglot Persistence:** Using the best tool for each data job (files, key-value stores, etc.).
    * **Containerization:** The application's services will be containerized (using Docker) to ensure portability and simplify both local self-hosting and cloud deployment.
    * **Provider Pattern for AI:** The AI model and TTS service will be treated as "swappable" components, allowing the system to be configured to use different providers.
-
+

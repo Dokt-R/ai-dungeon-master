@@ -11,6 +11,10 @@ from packages.backend.api.campaign_api import router as campaign_router
 from packages.backend.api.character_api import router as character_router
 from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
+from packages.backend.api.health_api import router as health_router
+from packages.backend.api.action_api import router as action_router
+from packages.backend.components.observability_service import observability_service
+from packages.backend.components.ai_client import ai_client
 from packages.shared.correlation import (
     clear_correlation_id,
     set_correlation_id,
@@ -34,6 +38,26 @@ async def lifespan(app: FastAPI):
     engine = get_async_engine()
     await initialize_schema(engine)
     print("Database initialized.")
+
+    # Initialize observability service
+    print("Initializing observability service...")
+    observability_initialized = observability_service.initialize()
+    if observability_initialized:
+        print("Observability service initialized successfully.")
+    else:
+        print("WARNING: Observability service failed to initialize. Continuing without observability.")
+
+    # Initialize AI client
+    print("Initializing AI client...")
+    try:
+        ai_initialized = await ai_client.initialize()
+        if ai_initialized:
+            print("AI client initialized successfully.")
+        else:
+            print("WARNING: AI client failed to initialize. Continuing without AI services.")
+    except Exception as e:
+        print(f"WARNING: AI client initialization error: {str(e)}. Continuing without AI services.")
+
     yield
     # On shutdown
     await engine.dispose()
@@ -79,6 +103,8 @@ app.include_router(server_config_router, prefix=API_PREFIX)
 app.include_router(campaign_router, prefix=API_PREFIX)
 app.include_router(player_router, prefix=API_PREFIX)
 app.include_router(character_router, prefix=API_PREFIX)
+app.include_router(health_router, prefix=API_PREFIX)
+app.include_router(action_router, prefix=API_PREFIX)
 
 
 @app.exception_handler(CustomException)

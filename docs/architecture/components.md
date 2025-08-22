@@ -43,6 +43,15 @@ The backend service is broken down into the following logical components:
 * **`AIOrchestrator`:** The central component that manages the **LangGraph execution flow**. It passes the current game state through the graph's nodes to process player actions and generate responses.
 * **`CampaignMemoryService`:** Manages the **four-tiered persistence strategy**. It is responsible for loading the 'Campaign Knowledge Base' into the graph state, appending events to the 'Campaign Chronicle', and providing access to the SQLite 'Rules Library'.
 * **`RulesEngine`:** Contains the deterministic functions for D&D 5.1 SRD rules by querying the SQLite database.
+* **`SRD Compliance Service`** (`packages/backend/components/srd_compliance_service.py`): Manages OGL 1.0a compliance verification, data source validation, and licensing compliance tracking.
+* **`SRD Database Manager`** (`packages/backend/components/srd_database_manager.py`): Handles SQLite database operations for SRD data with transaction safety, backup/recovery, and query optimization.
+* **`SRD Data Import Service`** (`packages/backend/components/srd_data_import_service.py`): Provides bulk data import capabilities with validation for JSON/CSV formats and error handling.
+* **`SRD Data Verification Service`** (`packages/backend/components/srd_data_verification_service.py`): Verifies data integrity, source authenticity, and accuracy against official SRD standards.
+* **`SRD Migration Service`** (`packages/backend/components/srd_migration_service.py`): Manages database migrations, version tracking, and rollback mechanisms for SRD updates.
+* **`SRD Audit Service`** (`packages/backend/components/srd_audit_service.py`): Provides comprehensive audit logging, compliance monitoring, and usage analytics.
+* **`SRD Tool Service`** (`packages/backend/components/srd_tool_service.py`): Implements LangGraph-compatible tools for AI agent integration with SRD queries.
+* **`AI Validation Service`** (`packages/backend/components/ai_validation_service.py`): Validates AI responses against SRD rules with accuracy scoring and improvement feedback.
+
 ## Shared Error Handling Utility for Discord Commands
 
 A centralized error handling utility is provided in [`packages/shared/error_handler.py`](../../packages/shared/error_handler.py) to standardize error logging and user-facing error messages in Discord command methods.
