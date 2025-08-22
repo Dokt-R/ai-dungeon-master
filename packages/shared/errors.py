@@ -108,7 +108,7 @@ ERRORS: Dict[str, ErrorDef] = {
     # Campaign
     ErrorCode.CAMPAIGN_NOT_FOUND: ErrorDef(
         ErrorCode.CAMPAIGN_NOT_FOUND,
-        "Campaign named **{campaign}** not found.",
+        "Campaign named **{campaign_name}** not found.",
         HTTPStatus.NOT_FOUND,
     ),
     ErrorCode.DUPLICATE_CAMPAIGN_NAME: ErrorDef(

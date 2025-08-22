@@ -60,7 +60,10 @@ class AdminCog(commands.Cog):
         description="Explain the shared API key model and submission process",
     )
     @discord_error_handler()
-    async def server_setup(self, interaction: discord.Interaction):
+    async def server_setup_(self, interaction: discord.Interaction):
+        await self._handle_server_setup(interaction)
+
+    async def _handle_server_setup(self, interaction: discord.Interaction):
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
                 ErrorCode.PERMISSION_DENIED_ERROR,
@@ -89,7 +92,10 @@ class AdminCog(commands.Cog):
         name="server-setkey", description="Set the server's shared API key"
     )
     @discord_error_handler()
-    async def server_setkey(self, interaction: discord.Interaction, api_key: str):
+    async def server_setkey_(self, interaction: discord.Interaction, api_key: str):
+        await self._handle_server_setkey(interaction, api_key)
+
+    async def _handle_server_setkey(self, interaction: discord.Interaction, api_key: str):
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
                 ErrorCode.PERMISSION_DENIED_ERROR,
@@ -124,7 +130,10 @@ class AdminCog(commands.Cog):
         description="Sync all current server members to the database as players",
     )
     @discord_error_handler()
-    async def sync_members(self, interaction: discord.Interaction):
+    async def sync_members_(self, interaction: discord.Interaction):
+        await self._handle_sync_members(interaction)
+
+    async def _handle_sync_members(self, interaction: discord.Interaction):
         """Sync all current server members to the database."""
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
@@ -205,7 +214,10 @@ class AdminCog(commands.Cog):
         name="start", description="Start periodic member sync (runs every hour)"
     )
     @discord_error_handler()
-    async def start_sync(self, interaction: discord.Interaction):
+    async def sync_start_(self, interaction: discord.Interaction):
+        await self._handle_sync_start(interaction)
+
+    async def _handle_sync_start(self, interaction: discord.Interaction):
         """Start periodic member sync."""
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
@@ -236,7 +248,10 @@ class AdminCog(commands.Cog):
 
     @sync.command(name="stop", description="Stop periodic member sync")
     @discord_error_handler()
-    async def stop_sync(self, interaction: discord.Interaction):
+    async def sync_stop_(self, interaction: discord.Interaction):
+        await self._handle_sync_stop(interaction)
+
+    async def _handle_sync_stop(self, interaction: discord.Interaction):
         """Stop periodic member sync."""
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
@@ -265,7 +280,10 @@ class AdminCog(commands.Cog):
 
     @sync.command(name="status", description="Check the status of periodic member sync")
     @discord_error_handler()
-    async def sync_status(self, interaction: discord.Interaction):
+    async def sync_status_(self, interaction: discord.Interaction):
+        await self._handle_sync_status(interaction)
+
+    async def _handle_sync_status(self, interaction: discord.Interaction):
         """Check the status of periodic member sync."""
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(
@@ -296,7 +314,10 @@ class AdminCog(commands.Cog):
 
     @sync.command(name="restart", description="Restart periodic member sync")
     @discord_error_handler()
-    async def restart_sync(self, interaction: discord.Interaction):
+    async def sync_restart_(self, interaction: discord.Interaction):
+        await self._handle_sync_restart(interaction)
+
+    async def _handle_sync_restart(self, interaction: discord.Interaction):
         """Restart periodic member sync."""
         if not isinstance(interaction.user, discord.Member):
             raise PermissionDeniedError(

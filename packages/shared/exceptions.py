@@ -10,7 +10,7 @@ class CustomException(Exception):
         details (dict, optional): Additional structured error details
     """
 
-    def __init__(self, error_code: ErrorCode, *, details: dict | None = None, **kwargs):
+    def __init__(self, error_code: ErrorCode = ErrorCode.UNKNOWN, *, details: dict | None = None, **kwargs):
         if error_code not in ERRORS:
             raise ValueError(f"Unknown error code: {error_code}")
 
@@ -98,4 +98,21 @@ class PermissionDeniedError(CustomException):
     def __init__(
         self, error_code: ErrorCode = ErrorCode.PERMISSION_DENIED_ERROR, **kwargs
     ):
+        super().__init__(error_code, **kwargs)
+
+
+class ApiError(CustomException):
+    """Exception raised for API-related errors.
+
+    Example:
+        from packages.shared.errors import ErrorCode
+
+        raise ApiError(
+            error_code=ErrorCode.AI_API_ERROR,
+            service="OpenAI",
+            error="Connection failed"
+        )
+    """
+
+    def __init__(self, error_code: ErrorCode = ErrorCode.AI_API_ERROR, **kwargs):
         super().__init__(error_code, **kwargs)

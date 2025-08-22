@@ -30,13 +30,18 @@ class TestAdminCog:
         interaction.user.id = 12345
         interaction.guild_id = 67890
         interaction.response.send_message = AsyncMock()
-        
+
+        # Mock user as a discord.Member for permission checks
+        mock_user = AsyncMock(spec=discord.Member)
+        mock_user.id = 12345
+
         # Mock permissions - admin by default
         permissions = AsyncMock()
         permissions.administrator = True
         permissions.manage_guild = True
-        interaction.user.guild_permissions = permissions
-        
+        mock_user.guild_permissions = permissions
+        interaction.user = mock_user
+
         return interaction
 
     @pytest.fixture
@@ -109,7 +114,7 @@ class TestAdminCog:
         """Test successful server setup command."""
         cog = admin_cog_with_mock_client
         
-        await cog.server_setup.callback(cog, mock_interaction)
+        await cog.server_setup_.callback(cog, mock_interaction)
         
         # Verify the interaction response
         mock_interaction.response.send_message.assert_called_once()
@@ -123,17 +128,17 @@ class TestAdminCog:
     async def test_server_setup_permission_denied(self, admin_cog_with_mock_client, mock_interaction):
         """Test server setup with insufficient permissions."""
         cog = admin_cog_with_mock_client
-        
+
         # Remove admin permissions
         mock_interaction.user.guild_permissions.administrator = False
         mock_interaction.user.guild_permissions.manage_guild = False
-        
+
         # The error handler decorator catches the exception and sends a Discord message
         # So we test that the error message was sent instead of expecting an exception
-        await cog.server_setup.callback(cog, mock_interaction)
-        
+        await cog.server_setup_.callback(cog, mock_interaction)
+
         # Verify that an error message was sent (the error handler sends the player-facing message)
-        mock_interaction.response.send_message.assert_called_once()
+        mock_interaction.response.send_message.assert_awaited_once()
         call_args = mock_interaction.response.send_message.call_args
         # The error handler should send an ephemeral error message
         assert call_args[1]['ephemeral'] is True
@@ -147,7 +152,7 @@ class TestAdminCog:
             'message': 'Server configuration updated successfully'
         })
         
-        await cog.server_setkey.callback(cog, mock_interaction, "sk-test-api-key-12345")
+        await cog.server_setkey_.callback(cog, mock_interaction, "sk-test-api-key-12345")
         
         # Verify API client was called correctly
         assert len(cog.api_client.call_history) == 1
@@ -172,16 +177,16 @@ class TestAdminCog:
     async def test_server_setkey_permission_denied(self, admin_cog_with_mock_client, mock_interaction):
         """Test server setkey with insufficient permissions."""
         cog = admin_cog_with_mock_client
-        
+
         # Remove admin permissions
         mock_interaction.user.guild_permissions.administrator = False
         mock_interaction.user.guild_permissions.manage_guild = False
-        
+
         # The error handler decorator catches the exception and sends a Discord message
-        await cog.server_setkey.callback(cog, mock_interaction, "sk-test-api-key-12345")
-        
+        await cog.server_setkey_.callback(cog, mock_interaction, "sk-test-api-key-12345")
+
         # Verify that an error message was sent
-        mock_interaction.response.send_message.assert_called_once()
+        mock_interaction.response.send_message.assert_awaited_once()
         call_args = mock_interaction.response.send_message.call_args
         assert call_args[1]['ephemeral'] is True
 
@@ -200,7 +205,7 @@ class TestAdminCog:
         )
         
         # The error handler will catch the exception and send a Discord message
-        await cog.server_setkey.callback(cog, mock_interaction, "sk-valid-key")
+        await cog.server_setkey_.callback(cog, mock_interaction, "sk-valid-key")
         
         # Verify that an error message was sent
         mock_interaction.response.send_message.assert_called_once()
@@ -222,16 +227,16 @@ class TestAdminCog:
     async def test_manage_guild_permission_sufficient(self, admin_cog_with_mock_client, mock_interaction):
         """Test that manage_guild permission is sufficient for admin commands."""
         cog = admin_cog_with_mock_client
-        
+
         # Set only manage_guild permission (not administrator)
         mock_interaction.user.guild_permissions.administrator = False
         mock_interaction.user.guild_permissions.manage_guild = True
-        
+
         # Should not raise permission error
-        await cog.server_setup.callback(cog, mock_interaction)
-        
+        await cog.server_setup_.callback(cog, mock_interaction)
+
         # Verify the interaction response was sent
-        mock_interaction.response.send_message.assert_called_once()
+        mock_interaction.response.send_message.assert_awaited_once()
 
     async def test_api_client_call_tracking(self, admin_cog_with_mock_client, mock_member, mock_interaction):
         """Test that the mock API client properly tracks calls."""
@@ -239,7 +244,7 @@ class TestAdminCog:
         
         # Make several API calls
         await cog.on_member_join(mock_member)
-        await cog.server_setkey.callback(cog, mock_interaction, "sk-test-key")
+        await cog.server_setkey_.callback(cog, mock_interaction, "sk-test-key")
         
         # Verify call history
         assert len(cog.api_client.call_history) == 2

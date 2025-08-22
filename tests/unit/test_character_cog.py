@@ -52,7 +52,7 @@ class TestCharacterCog:
         await cog._handle_character_add(mock_interaction, "Test Character", None)
         
         # Verify the interaction response
-        mock_interaction.response.send_message.assert_called_once()
+        mock_interaction.response.send_message.assert_awaited_once()
         call_args = mock_interaction.response.send_message.call_args
         assert "Test Character" in call_args[0][0]
         assert "123" in call_args[0][0]
@@ -88,7 +88,7 @@ class TestCharacterCog:
         await cog._handle_update(mock_interaction, 123, "Updated Character", None)
         
         # Verify the interaction response
-        mock_interaction.response.send_message.assert_called_once_with(
+        mock_interaction.response.send_message.assert_awaited_once_with(
             "Character updated successfully.",
             ephemeral=True
         )
@@ -131,7 +131,7 @@ class TestCharacterCog:
         await cog._handle_character_remove(mock_interaction, 123)
         
         # Verify the interaction response
-        mock_interaction.response.send_message.assert_called_once_with(
+        mock_interaction.response.send_message.assert_awaited_once_with(
             "Character removed successfully.",
             ephemeral=True
         )
@@ -169,10 +169,10 @@ class TestCharacterCog:
         await cog.list.callback(cog, mock_interaction)
         
         # Verify the interaction response
-        mock_interaction.response.send_message.assert_called_once()
+        mock_interaction.response.send_message.assert_awaited_once()
         call_args = mock_interaction.response.send_message.call_args
         message = call_args[0][0]
-        
+
         assert "Your Characters:" in message
         assert "Character 1" in message
         assert "Character 2" in message
@@ -192,7 +192,7 @@ class TestCharacterCog:
         await cog.list.callback(cog, mock_interaction)
         
         # Verify the interaction response
-        mock_interaction.response.send_message.assert_called_once_with(
+        mock_interaction.response.send_message.assert_awaited_once_with(
             "You have no characters.",
             ephemeral=True
         )
@@ -207,7 +207,7 @@ class TestCharacterCog:
         await cog.cog_unload()
         
         # Verify close was called
-        cog.api_client.close.assert_called_once()
+        cog.api_client.close.assert_awaited_once()
 
     async def test_api_client_call_tracking(self, character_cog_with_mock_client, mock_interaction):
         """Test that the mock API client properly tracks calls."""

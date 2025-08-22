@@ -35,7 +35,7 @@ class TestSyncIntegration:
         interaction.followup.send = AsyncMock()
         interaction.response.defer = AsyncMock()
 
-        await cog.sync_members.callback(cog, interaction)
+        await cog.sync_members_(cog, interaction)
 
         # Verify API was called for each non-bot member
         assert cog.api_client.create_player.call_count == 2
@@ -171,7 +171,7 @@ class TestSyncIntegration:
         interaction.followup.send = AsyncMock()
         interaction.response.defer = AsyncMock()
 
-        await cog.sync_members.callback(cog, interaction)
+        await cog.sync_members_(cog, interaction)
 
         # Verify error was handled and reported
         calls = interaction.followup.send.await_args_list
@@ -198,7 +198,7 @@ class TestSyncIntegration:
         interaction.followup.send = AsyncMock()
         interaction.response.defer = AsyncMock()
 
-        await cog.sync_members.callback(cog, interaction)
+        await cog.sync_members_(cog, interaction)
 
         # Verify only human member was processed
         assert cog.api_client.create_player.call_count == 1

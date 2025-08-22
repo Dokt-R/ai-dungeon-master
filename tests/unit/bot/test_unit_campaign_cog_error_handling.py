@@ -4,7 +4,9 @@ import pytest
 
 from packages.bot.cogs import campaign_cog
 from packages.shared.errors import ErrorCode
-from packages.shared.exceptions import ValidationError
+from packages.shared.exceptions import CustomException, NotFoundError, ValidationError
+from tests.utils.factories import InteractionFactory, MockInteraction, HttpMockFactory
+from tests.utils.mock_api_client import MockApiClient
 
 
 @pytest.fixture
@@ -20,60 +22,64 @@ def cog(bot):
 @pytest.mark.asyncio
 async def test_campaign_new_http_error(cog):
     """Test campaign new command when HTTP request fails."""
-    interaction = MagicMock()
-    interaction.user.guild_permissions.administrator = True
-    interaction.user.guild_permissions.manage_guild = False
-    interaction.user.id = 123
-    interaction.guild.id = 456
-    interaction.response = AsyncMock()
+    # Replace API client with mock
+    cog.api_client = MockApiClient()
+    cog.api_client.set_exception_override('create_campaign', CustomException())
+
+    interaction = InteractionFactory.admin_interaction()
     campaign_name = "test_campaign"
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        with pytest.raises(ValidationError) as excinfo:
-            await cog._handle_campaign_new(interaction, campaign_name)
-        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
+    with pytest.raises(ValidationError) as excinfo:
+        await cog._handle_campaign_new(interaction, campaign_name)
+    assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_campaign_join_http_error(cog):
     """Test campaign join command when HTTP request fails."""
-    interaction = MagicMock()
+    # Replace API client with mock
+    cog.api_client = MockApiClient()
+    cog.api_client.set_exception_override('join_campaign', CustomException())
+
+    interaction = MockInteraction()
     interaction.user.id = 789
-    interaction.response = AsyncMock()
     campaign_name = "existing_campaign"
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        with pytest.raises(ValidationError) as excinfo:
-            await cog._handle_campaign_join(interaction, campaign_name)
-        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
+    with pytest.raises(ValidationError) as excinfo:
+        await cog._handle_campaign_join(interaction, campaign_name)
+    assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_campaign_continue_http_error(cog):
     """Test campaign continue command when HTTP request fails."""
-    interaction = MagicMock()
+    # Replace API client with mock
+    cog.api_client = MockApiClient()
+    cog.api_client.set_exception_override('continue_campaign', CustomException())
+
+    interaction = MockInteraction()
     interaction.user.id = 1113
     interaction.guild.id = 2224
-    interaction.response = AsyncMock()
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        with pytest.raises(ValidationError) as excinfo:
-            await cog._handle_campaign_continue(interaction)
-        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
+    with pytest.raises(ValidationError) as excinfo:
+        await cog._handle_campaign_continue(interaction)
+    assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
 async def test_campaign_end_http_error(cog):
     """Test campaign end command when HTTP request fails."""
-    interaction = MagicMock()
+    # Replace API client with mock
+    cog.api_client = MockApiClient()
+    cog.api_client.set_exception_override('end_campaign', CustomException())
+
+    interaction = MockInteraction()
     interaction.user.id = 2002
     interaction.guild.id = 3002
-    interaction.response = AsyncMock()
 
-    with patch("httpx.AsyncClient.post", side_effect=Exception("Network error")):
-        with pytest.raises(ValidationError) as excinfo:
-            await cog._handle_campaign_end(interaction)
-        assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
+    with pytest.raises(ValidationError) as excinfo:
+        await cog._handle_campaign_end(interaction)
+    assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
 
 
 @pytest.mark.asyncio
@@ -83,7 +89,7 @@ async def test_campaign_info_http_error(cog):
     campaign_name = "info_test"
     interaction.guild.id = "server123"
 
-    with patch("httpx.AsyncClient.get", side_effect=Exception("Network error")):
+    with patch("httpx.AsyncClient.get", side_effect=CustomException()):
         with pytest.raises(ValidationError) as excinfo:
             await cog._handle_campaign_info(interaction, campaign_name)
         assert ErrorCode.UNKNOWN.player_message in str(excinfo.value)
@@ -92,36 +98,25 @@ async def test_campaign_info_http_error(cog):
 @pytest.mark.asyncio
 async def test_campaign_info_404_error(cog):
     """Test campaign info command when campaign is not found."""
-    interaction = AsyncMock()
+    interaction = InteractionFactory.admin_interaction()
     campaign_name = "nonexistent_campaign"
     interaction.guild.id = "server123"
 
-    # Mock HTTP 404 response
-    from httpx import HTTPStatusError
-
-    mock_response = MagicMock()
-    mock_response.status_code = 404
-    mock_response.text = "Not Found"
-
-    with patch(
-        "httpx.AsyncClient.get",
-        side_effect=HTTPStatusError(
-            "Not Found", request=MagicMock(), response=mock_response
-        ),
-    ):
+    with HttpMockFactory.mock_not_found():
         await cog._handle_campaign_info(interaction, campaign_name)
-        interaction.response.send_message.assert_called_once()
-        assert "not found" in interaction.response.send_message.call_args[0][0].lower()
+
+    interaction.response.send_message.assert_called_once()
+    message = interaction.response.send_message.call_args[0][0]
+    assert "not found" in message.lower()
 
 
 @pytest.mark.asyncio
 async def test_campaign_delete_http_error(cog):
     """Test campaign delete command when HTTP request fails."""
-    interaction = AsyncMock()
-    interaction.user.guild_permissions.administrator = True
+    interaction = InteractionFactory.admin_interaction()
     campaign_name = "delete_me"
 
-    with patch("httpx.AsyncClient.request", side_effect=Exception("Network error")):
+    with patch("httpx.AsyncClient.request", side_effect=CustomException()):
         await cog._handle_campaign_delete(interaction, campaign_name)
         interaction.response.send_message.assert_called_once()
         assert (

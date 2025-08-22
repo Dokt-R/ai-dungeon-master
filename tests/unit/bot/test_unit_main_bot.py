@@ -34,27 +34,18 @@ async def test_on_ready_success(mock_print):
     with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
         mock_sync.return_value = ["command1", "command2", "command3"]
 
-        # Create a simple approach to mock bot.user
+        # Create a mock user that returns the expected string
         mock_user = MagicMock()
-        mock_user.__str__ = lambda self: "TestBot#1234"
+        mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-        # Temporarily add a _user attribute and mock the property
-        bot._test_user = mock_user
-        original_user_property = bot.__class__.user
-        bot.__class__.user = property(lambda self: self._test_user)
-
-        try:
+        # Mock bot.user directly
+        with patch.object(bot, 'user', mock_user):
             # Call the on_ready function
             await on_ready()
 
             # Check that print was called with the correct messages
             mock_print.assert_any_call("Logged in as TestBot#1234")
             mock_print.assert_any_call("Synced 3 commands globally.")
-        finally:
-            # Restore the original user property
-            bot.__class__.user = original_user_property
-            if hasattr(bot, "_test_user"):
-                delattr(bot, "_test_user")
 
 
 @patch("builtins.print")
@@ -68,27 +59,18 @@ async def test_on_ready_sync_failure(mock_print):
     with patch.object(bot.tree, "sync", new_callable=AsyncMock) as mock_sync:
         mock_sync.side_effect = Exception("Sync failed")
 
-        # Create a simple approach to mock bot.user
+        # Create a mock user that returns the expected string
         mock_user = MagicMock()
-        mock_user.__str__ = lambda self: "TestBot#1234"
+        mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-        # Temporarily add a _user attribute and mock the property
-        bot._test_user = mock_user
-        original_user_property = bot.__class__.user
-        bot.__class__.user = property(lambda self: self._test_user)
-
-        try:
+        # Mock bot.user directly
+        with patch.object(bot, 'user', mock_user):
             # Call the on_ready function
             await on_ready()
 
             # Check that print was called with the correct messages
             mock_print.assert_any_call("Logged in as TestBot#1234")
             mock_print.assert_any_call("Failed to sync commands: Sync failed")
-        finally:
-            # Restore the original user property
-            bot.__class__.user = original_user_property
-            if hasattr(bot, "_test_user"):
-                delattr(bot, "_test_user")
 
 
 @pytest.mark.asyncio

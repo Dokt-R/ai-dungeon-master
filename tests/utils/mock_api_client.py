@@ -258,8 +258,17 @@ class MockApiClient:
         override = self._check_overrides('remove_campaign')
         if override is not None:
             return override
-            
+
         return {"message": "Removed from campaign successfully"}
+
+    async def continue_campaign(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock continue campaign."""
+        self._track_call('continue_campaign', data)
+        override = self._check_overrides('continue_campaign')
+        if override is not None:
+            return override
+
+        return {"message": "Campaign continued successfully"}
 
     async def get_player_status(self, player_id: str) -> Dict[str, Any]:
         """Mock get player status."""
