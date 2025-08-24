@@ -320,6 +320,32 @@ class ApiClient:
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
+    # --------------------------- Health API Methods ---------------------------
+
+    async def get_ai_health(self) -> Dict[str, Any]:
+        """Get the comprehensive health status of the AI system."""
+        url = "/api/health/ai"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def get_observability_health(self) -> Dict[str, Any]:
+        """Get the health status of the observability service."""
+        url = "/api/health/observability"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def get_general_health(self) -> Dict[str, Any]:
+        """Get comprehensive application health status."""
+        url = "/api/health/general"
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
+    async def test_observability_trace(self) -> Dict[str, Any]:
+        """Test endpoint to validate observability tracing functionality."""
+        url = "/api/health/observability/test-trace"
+        resp = await self._request("POST", url)
+        return await self._handle_response(resp)
+
 
 # Example usage:
 # import asyncio

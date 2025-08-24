@@ -82,6 +82,182 @@ class AIValidationService:
             "ability_scores": self._validate_ability_scores,
         }
 
+        # Initialize validation methods
+        self._init_validation_methods()
+
+    def _init_validation_methods(self) -> None:
+        """Initialize validation method references."""
+        # This method ensures all validation methods are properly initialized
+        pass
+
+    def _validate_stat_blocks(self, response: str) -> List[str]:
+        """Validate stat block information in AI response."""
+        issues = []
+
+        # Extract stat block patterns from the response
+        stat_block_patterns = [
+            r"Armor Class:?\s*(\d+)",
+            r"Hit Points:?\s*([\d\w\s\(\)\+\-]+)",
+            r"Speed:?\s*([^.\n]+)",
+            r"STR\s+(\d+)\s*\(\+\d+\)",
+            r"DEX\s+(\d+)\s*\(\+\d+\)",
+            r"CON\s+(\d+)\s*\(\+\d+\)",
+            r"INT\s+(\d+)\s*\(\+\d+\)",
+            r"WIS\s+(\d+)\s*\(\+\d+\)",
+            r"CHA\s+(\d+)\s*\(\+\d+\)",
+        ]
+
+        response_lower = response.lower()
+        for pattern in stat_block_patterns:
+            matches = re.findall(pattern, response, re.IGNORECASE)
+            if matches:
+                # Validate that ability scores are within reasonable D&D ranges (1-30)
+                if "str" in pattern.lower() or "dex" in pattern.lower() or "con" in pattern.lower() or \
+                   "int" in pattern.lower() or "wis" in pattern.lower() or "cha" in pattern.lower():
+                    for match in matches:
+                        if isinstance(match, str):
+                            # Extract the number from the match
+                            score_match = re.search(r"(\d+)", match)
+                            if score_match:
+                                score = int(score_match.group(1))
+                                if score < 1 or score > 30:
+                                    issues.append(f"Invalid ability score: {match} (must be 1-30)")
+
+                # Validate armor class is reasonable
+                if "armor class" in pattern.lower():
+                    for match in matches:
+                        if isinstance(match, str):
+                            ac_match = re.search(r"(\d+)", match)
+                            if ac_match:
+                                ac = int(ac_match.group(1))
+                                if ac < 5 or ac > 25:
+                                    issues.append(f"Unusual Armor Class: {ac} (typically 5-25 for most creatures)")
+
+        return issues
+
+    def _validate_damage_values(self, response: str) -> List[str]:
+        """Validate damage values and dice expressions."""
+        issues = []
+
+        # Find dice expressions like "1d8", "2d6 + 3", etc.
+        dice_pattern = r"(\d+)d(\d+)(?:\s*[\+\-]\s*(\d+))?"
+        dice_matches = re.findall(dice_pattern, response)
+
+        for match in dice_matches:
+            dice_count, dice_size, modifier = match
+            dice_count = int(dice_count)
+            dice_size = int(dice_size)
+
+            # Check for valid dice sizes in D&D
+            valid_sizes = [2, 3, 4, 6, 8, 10, 12, 20, 100]
+            if dice_size not in valid_sizes:
+                issues.append(f"Invalid dice size: {dice_size} (valid sizes: {valid_sizes})")
+
+            # Check for reasonable dice counts
+            if dice_count < 1 or dice_count > 20:
+                issues.append(f"Unusual dice count: {dice_count} (typically 1-20)")
+
+        return issues
+
+    def _validate_spell_descriptions(self, response: str) -> List[str]:
+        """Validate spell descriptions and mechanics."""
+        issues = []
+
+        response_lower = response.lower()
+
+        # Check for common spell-related errors
+        if "level 0" in response_lower:
+            issues.append("Use 'cantrip' instead of 'level 0' for 0-level spells")
+
+        # Check for proper spell component notation
+        if "v,s,m" in response_lower and "verbal, somatic, material" not in response_lower:
+            issues.append("Spell components should be written as 'V, S, M' not 'v,s,m'")
+
+        return issues
+
+    def _validate_monster_abilities(self, response: str) -> List[str]:
+        """Validate monster abilities and traits."""
+        issues = []
+
+        response_lower = response.lower()
+
+        # Check for common monster ability errors
+        if "multiattack" in response_lower and "makes" not in response_lower:
+            issues.append("Multiattack should specify how many attacks the creature makes")
+
+        return issues
+
+    def _validate_weapon_properties(self, response: str) -> List[str]:
+        """Validate weapon properties and characteristics."""
+        issues = []
+
+        response_lower = response.lower()
+
+        # Check for common weapon property errors
+        if "versatile" in response_lower and "(1d8)" not in response_lower and "(1d10)" not in response_lower:
+            issues.append("Versatile weapons should specify two-handed damage in parentheses")
+
+        return issues
+
+    def _validate_challenge_ratings(self, response: str) -> List[str]:
+        """Validate challenge rating information."""
+        issues = []
+
+        # Look for CR mentions
+        cr_pattern = r"challenge rating (\d+(?:/\d+)?)"
+        cr_matches = re.findall(cr_pattern, response, re.IGNORECASE)
+
+        for cr in cr_matches:
+            try:
+                if "/" in cr:
+                    # Fractional CR like "1/8"
+                    num, den = cr.split("/")
+                    value = float(num) / float(den)
+                else:
+                    value = float(cr)
+
+                if value < 0 or value > 30:
+                    issues.append(f"Unusual Challenge Rating: {cr} (typically 0-30)")
+            except ValueError:
+                issues.append(f"Invalid Challenge Rating format: {cr}")
+
+        return issues
+
+    def _validate_saving_throws(self, response: str) -> List[str]:
+        """Validate saving throw information."""
+        issues = []
+
+        response_lower = response.lower()
+
+        # Check for proper saving throw format
+        save_pattern = r"saving throws ([^\.\n]+)"
+        save_matches = re.findall(save_pattern, response_lower)
+
+        for saves in save_matches:
+            # Should contain ability abbreviations like STR, DEX, etc.
+            ability_abbrs = ["str", "dex", "con", "int", "wis", "cha"]
+            found_abilities = [abbr for abbr in ability_abbrs if abbr in saves]
+
+            if not found_abilities:
+                issues.append("Saving throws should specify which abilities (STR, DEX, CON, INT, WIS, CHA)")
+
+        return issues
+
+    def _validate_ability_scores(self, response: str) -> List[str]:
+        """Validate ability score information."""
+        issues = []
+
+        # Look for ability score patterns
+        ability_pattern = r"(STR|DEX|CON|INT|WIS|CHA)\s+(\d+)\s*\(\+?[\-\+]?\d+\)"
+        ability_matches = re.findall(ability_pattern, response, re.IGNORECASE)
+
+        for ability, score in ability_matches:
+            score = int(score)
+            if score < 1 or score > 30:
+                issues.append(f"Invalid {ability.upper()} score: {score} (must be 1-30)")
+
+        return issues
+
         # Common D&D terms and their correct forms
         self.terminology_rules = {
             "hit points": ["hp", "hit points", "health points"],

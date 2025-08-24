@@ -74,5 +74,18 @@ class Routes:
     def player_status(self, player_id: str) -> str:
         return f"{self.player_base()}/status/{player_id}"
 
+    # Health endpoints
+    def health_ai(self) -> str:
+        return "/api/health/ai"
+
+    def health_observability(self) -> str:
+        return "/api/health/observability"
+
+    def health_general(self) -> str:
+        return "/api/health/general"
+
+    def health_observability_test_trace(self) -> str:
+        return "/api/health/observability/test-trace"
+
 
 ROUTES = Routes()

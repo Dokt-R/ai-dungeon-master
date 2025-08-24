@@ -86,6 +86,21 @@ def mock_utility_cog(mock_bot):
 
 
 @pytest.fixture
+def mock_health_cog(mock_bot):
+    """Pre-built HealthCog with mocked API client - avoids expensive httpx.AsyncClient creation"""
+    # Mock the ApiClient class before HealthCog creation
+    with patch("packages.bot.cogs.health_cog.ApiClient") as mock_api_class:
+        mock_api_instance = MagicMock()
+        mock_api_class.return_value = mock_api_instance
+
+        from packages.bot.cogs.health_cog import HealthCog
+
+        cog = HealthCog(mock_bot)
+        cog.api_client = MockApiClient()
+        return cog
+
+
+@pytest.fixture
 def mock_member():
     """Alternative that modifies your existing approach"""
 

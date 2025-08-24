@@ -2360,6 +2360,214 @@ class ConversationIntelligenceData(BaseModel):
 
 
 # ======================================================================================
+# Rules Engine Models (for SRD data querying and responses)
+# ======================================================================================
+
+
+class RulesQuery(BaseModel):
+    """Query model for SRD rules data requests."""
+
+    query_type: str = PydanticField(
+        ...,
+        description="Type of data being queried (monster, spell, weapon)",
+        examples=["monster", "spell", "weapon"]
+    )
+
+    name: Optional[str] = PydanticField(
+        None,
+        description="Name of the specific item to query",
+        examples=["Goblin", "Fireball", "Longsword"]
+    )
+
+    context: Optional[str] = PydanticField(
+        None,
+        description="Context for the query",
+        examples=["combat", "character_creation", "world_lore"]
+    )
+
+    filters: Optional[Dict[str, Any]] = PydanticField(
+        None,
+        description="Additional filters for the query",
+        examples=[
+            {"min_cr": 1, "max_cr": 5},
+            {"level": 3, "school": "Evocation"},
+            {"category": "Simple Melee Weapons"}
+        ]
+    )
+
+
+class RulesResponse(BaseModel):
+    """Response model for SRD rules data queries."""
+
+    query_type: str = PydanticField(
+        ...,
+        description="Type of data that was queried",
+        examples=["monster", "spell", "weapon"]
+    )
+
+    found: bool = PydanticField(
+        ...,
+        description="Whether the requested data was found"
+    )
+
+    result: Optional[Any] = PydanticField(
+        None,
+        description="The query result data"
+    )
+
+    error: Optional[str] = PydanticField(
+        None,
+        description="Error message if the query failed"
+    )
+
+    query_time: Optional[float] = PydanticField(
+        None,
+        ge=0.0,
+        description="Time taken to execute the query in seconds"
+    )
+
+    cache_hit: Optional[bool] = PydanticField(
+        None,
+        description="Whether the result came from cache"
+    )
+
+    total_results: Optional[int] = PydanticField(
+        None,
+        ge=0,
+        description="Total number of results found"
+    )
+
+    metadata: Optional[Dict[str, Any]] = PydanticField(
+        None,
+        description="Additional metadata about the query"
+    )
+
+
+# ======================================================================================
+# AI Integration & Tool Models (for LangGraph tool integration)
+# ======================================================================================
+
+
+class ToolCall(BaseModel):
+    """LangGraph tool call structure for SRD queries."""
+
+    tool_name: str = PydanticField(
+        ...,
+        description="Name of the tool to call",
+        examples=["monster_query", "spell_lookup", "weapon_search"]
+    )
+
+    tool_args: Dict[str, Any] = PydanticField(
+        ...,
+        description="Arguments for the tool call",
+        examples=[
+            {"name": "Goblin", "context": "combat"},
+            {"query_type": "spell", "name": "Fireball"}
+        ]
+    )
+
+    query_type: str = PydanticField(
+        ...,
+        description="Type of SRD query",
+        examples=["monster", "spell", "weapon"]
+    )
+
+    confidence_threshold: float = PydanticField(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Minimum confidence for tool usage"
+    )
+
+
+class ToolResult(BaseModel):
+    """Result structure for SRD tool calls."""
+
+    tool_name: str = PydanticField(
+        ...,
+        description="Name of the tool that was called",
+        examples=["monster_query", "spell_lookup"]
+    )
+
+    success: bool = PydanticField(
+        ...,
+        description="Whether the tool call was successful"
+    )
+
+    data: Optional[Dict[str, Any]] = PydanticField(
+        None,
+        description="Tool result data"
+    )
+
+    error: Optional[str] = PydanticField(
+        None,
+        description="Error message if tool failed"
+    )
+
+    execution_time: float = PydanticField(
+        ...,
+        ge=0.0,
+        description="Tool execution time in seconds"
+    )
+
+    relevance_score: Optional[float] = PydanticField(
+        None,
+        ge=0.0,
+        le=1.0,
+        description="Result relevance score"
+    )
+
+    summary: Optional[str] = PydanticField(
+        None,
+        description="Condensed results summary for AI"
+    )
+
+
+class AccuracyValidation(BaseModel):
+    """AI response accuracy validation result."""
+
+    query: str = PydanticField(
+        ...,
+        description="Original query that was asked",
+        examples=["What are the stats for a goblin?"]
+    )
+
+    ai_response: str = PydanticField(
+        ...,
+        description="AI's response to validate",
+        examples=["A goblin has AC 15, HP 7 (2d6), and attacks with a scimitar."]
+    )
+
+    expected_answer: str = PydanticField(
+        ...,
+        description="Expected correct answer from SRD",
+        examples=["AC 15, HP 7 (2d6), STR 8, DEX 14, CON 10, INT 10, WIS 8, CHA 8"]
+    )
+
+    accuracy_score: float = PydanticField(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Accuracy score (0-1)"
+    )
+
+    validation_details: List[str] = PydanticField(
+        ...,
+        description="Details about validation results",
+        examples=[
+            "Correct AC and HP values",
+            "Missing ability scores",
+            "Correct challenge rating"
+        ]
+    )
+
+    validation_date: datetime = PydanticField(
+        ...,
+        description="When validation was performed"
+    )
+
+
+# ======================================================================================
 # STT/TTS Service Models (for speech-to-text and text-to-speech services)
 # ======================================================================================
 

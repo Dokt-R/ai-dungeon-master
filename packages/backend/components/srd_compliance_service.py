@@ -24,8 +24,17 @@ from typing import Any, Dict, List, Optional
 
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource
+from enum import Enum
 
 logger = get_logger(__name__)
+
+
+class LicenseRestriction(Enum):
+    """SRD license restriction types."""
+
+    ATTRIBUTION_REQUIRED = "attribution_required"
+    NO_COMMERCIAL_USE = "no_commercial_use"
+    OGL_COMPLIANCE = "ogl_compliance"
 
 
 @dataclass
@@ -583,3 +592,6 @@ class SRDComplianceService:
 
 # Global SRD compliance service instance
 srd_compliance_service = SRDComplianceService()
+
+# Alias for backward compatibility with tests
+ComplianceResult = ComplianceCheckResult

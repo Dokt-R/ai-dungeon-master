@@ -295,6 +295,69 @@ class MockApiClient:
         self.players[player_id] = player_data
         return player_data
 
+    # Health endpoints
+    async def get_ai_health(self) -> Dict[str, Any]:
+        """Mock get AI health."""
+        self._track_call("get_ai_health")
+        override = self._check_overrides("get_ai_health")
+        if override is not None:
+            return override
+
+        return {
+            "status": "healthy",
+            "provider": "openai",
+            "model": "gpt-4",
+            "traced": True,
+            "timestamp": "2025-08-24T20:30:00Z"
+        }
+
+    async def get_observability_health(self) -> Dict[str, Any]:
+        """Mock get observability health."""
+        self._track_call("get_observability_health")
+        override = self._check_overrides("get_observability_health")
+        if override is not None:
+            return override
+
+        return {
+            "status": "healthy",
+            "provider": "langsmith",
+            "project": "ai-dungeon-master"
+        }
+
+    async def get_general_health(self) -> Dict[str, Any]:
+        """Mock get general health."""
+        self._track_call("get_general_health")
+        override = self._check_overrides("get_general_health")
+        if override is not None:
+            return override
+
+        return {
+            "status": "healthy",
+            "service": "ai-dungeon-master-backend",
+            "version": "1.0.0",
+            "components": {
+                "observability": {"status": "healthy"},
+                "ai_client": {"status": "healthy"}
+            },
+            "timestamp": "2025-08-24T20:30:00Z"
+        }
+
+    async def test_observability_trace(self) -> Dict[str, Any]:
+        """Mock test observability trace."""
+        self._track_call("test_observability_trace")
+        override = self._check_overrides("test_observability_trace")
+        if override is not None:
+            return override
+
+        return {
+            "status": "success",
+            "message": "Observability trace test completed",
+            "trace_id": "test-trace-123",
+            "test_data": {
+                "operations": ["validate_config", "initialize_client", "send_trace"]
+            }
+        }
+
     # Context manager support
     async def __aenter__(self):
         return self
