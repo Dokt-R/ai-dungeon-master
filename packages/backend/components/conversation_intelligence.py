@@ -776,3 +776,6 @@ class ConversationIntelligenceEngine:
             "duration_minutes": (datetime.utcnow() - context.start_time).total_seconds()
             / 60,
         }
+
+# Global conversation intelligence engine instance
+conversation_intelligence_engine = ConversationIntelligenceEngine()

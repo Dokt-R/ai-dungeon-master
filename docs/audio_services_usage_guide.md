@@ -332,7 +332,7 @@ async def process_voice_interaction(audio_data: bytes, user_id: str, session_id:
     """Complete voice processing pipeline."""
 
     # 1. Process audio with VAD
-    vad_segments = await advanced_vad_processor.process_audio_frame(
+    vad_segments = await AdvancedVADProcessor.process_audio_frame(
         session_id=session_id,
         audio_data=audio_data,
         speaker_id=user_id
@@ -1008,7 +1008,7 @@ async def monitor_audio_pipeline(session_id: str, audio_data: bytes):
 
     # Monitor each processing stage
     stages = [
-        ("vad", lambda: advanced_vad_processor.process_audio_frame(session_id, audio_data, "monitor")),
+        ("vad", lambda: AdvancedVADProcessor.process_audio_frame(session_id, audio_data, "monitor")),
         ("stt", lambda: stt_service.transcribe_audio(
             AudioTranscriptionRequest(audio_data=audio_data, audio_format="wav"), session_id
         )),
@@ -1156,7 +1156,7 @@ async def identify_performance_bottlenecks(audio_data: bytes, operations: list):
 
         try:
             if operation == "vad":
-                await advanced_vad_processor.process_audio_frame(
+                await AdvancedVADProcessor.process_audio_frame(
                     "test_session", audio_data, "test_user"
                 )
             elif operation == "stt":
@@ -1253,7 +1253,7 @@ async def troubleshoot_service_integration():
         ("TTS Service", tts_service.get_health_status),
         ("Audio Processing", audio_processing_service.get_health_status),
         ("Audio Mixer", audio_mixer_service.get_health_status),
-        ("VAD Processor", advanced_vad_processor.get_health_status),
+        ("VAD Processor", AdvancedVADProcessor.get_health_status),
     ]
 
     for service_name, health_func in services:

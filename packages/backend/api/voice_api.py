@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from packages.backend.components.advanced_vad_processor import (
-    advanced_vad_processor,
+    AdvancedVADProcessor,
 )
 from packages.backend.components.audio_mixer_service import (
     AudioSource,
@@ -108,9 +108,9 @@ async def get_voice_status():
 
         # Advanced VAD status
         try:
-            vad_status = "active" if advanced_vad_processor else "not_initialized"
+            vad_status = "active" if AdvancedVADProcessor else "not_initialized"
             status["advanced_vad"] = VoiceFeatureStatus(
-                enabled=advanced_vad_processor is not None, status=vad_status
+                enabled=AdvancedVADProcessor is not None, status=vad_status
             )
         except Exception as e:
             status["advanced_vad"] = VoiceFeatureStatus(
@@ -430,7 +430,7 @@ async def get_voice_system_health():
         # Check each service
         services = {
             "speaker_identification": speaker_identification_service,
-            "advanced_vad": advanced_vad_processor,
+            "advanced_vad": AdvancedVADProcessor,
             "audio_mixing": audio_mixer_service,
             "conversation_intelligence": conversation_intelligence_engine,
             "multi_user_conversation": multi_user_conversation_manager,

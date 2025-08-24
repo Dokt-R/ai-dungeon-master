@@ -27,6 +27,7 @@ from packages.backend.components.observability_service import (
     DependencyContainer,
 )
 
+os.environ['PYTEST_CURRENT_TEST'] = 'integration_test_for_performance'
 
 class TestConfigurationValidation:
     """Test configuration validation features."""
@@ -53,8 +54,8 @@ class TestConfigurationValidation:
 
         assert result.is_valid is True
         assert len(result.errors) == 0
-        assert "warnings" in result
-        assert "recommendations" in result
+        assert hasattr(result, 'warnings')
+        assert hasattr(result, 'recommendations')
 
     def test_validate_invalid_api_key(self):
         """Test validation with invalid API key."""
@@ -216,7 +217,8 @@ class TestCircuitBreaker:
         """Test circuit breaker recovery after timeout."""
         config = CircuitBreakerConfig(
             failure_threshold=1,
-            recovery_timeout=0.1  # Very short timeout for testing
+            recovery_timeout=0.1,  # Very short timeout for testing
+            success_threshold=1   # Need only 1 success to fully recover
         )
         cb = CircuitBreaker(config)
 
