@@ -15,6 +15,7 @@ from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
 from packages.backend.api.voice_api import router as voice_router
 from packages.backend.components.ai_client import ai_client
+from packages.backend.components.campaign_memory_service import campaign_memory_service
 from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
@@ -22,6 +23,7 @@ from packages.backend.components.observability_service import observability_serv
 from packages.backend.components.speaker_identification_service import (
     speaker_identification_service,
 )
+from packages.backend.components.stt_service import stt_service
 from packages.shared.correlation import (
     clear_correlation_id,
     set_correlation_id,
@@ -41,34 +43,63 @@ logger = get_logger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # On startup
-    print("Initializing database...")
+    logger.info("database_initialization_started")
     engine = get_async_engine()
     await initialize_schema(engine)
-    print("Database initialized.")
+    logger.info("database_initialization_completed")
 
     # Initialize observability service
-    print("Initializing observability service...")
+    logger.info("observability_service_initialization_started")
     observability_initialized = observability_service.initialize()
     if observability_initialized:
-        print("Observability service initialized successfully.")
+        logger.info("observability_service_initialization_successful")
     else:
-        print(
-            "WARNING: Observability service failed to initialize. Continuing without observability."
+        logger.warning(
+            "observability_service_initialization_failed",
+            error="observability_not_available"
         )
 
     # Initialize AI client
-    print("Initializing AI client...")
+    logger.info("ai_client_initialization_started")
     try:
         ai_initialized = await ai_client.initialize()
         if ai_initialized:
-            print("AI client initialized successfully.")
+            logger.info("ai_client_initialization_successful")
         else:
-            print(
-                "WARNING: AI client failed to initialize. Continuing without AI services."
+            logger.warning(
+                "ai_client_initialization_failed",
+                reason="client_not_ready"
             )
     except Exception as e:
-        print(
-            f"WARNING: AI client initialization error: {str(e)}. Continuing without AI services."
+        logger.warning(
+            "ai_client_initialization_error",
+            error=str(e),
+            service="ai_client"
+        )
+
+    # Initialize campaign memory service
+    logger.info("campaign_memory_service_initialization_started")
+    try:
+        memory_initialized = campaign_memory_service.initialize()
+        if memory_initialized:
+            logger.info("campaign_memory_service_initialization_successful")
+        else:
+            logger.warning("campaign_memory_service_initialization_failed")
+    except Exception as e:
+        logger.warning(
+            "campaign_memory_service_initialization_error",
+            error=str(e)
+        )
+
+    # Initialize STT service
+    logger.info("stt_service_initialization_started")
+    try:
+        # STT service is ready to use (no special initialization needed)
+        logger.info("stt_service_initialization_successful")
+    except Exception as e:
+        logger.warning(
+            "stt_service_initialization_error",
+            error=str(e)
         )
 
     # Initialize advanced voice services (optional)
@@ -86,64 +117,77 @@ async def lifespan(app: FastAPI):
 
     # Initialize speaker identification service
     if enable_speaker_id:
-        print("Initializing speaker identification service...")
+        logger.info("speaker_identification_service_initialization_started")
         try:
             speaker_initialized = speaker_identification_service.initialize()
             if speaker_initialized:
-                print("Speaker identification service initialized successfully.")
+                logger.info("speaker_identification_service_initialization_successful")
             else:
-                print("WARNING: Speaker identification service failed to initialize.")
+                logger.warning("speaker_identification_service_initialization_failed")
         except Exception as e:
-            print(f"WARNING: Speaker identification initialization error: {str(e)}.")
+            logger.warning(
+                "speaker_identification_initialization_error",
+                error=str(e)
+            )
 
     # Initialize advanced VAD processor
     if enable_advanced_vad:
-        print("Initializing advanced VAD processor...")
+        logger.info("advanced_vad_processor_initialization_started")
         try:
             # Advanced VAD is ready to use (no special initialization needed)
-            print("Advanced VAD processor initialized successfully.")
+            logger.info("advanced_vad_processor_initialization_successful")
         except Exception as e:
-            print(f"WARNING: Advanced VAD initialization error: {str(e)}.")
+            logger.warning(
+                "advanced_vad_initialization_error",
+                error=str(e)
+            )
 
     # Initialize audio mixer service
     if enable_audio_mixing:
-        print("Initializing audio mixer service...")
+        logger.info("audio_mixer_service_initialization_started")
         try:
             # Audio mixer is ready to use (no special initialization needed)
-            print("Audio mixer service initialized successfully.")
+            logger.info("audio_mixer_service_initialization_successful")
         except Exception as e:
-            print(f"WARNING: Audio mixer initialization error: {str(e)}.")
+            logger.warning(
+                "audio_mixer_initialization_error",
+                error=str(e)
+            )
 
     # Initialize conversation intelligence engine
     if enable_conversation_intelligence:
-        print("Initializing conversation intelligence engine...")
+        logger.info("conversation_intelligence_engine_initialization_started")
         try:
             # Conversation intelligence is ready to use (no special initialization needed)
-            print("Conversation intelligence engine initialized successfully.")
+            logger.info("conversation_intelligence_engine_initialization_successful")
         except Exception as e:
-            print(f"WARNING: Conversation intelligence initialization error: {str(e)}.")
+            logger.warning(
+                "conversation_intelligence_initialization_error",
+                error=str(e)
+            )
 
     # Initialize multi-user conversation manager (depends on other services)
     enable_multi_user_conversation = (
         os.getenv("ENABLE_MULTI_USER_CONVERSATION", "false").lower() == "true"
     )
     if enable_multi_user_conversation:
-        print("Initializing multi-user conversation manager...")
+        logger.info("multi_user_conversation_manager_initialization_started")
         try:
             conversation_initialized = multi_user_conversation_manager.initialize()
             if conversation_initialized:
-                print("Multi-user conversation manager initialized successfully.")
+                logger.info("multi_user_conversation_manager_initialization_successful")
             else:
-                print("WARNING: Multi-user conversation manager failed to initialize.")
+                logger.warning("multi_user_conversation_manager_initialization_failed")
         except Exception as e:
-            print(
-                f"WARNING: Multi-user conversation manager initialization error: {str(e)}."
+            logger.warning(
+                "multi_user_conversation_manager_initialization_error",
+                error=str(e)
             )
 
     yield
     # On shutdown
     await engine.dispose()
-    print("Application shutdown.")
+    logger.info("application_shutdown_completed")
 
 
 app = FastAPI(

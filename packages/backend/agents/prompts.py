@@ -11,6 +11,7 @@ This module provides comprehensive system prompt management including:
 
 from datetime import datetime
 from enum import Enum
+from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -18,6 +19,14 @@ from pydantic import BaseModel, Field
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
+
+# Try to import tiktoken for accurate tokenization
+try:
+    import tiktoken
+    TIKTOKEN_AVAILABLE = True
+except ImportError:
+    TIKTOKEN_AVAILABLE = False
+    logger.warning("tiktoken_not_available", fallback="character_based_estimation")
 
 
 class PromptType(Enum):
@@ -92,8 +101,20 @@ class PromptTemplate(BaseModel):
         return missing_vars
 
     def estimate_token_count(self, filled_content: str) -> int:
-        """Estimate token count for the filled prompt."""
-        # Rough estimation: 1 token ≈ 4 characters for English text
+        """Estimate token count for the filled prompt using tiktoken when available."""
+        if TIKTOKEN_AVAILABLE:
+            try:
+                # Use tiktoken for accurate tokenization (GPT-4 encoding)
+                encoding = tiktoken.encoding_for_model("gpt-4")
+                return len(encoding.encode(filled_content))
+            except Exception as e:
+                logger.warning(
+                    "tiktoken_estimation_failed",
+                    error=str(e),
+                    fallback="character_based"
+                )
+
+        # Fallback to character-based estimation
         return len(filled_content) // 4
 
     def validate_token_limit(self, filled_content: str) -> bool:
@@ -168,6 +189,29 @@ class PromptManager:
             return self._templates.get(default_id)
         return None
 
+    @lru_cache(maxsize=128)
+    def _fill_template_cached(
+        self, template_id: str, template_version: str, variables_tuple: tuple
+    ) -> str:
+        """Cached version of template filling for performance optimization."""
+        # Reconstruct variables dict from tuple (hashable for caching)
+        variables = dict(variables_tuple)
+
+        # Get template
+        template = self.get_template(template_id)
+        if not template:
+            raise ValueError(f"Template not found: {template_id}")
+
+        # Fill template using simple string formatting
+        try:
+            filled_content = template.content.format(**variables)
+        except KeyError as e:
+            raise ValueError(f"Missing template variable: {e}")
+        except ValueError as e:
+            raise ValueError(f"Template formatting error: {e}")
+
+        return filled_content
+
     def fill_template(
         self, template: PromptTemplate, variables: Dict[str, Any], validate: bool = True
     ) -> str:
@@ -177,13 +221,34 @@ class PromptManager:
             if missing_vars:
                 raise ValueError(f"Missing required variables: {missing_vars}")
 
-        # Fill template using simple string formatting
+        # Try cached version first
         try:
-            filled_content = template.content.format(**variables)
-        except KeyError as e:
-            raise ValueError(f"Missing template variable: {e}")
-        except ValueError as e:
-            raise ValueError(f"Template formatting error: {e}")
+            # Convert variables dict to tuple for caching (must be hashable)
+            variables_tuple = tuple(sorted(variables.items()))
+            cache_key = (template.template_id, str(template.version), variables_tuple)
+
+            filled_content = self._fill_template_cached(*cache_key)
+
+            self.logger.debug(
+                "template_cache_hit",
+                template_id=template.template_id,
+                cache_size=self._fill_template_cached.cache_info().currsize
+            )
+
+        except Exception as cache_error:
+            # Fallback to direct filling if caching fails
+            self.logger.debug(
+                "template_cache_miss",
+                template_id=template.template_id,
+                error=str(cache_error)
+            )
+
+            try:
+                filled_content = template.content.format(**variables)
+            except KeyError as e:
+                raise ValueError(f"Missing template variable: {e}")
+            except ValueError as e:
+                raise ValueError(f"Template formatting error: {e}")
 
         # Validate token limits
         if not template.validate_token_limit(filled_content):
@@ -409,10 +474,33 @@ Remember: Create social encounters that are as engaging and memorable as any com
         )
 
 
-# Global prompt manager instance
-prompt_manager = PromptManager()
+# Dependency injection factory function
+def create_prompt_manager() -> PromptManager:
+    """
+    Factory function to create and initialize a PromptManager instance.
 
-# Initialize with default templates
-prompt_manager.register_template(DungeonMasterPrompts.get_core_dm_template())
-prompt_manager.register_template(DungeonMasterPrompts.get_combat_dm_template())
-prompt_manager.register_template(DungeonMasterPrompts.get_roleplay_dm_template())
+    This enables dependency injection and eliminates global state, making the
+    system more testable and suitable for multi-tenant scenarios.
+
+    Returns:
+        PromptManager: Fully initialized prompt manager with default templates
+    """
+    manager = PromptManager()
+
+    # Register default templates
+    manager.register_template(DungeonMasterPrompts.get_core_dm_template())
+    manager.register_template(DungeonMasterPrompts.get_combat_dm_template())
+    manager.register_template(DungeonMasterPrompts.get_roleplay_dm_template())
+
+    logger.info(
+        "prompt_manager_initialized",
+        template_count=len(manager._templates),
+        default_versions=list(manager._default_versions.keys())
+    )
+
+    return manager
+
+
+# Global instance for backward compatibility (will be removed in future versions)
+# WARNING: This global state should be replaced with dependency injection
+prompt_manager = create_prompt_manager()

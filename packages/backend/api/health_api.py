@@ -257,7 +257,7 @@ async def get_general_health() -> Dict[str, Any]:
                 "observability": observability_health,
                 "ai_client": ai_health,
             },
-            "timestamp": "2024-01-01T00:00:00Z",  # TODO: Use actual timestamp
+            "timestamp": datetime.utcnow().isoformat() + "Z",
         }
 
     except Exception as e:
@@ -298,7 +298,7 @@ async def test_observability_trace() -> Dict[str, Any]:
             # Simulate some operations that would be traced
             test_data = {
                 "message": "Test observability trace",
-                "timestamp": "2024-01-01T00:00:00Z",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
                 "trace_id": trace_id,
                 "operations": ["validate_config", "initialize_client", "send_trace"],
             }

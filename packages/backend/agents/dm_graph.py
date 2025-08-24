@@ -34,6 +34,7 @@ except ImportError:
 
 from packages.backend.agents.prompts import prompt_manager
 from packages.backend.components.ai_client import ai_client
+from packages.backend.components.memory_service import memory_service
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 from packages.shared.models import MemoryState
@@ -338,10 +339,12 @@ class DMGraphService:
             return {"error": f"Prompt processing failed: {str(e)}"}
 
     async def _compile_context_node(self, state: DMGraphState) -> Dict[str, Any]:
-        """Compile context including system prompt and memory."""
+        """Compile context including system prompt and memory using memory service."""
         try:
             correlation_id = state["correlation_id"]
             memory_state = state["memory_state"]
+            user_prompt = state["user_prompt"]
+            session_id = memory_state.session_id
 
             # Get system prompt
             try:
@@ -359,14 +362,58 @@ class DMGraphService:
                 # Use fallback system prompt
                 system_prompt = self._get_fallback_system_prompt()
 
-            # Compile context with recent memory
-            recent_messages = (
-                memory_state.messages[-10:] if memory_state.messages else []
+            # Prepare memory context using memory service
+            memory_context = await memory_service.prepare_memory_context(
+                session_id=session_id,
+                user_prompt=user_prompt,
+                correlation_id=correlation_id
             )
-            context_messages = [
-                {"role": msg["role"], "content": msg["content"]}
-                for msg in recent_messages
-            ]
+
+            # Compile context messages from memory context
+            context_messages = []
+
+            # Add recent events from memory context
+            for event in memory_context.recent_events:
+                if event["type"] == "message":
+                    context_messages.append({
+                        "role": event["role"],
+                        "content": event["content"]
+                    })
+                elif event["type"] == "current_prompt":
+                    # Current prompt will be added separately
+                    pass
+
+            # Add relevant memories as system context
+            if memory_context.relevant_memories:
+                memory_context_text = "Relevant context from previous interactions: " + " ".join(
+                    memory_context.relevant_memories[:3]  # Limit to avoid token overflow
+                )
+                context_messages.append({
+                    "role": "system",
+                    "content": memory_context_text
+                })
+
+            # Add character knowledge if available
+            for char_name, knowledge_list in memory_context.character_knowledge.items():
+                if knowledge_list:
+                    char_context = f"Known information about {char_name}: " + " ".join(knowledge_list[:2])
+                    context_messages.append({
+                        "role": "system",
+                        "content": char_context
+                    })
+
+            # Add world state if available
+            if memory_context.world_state:
+                world_context_parts = []
+                for key, value in memory_context.world_state.items():
+                    if value:
+                        world_context_parts.append(f"{key}: {value}")
+                if world_context_parts:
+                    world_context_text = "Current world state: " + "; ".join(world_context_parts)
+                    context_messages.append({
+                        "role": "system",
+                        "content": world_context_text
+                    })
 
             # Add scratchpad to context
             if memory_state.scratchpad:
@@ -377,16 +424,28 @@ class DMGraphService:
                     {"role": "system", "content": scratchpad_context}
                 )
 
+            # Add memory summary if available
+            if memory_context.summary:
+                context_messages.append({
+                    "role": "system",
+                    "content": f"Memory summary: {memory_context.summary}"
+                })
+
             self.logger.debug(
-                "context_compiled",
+                "context_compiled_with_memory_service",
                 correlation_id=correlation_id,
+                session_id=session_id,
                 system_prompt_length=len(system_prompt),
                 context_messages=len(context_messages),
+                memory_token_count=memory_context.token_count,
+                relevant_memories=len(memory_context.relevant_memories),
+                recent_events=len(memory_context.recent_events),
             )
 
             return {
                 "system_prompt": system_prompt,
                 "context_messages": context_messages,
+                "memory_context": memory_context,
                 "error": None,
             }
 
@@ -469,26 +528,31 @@ class DMGraphService:
             return {"error": f"Response generation failed: {str(e)}"}
 
     async def _update_memory_node(self, state: DMGraphState) -> Dict[str, Any]:
-        """Update memory state with the interaction results."""
+        """Update memory state with the interaction results using memory service."""
         try:
             memory_state = state["memory_state"]
             narrative_response = state.get("narrative_response", "")
+            user_prompt = state["user_prompt"]
+            correlation_id = state["correlation_id"]
+            session_id = memory_state.session_id
 
-            # Add AI response to memory
-            if narrative_response:
-                memory_state.add_message("assistant", narrative_response)
+            # Update memory using memory service
+            await memory_service.update_memory_after_interaction(
+                session_id=session_id,
+                user_prompt=user_prompt,
+                ai_response=narrative_response,
+                correlation_id=correlation_id
+            )
 
             # Clear scratchpad for next interaction
             memory_state.clear_scratchpad()
 
-            # Persist memory state (in future, this would save to database)
-            await self._persist_memory_state(memory_state)
-
             self.logger.debug(
-                "memory_updated",
-                correlation_id=state["correlation_id"],
-                session_id=memory_state.session_id,
-                total_messages=len(memory_state.messages),
+                "memory_updated_with_service",
+                correlation_id=correlation_id,
+                session_id=session_id,
+                user_prompt_length=len(user_prompt),
+                ai_response_length=len(narrative_response),
             )
 
             return {"error": None}

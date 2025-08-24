@@ -93,6 +93,37 @@ class Campaign(SQLModel, table=True):
     )
 
 
+# Memory State Model for Database Persistence
+class MemoryStateModel(SQLModel, table=True):
+    __tablename__ = "memory_states"
+    memory_id: Optional[int] = SQLField(default=None, primary_key=True)
+    session_id: str = SQLField(..., index=True, unique=True)
+    user_id: Optional[str] = SQLField(default=None, index=True)
+    campaign_id: Optional[int] = SQLField(default=None, foreign_key="campaigns.campaign_id", index=True)
+
+    # JSON serialized memory data
+    messages: str = SQLField(..., sa_column=Column(String))  # JSON serialized
+    context: str = SQLField(..., sa_column=Column(String))   # JSON serialized
+    scratchpad: str = SQLField(..., sa_column=Column(String)) # JSON serialized
+
+    # Metadata
+    turn_count: int = SQLField(default=0)
+    total_messages: int = SQLField(default=0)
+    created_at: datetime = SQLField(default_factory=datetime.utcnow)
+    last_activity: datetime = SQLField(default_factory=datetime.utcnow)
+    last_save: datetime = SQLField(default_factory=datetime.utcnow)
+
+    # Relationships
+    campaign: Mapped[Optional["Campaign"]] = Relationship(
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # Indexes for performance
+    __table_args__ = (
+        {"sqlite_autoincrement": True},
+    )
+
+
 # ======================================================================================
 # API Models (Pydantic BaseModels for request/response validation)
 # ======================================================================================
