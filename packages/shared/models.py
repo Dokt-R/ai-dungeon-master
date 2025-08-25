@@ -2670,6 +2670,14 @@ class AudioTranscriptionRequest(BaseModel):
 class TranscriptionResult(BaseModel):
     """Result of speech-to-text transcription."""
 
+    transcription_id: str = PydanticField(
+        ..., description="Unique transcription identifier"
+    )
+
+    session_id: Optional[str] = PydanticField(
+        None, description="Session identifier for tracking"
+    )
+
     text: str = PydanticField(..., description="Transcribed text", min_length=1)
 
     confidence: float = PydanticField(

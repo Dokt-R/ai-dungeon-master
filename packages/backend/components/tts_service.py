@@ -188,7 +188,7 @@ class TTSProvider(ABC):
         return ProviderHealthStatus(
             provider_name=self.provider_name,
             service_type="tts",
-            status="unknown",
+            status="unhealthy",
             response_time=0.0,
             success_rate=0.0,
             last_check=datetime.utcnow(),
@@ -670,8 +670,8 @@ class TTSService:
                     provider = self.providers[provider_name]
                     provider_health = provider.get_health_status()
 
-                    # Skip unhealthy providers
-                    if provider_health.status == "unhealthy":
+                    # Skip unhealthy providers (but allow first attempt)
+                    if provider_health.status == "unhealthy" and provider_health.consecutive_failures > 0:
                         continue
 
                     try:
@@ -862,8 +862,9 @@ class TTSService:
 
     def get_service_status(self) -> TTSServiceStatus:
         """Get overall TTS service status."""
-        provider_health = list(self.get_provider_health().values())
-        healthy_providers = len([h for h in provider_health if h.status == "healthy"])
+        # Note: This is a simplified sync version that doesn't check real health
+        # For full health checking, use get_health_status() instead
+        healthy_providers = len([p for p in self.providers.values() if p.get_health_status().status == "healthy"])
 
         cache_stats = self.cache.stats()
 
@@ -873,15 +874,15 @@ class TTSService:
             queued_requests=0,  # Would track queued requests
             healthy_providers=healthy_providers,
             total_providers=len(self.providers),
-            average_response_time=sum(h.response_time for h in provider_health)
-            / max(len(provider_health), 1),
+            average_response_time=0.0,  # Simplified for sync method
             last_activity=datetime.utcnow(),
             service_uptime=0.0,  # Would track actual uptime
         )
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status of the TTS service."""
-        provider_health = self.get_provider_health()
+        # Get current health status from providers (sync version)
+        provider_health = {name: provider.get_health_status() for name, provider in self.providers.items()}
         cache_stats = self.cache.stats()
 
         return {

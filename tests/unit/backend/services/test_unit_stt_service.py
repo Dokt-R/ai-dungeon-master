@@ -244,7 +244,7 @@ class TestOpenAISTTProvider:
         """Test successful audio transcription."""
         audio_data = b"test_audio_data"
         audio_format = "wav"
-        language = "en"
+        language = "en-US"
         session_id = "test_session"
 
         result = await self.provider.transcribe_audio(
@@ -266,8 +266,8 @@ class TestOpenAISTTProvider:
     @pytest.mark.asyncio
     async def test_health_check(self):
         """Test provider health checking."""
-        # Initial health should be unknown
-        assert self.provider._health_status.status == "unknown"
+        # Initial health should be unhealthy
+        assert self.provider._health_status.status == "unhealthy"
 
         # Check health
         health = await self.provider.check_health()
@@ -338,7 +338,7 @@ class TestGoogleSTTProvider:
         """Test successful audio transcription."""
         audio_data = b"test_audio_data"
         audio_format = "flac"
-        language = "en"
+        language = "en-US"
         session_id = "test_session"
 
         result = await self.provider.transcribe_audio(
@@ -390,9 +390,11 @@ class TestSTTService:
         request = AudioTranscriptionRequest(
             audio_data=b"test_audio_data",
             audio_format="wav",
-            language="en",
+            language="en-US",
             provider="openai",
             session_id="test_session",
+            sample_rate=16000,
+            channels=1,
         )
 
         key1 = self.service._generate_cache_key(request)
@@ -403,7 +405,7 @@ class TestSTTService:
 
         # Different request should generate different key
         request2 = request.copy()
-        request2.language = "es"
+        request2.language = "es-ES"
         key3 = self.service._generate_cache_key(request2)
 
         assert key1 != key3
@@ -433,8 +435,10 @@ class TestSTTService:
         request = AudioTranscriptionRequest(
             audio_data=b"test_audio_data",
             audio_format="wav",
-            language="en",
+            language="en-US",
             session_id="test_session",
+            sample_rate=16000,
+            channels=1,
         )
 
         result = await self.service.transcribe_audio(request, "test_correlation_id")
@@ -453,8 +457,10 @@ class TestSTTService:
         request = AudioTranscriptionRequest(
             audio_data=b"cache_test_audio_data",
             audio_format="wav",
-            language="en",
+            language="en-US",
             session_id="cache_test",
+            sample_rate=16000,
+            channels=1,
         )
 
         # First transcription
@@ -481,7 +487,7 @@ class TestSTTService:
 
         try:
             request = AudioTranscriptionRequest(
-                audio_data=b"fallback_test_audio", audio_format="wav", language="en"
+                audio_data=b"fallback_test_audio", audio_format="wav", language="en-US", sample_rate=16000, channels=1
             )
 
             result = await self.service.transcribe_audio(request, "fallback_test")
@@ -507,9 +513,10 @@ class TestSTTService:
         assert processed_audio == audio_data
         assert output_format == "wav"
 
-    def test_service_status(self):
+    @pytest.mark.asyncio
+    async def test_service_status(self):
         """Test service status retrieval."""
-        status = self.service.get_service_status()
+        status = await self.service.get_service_status()
 
         # Should have the expected structure
         assert hasattr(status, "is_available")
@@ -545,9 +552,10 @@ class TestSTTService:
             assert isinstance(health, ProviderHealthStatus)
             assert health.status in ["healthy", "degraded", "unhealthy"]
 
-    def test_service_health_status(self):
+    @pytest.mark.asyncio
+    async def test_service_health_status(self):
         """Test overall service health status."""
-        status = self.service.get_health_status()
+        status = await self.service.get_health_status()
 
         assert isinstance(status, dict)
         assert "status" in status
@@ -578,13 +586,13 @@ class TestSTTServiceErrorHandling:
 
         try:
             request = AudioTranscriptionRequest(
-                audio_data=b"test_audio", audio_format="wav", language="en"
+                audio_data=b"test_audio", audio_format="wav", language="en-US", sample_rate=16000, channels=1
             )
             result = await self.service.transcribe_audio(request, "error_test")
 
             # Should return error result
             assert result.provider == "error"
-            assert result.text == ""
+            assert result.text == "Transcription failed"
             assert result.confidence == 0.0
             assert result.error is not None
 
@@ -596,7 +604,7 @@ class TestSTTServiceErrorHandling:
         """Test handling of invalid audio formats."""
         # Test with empty audio data
         request = AudioTranscriptionRequest(
-            audio_data=b"", audio_format="wav", language="en"
+            audio_data=b"", audio_format="wav", language="en-US", sample_rate=16000, channels=1
         )
 
         cache_key = self.service._generate_cache_key(request)
@@ -608,7 +616,7 @@ class TestSTTServiceErrorHandling:
         large_audio = b"x" * (1024 * 1024)  # 1MB of data
 
         request = AudioTranscriptionRequest(
-            audio_data=large_audio, audio_format="wav", language="en"
+            audio_data=large_audio, audio_format="wav", language="en-US", sample_rate=16000, channels=1
         )
 
         cache_key = self.service._generate_cache_key(request)

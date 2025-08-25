@@ -196,7 +196,7 @@ class STTProvider(ABC):
         return ProviderHealthStatus(
             provider_name=self.provider_name,
             service_type="stt",
-            status="unknown",
+            status="unhealthy",
             response_time=0.0,
             success_rate=0.0,
             last_check=datetime.utcnow(),
@@ -308,6 +308,7 @@ class OpenAISTTProvider(STTProvider):
                 text=mock_transcription,
                 confidence=0.95,
                 language=language,
+                duration=0.0,
                 provider=self.provider_name,
                 processing_time=processing_time,
             )
@@ -480,6 +481,7 @@ class GoogleSTTProvider(STTProvider):
                 text=mock_transcription,
                 confidence=0.92,
                 language=language,
+                duration=0.0,
                 provider=self.provider_name,
                 processing_time=processing_time,
             )
@@ -653,6 +655,7 @@ class STTService:
                         text=cached_result.transcription,
                         confidence=cached_result.confidence,
                         language=cached_result.language,
+                        duration=0.0,
                         provider="cached",
                         processing_time=cached_result.processing_time,
                     )
@@ -671,8 +674,8 @@ class STTService:
                     provider = self.providers[provider_name]
                     provider_health = provider.get_health_status()
 
-                    # Skip unhealthy providers
-                    if provider_health.status == "unhealthy":
+                    # Skip unhealthy providers (but allow first attempt)
+                    if provider_health.status == "unhealthy" and provider_health.consecutive_failures > 0:
                         continue
 
                     try:
@@ -754,9 +757,10 @@ class STTService:
                 return TranscriptionResult(
                     transcription_id=f"error_{hashlib.md5(request.audio_data).hexdigest()[:8]}",
                     session_id=request.session_id,
-                    text="",
+                    text="Transcription failed",
                     confidence=0.0,
                     language=request.language,
+                    duration=0.0,
                     provider="error",
                     processing_time=execution_time,
                     error=error_msg,
@@ -774,9 +778,10 @@ class STTService:
             return TranscriptionResult(
                 transcription_id=f"error_{hashlib.md5(request.audio_data).hexdigest()[:8]}",
                 session_id=request.session_id,
-                text="",
+                text="Transcription failed",
                 confidence=0.0,
                 language=request.language,
+                duration=0.0,
                 provider="error",
                 processing_time=execution_time,
                 error=str(e),
@@ -856,9 +861,10 @@ class STTService:
 
         return health_status
 
-    def get_service_status(self) -> STTServiceStatus:
+    async def get_service_status(self) -> STTServiceStatus:
         """Get overall STT service status."""
-        provider_health = list(self.get_provider_health().values())
+        provider_health_dict = await self.get_provider_health()
+        provider_health = list(provider_health_dict.values())
         healthy_providers = len([h for h in provider_health if h.status == "healthy"])
 
         cache_stats = self.cache.stats()
@@ -875,9 +881,9 @@ class STTService:
             service_uptime=0.0,  # Would track actual uptime
         )
 
-    def get_health_status(self) -> Dict[str, Any]:
+    async def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status of the STT service."""
-        provider_health = self.get_provider_health()
+        provider_health = await self.get_provider_health()
         cache_stats = self.cache.stats()
 
         return {

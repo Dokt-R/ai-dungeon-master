@@ -62,17 +62,23 @@ class AudioPipelineMetrics:
     @property
     def success_rate(self) -> float:
         """Calculate success rate."""
-        return self.successful_operations / max(self.total_operations, 1)
+        if self.total_operations == 0:
+            return 0.0
+        return self.successful_operations / self.total_operations
 
     @property
     def average_processing_time(self) -> float:
         """Calculate average processing time per operation."""
-        return self.total_processing_time / max(self.total_operations, 1)
+        if self.total_operations == 0:
+            return 0.0
+        return self.total_processing_time / self.total_operations
 
     @property
     def processing_efficiency(self) -> float:
         """Calculate processing efficiency (duration ratio)."""
-        return self.total_audio_duration / max(self.total_processing_time, 1)
+        if self.total_processing_time == 0.0:
+            return 0.0
+        return self.total_audio_duration / self.total_processing_time
 
 
 class AudioProcessingService:
