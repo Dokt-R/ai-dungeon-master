@@ -37,5 +37,7 @@ async def initialize_schema(engine):
 
 
 async def get_async_session():
-    async with AsyncSession(get_async_engine()) as session:
+    """Get an async database session."""
+    engine = get_async_engine()
+    async with AsyncSession(engine) as session:
         yield session

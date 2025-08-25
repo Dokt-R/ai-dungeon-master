@@ -293,20 +293,27 @@ class MemoryService:
         self, memory_state: MemoryState, user_prompt: str, correlation_id: str
     ) -> List[str]:
         """Find relevant memories based on user prompt and conversation context."""
-        if len(memory_state.messages) <= self.config.summarization_threshold:
-            # For shorter conversations, return recent context
+        # Process conversations with any messages, not just long ones
+        if len(memory_state.messages) == 0:
             return []
 
         try:
             # Simple relevance scoring based on keyword matching
             # In a more sophisticated implementation, this could use embeddings
-            prompt_keywords = set(user_prompt.lower().split())
+
+            # Filter out common stop words to improve relevance matching
+            stop_words = {"i", "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "this", "that", "these", "those", "i'm", "i've", "i'll", "you", "me", "my", "your", "it", "its", "they", "them", "their"}
+
+            prompt_words = [word.strip('.,!?;:"\'') for word in user_prompt.lower().split()]
+            prompt_keywords = set(word for word in prompt_words if word not in stop_words and len(word) > 2)
+
             relevant_memories = []
 
             # Search through message history for relevant content
             for msg in memory_state.messages[-50:]:  # Search last 50 messages
                 if msg["role"] == "assistant":  # Only consider AI responses
-                    msg_keywords = set(msg["content"].lower().split())
+                    msg_words = [word.strip('.,!?;:"\'') for word in msg["content"].lower().split()]
+                    msg_keywords = set(word for word in msg_words if word not in stop_words and len(word) > 2)
                     relevance_score = len(prompt_keywords.intersection(msg_keywords))
 
                     if relevance_score > 0:
@@ -326,6 +333,8 @@ class MemoryService:
                 correlation_id=correlation_id,
                 count=len(relevant_memories),
                 prompt_keywords=list(prompt_keywords),
+                total_messages=len(memory_state.messages),
+                assistant_messages=len([msg for msg in memory_state.messages if msg["role"] == "assistant"]),
             )
 
             return relevant_memories
@@ -352,7 +361,7 @@ class MemoryService:
             # This is a simplified implementation - could be enhanced with NLP
             if "character" in content or "player" in content:
                 # Extract character-related information
-                if "character_knowledge" not in character_knowledge:
+                if "general" not in character_knowledge:
                     character_knowledge["general"] = []
 
                 if len(character_knowledge["general"]) < 5:  # Limit per category

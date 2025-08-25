@@ -93,7 +93,8 @@ class AdvancedVADProcessor:
         )
 
         self.logger.info(
-            "AdvancedVADProcessor initialized with config: %s", self.config.dict()
+            "AdvancedVADProcessor initialized",
+            config=self.config.model_dump()
         )
 
     async def process_audio_frame(
@@ -133,7 +134,8 @@ class AdvancedVADProcessor:
 
         except Exception as e:
             self.logger.error(
-                "Error processing audio frame for session %s: %s", session_id, e
+                "Error processing audio frame for session",
+                session_id=session_id, error=str(e)
             )
             return []
 
@@ -160,7 +162,8 @@ class AdvancedVADProcessor:
 
         except Exception as e:
             self.logger.warning(
-                "Noise filtering failed for session %s: %s", session_id, e
+                "Noise filtering failed for session",
+                session_id=session_id, error=str(e)
             )
             return audio_array
 
@@ -407,6 +410,7 @@ class AdvancedVADProcessor:
                 energy_level=vad_result["energy_db"],
                 noise_level=20 * np.log10(max(vad_state.noise_level, 1e-10)),
                 overlap_detected=vad_result["overlap_detected"],
+                duration=0.0,  # Initial duration, will be updated when activity ends
             )
             segments.append(segment)
 
@@ -423,7 +427,7 @@ class AdvancedVADProcessor:
         if session_id in self.noise_profiles:
             del self.noise_profiles[session_id]
 
-        self.logger.info("Reset VAD session: %s", session_id)
+        self.logger.info("Reset VAD session", session_id=session_id)
 
     async def cleanup_inactive_sessions(self, max_age_seconds: int = 300):
         """Clean up inactive VAD sessions."""
@@ -440,5 +444,6 @@ class AdvancedVADProcessor:
 
         if inactive_sessions:
             self.logger.info(
-                "Cleaned up %d inactive VAD sessions", len(inactive_sessions)
+                "Cleaned up inactive VAD sessions",
+                count=len(inactive_sessions)
             )

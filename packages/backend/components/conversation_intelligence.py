@@ -151,8 +151,8 @@ class ConversationIntelligenceEngine:
         self.highlight_significance_threshold = 0.6
 
         self.logger.info(
-            "ConversationIntelligenceEngine initialized with %d second analysis window",
-            analysis_window_seconds,
+            "ConversationIntelligenceEngine initialized",
+            analysis_window_seconds=analysis_window_seconds,
         )
 
     async def analyze_voice_segment(
@@ -217,7 +217,7 @@ class ConversationIntelligenceEngine:
             }
 
         except Exception as e:
-            self.logger.error("Voice segment analysis failed: %s", e)
+            self.logger.error("Voice segment analysis failed", error=str(e))
             return {}
 
     async def _analyze_sentiment(
@@ -248,7 +248,7 @@ class ConversationIntelligenceEngine:
             )
 
         except Exception as e:
-            self.logger.warning("Sentiment analysis failed: %s", e)
+            self.logger.warning("Sentiment analysis failed", error=str(e))
             return SentimentAnalysis(
                 segment_id=segment_data.get("segment_id", "unknown"),
                 speaker_id=segment_data.get("speaker_id", "unknown"),
@@ -288,7 +288,7 @@ class ConversationIntelligenceEngine:
             }
 
         except Exception as e:
-            self.logger.warning("Feature extraction failed: %s", e)
+            self.logger.warning("Feature extraction failed", error=str(e))
             return {}
 
     async def _calculate_sentiment_score(self, features: Dict[str, float]) -> float:
@@ -351,7 +351,7 @@ class ConversationIntelligenceEngine:
                 emotions.append("neutral")
 
         except Exception as e:
-            self.logger.warning("Emotion detection failed: %s", e)
+            self.logger.warning("Emotion detection failed", error=str(e))
             emotions = ["neutral"]
 
         return emotions
@@ -472,7 +472,7 @@ class ConversationIntelligenceEngine:
             )
 
         except Exception as e:
-            self.logger.warning("Engagement analysis failed: %s", e)
+            self.logger.warning("Engagement analysis failed", error=str(e))
             return EngagementMetrics(conversation_id=conversation_id)
 
     async def _analyze_conversation_flow(
@@ -534,7 +534,7 @@ class ConversationIntelligenceEngine:
             )
 
         except Exception as e:
-            self.logger.warning("Flow analysis failed: %s", e)
+            self.logger.warning("Flow analysis failed", error=str(e))
             return ConversationFlow(conversation_id=conversation_id)
 
     async def _detect_highlights(
@@ -595,7 +595,7 @@ class ConversationIntelligenceEngine:
                 )
 
         except Exception as e:
-            self.logger.warning("Highlight detection failed: %s", e)
+            self.logger.warning("Highlight detection failed", error=str(e))
 
         return highlights
 
@@ -696,7 +696,7 @@ class ConversationIntelligenceEngine:
             context.last_turn_time[speaker_id] = datetime.utcnow()
 
         except Exception as e:
-            self.logger.warning("Context update failed: %s", e)
+            self.logger.warning("Context update failed", error=str(e))
 
     async def generate_conversation_summary(
         self, conversation_id: str
@@ -747,14 +747,14 @@ class ConversationIntelligenceEngine:
             return summary
 
         except Exception as e:
-            self.logger.error("Summary generation failed: %s", e)
+            self.logger.error("Summary generation failed", error=str(e))
             return {"error": str(e)}
 
     async def cleanup_conversation(self, conversation_id: str):
         """Clean up conversation context."""
         if conversation_id in self.conversation_contexts:
             del self.conversation_contexts[conversation_id]
-            self.logger.info("Cleaned up conversation context: %s", conversation_id)
+            self.logger.info("Cleaned up conversation context", conversation_id=conversation_id)
 
     async def get_conversation_stats(self, conversation_id: str) -> Dict[str, Any]:
         """Get conversation statistics."""
