@@ -507,6 +507,8 @@ class VoiceManagerService:
                 connection_id, reason="too_many_errors", user_id="system"
             )
             return False
+        else:
+            return True
 
         return True
 
@@ -569,6 +571,35 @@ class VoiceManagerService:
             },
             "service_uptime": datetime.utcnow().isoformat(),
         }
+
+    def clear_memory(self) -> bool:
+        """
+        Clear all connection and session data.
+
+        Returns:
+            True if cleared successfully
+        """
+        try:
+            # Cancel all background tasks
+            for task in self._heartbeat_tasks.values():
+                task.cancel()
+            for task in self._timeout_tasks.values():
+                task.cancel()
+
+            # Clear all data structures
+            self._connections.clear()
+            self._guild_connections.clear()
+            self._sessions.clear()
+            self._audio_streams.clear()
+            self._heartbeat_tasks.clear()
+            self._timeout_tasks.clear()
+
+            self.logger.info("Voice manager memory cleared")
+            return True
+
+        except Exception as e:
+            self.logger.error("Failed to clear voice manager memory", error=str(e))
+            return False
 
 
 # Global voice manager instance

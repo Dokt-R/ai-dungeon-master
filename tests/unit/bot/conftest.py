@@ -116,6 +116,20 @@ def mock_action_cog(mock_bot):
 
 
 @pytest.fixture
+def mock_voice_cog(mock_bot):
+    """Pre-built VoiceCog with mocked dependencies - follows established pattern"""
+    with patch("packages.bot.cogs.voice_cog.ApiClient") as mock_api_class:
+        mock_api_instance = MagicMock()
+        mock_api_class.return_value = mock_api_instance
+
+        from packages.bot.cogs.voice_cog import VoiceCog
+
+        cog = VoiceCog(mock_bot)
+        cog.api_client = MockApiClient()
+        return cog
+
+
+@pytest.fixture
 def mock_member():
     """Alternative that modifies your existing approach"""
 

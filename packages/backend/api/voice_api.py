@@ -30,7 +30,7 @@ from packages.backend.components.speaker_identification_service import (
 )
 from packages.shared.logging_config import get_logger
 
-router = APIRouter()
+router = APIRouter(prefix="/voice", tags=["voice"])
 logger = get_logger(__name__)
 
 
@@ -86,7 +86,7 @@ class SessionConfig(BaseModel):
     )
 
 
-@router.get("/voice/status", response_model=Dict[str, VoiceFeatureStatus])
+@router.get("/status", response_model=Dict[str, VoiceFeatureStatus])
 async def get_voice_status():
     """Get the status of all voice features."""
     try:
@@ -157,13 +157,13 @@ async def get_voice_status():
         return status
 
     except Exception as e:
-        logger.error("Failed to get voice status: %s", e)
+        logger.error("Failed to get voice status", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get voice status: {str(e)}"
         )
 
 
-@router.post("/voice/session/{session_id}/create")
+@router.post("/session/{session_id}/create")
 async def create_voice_session(session_id: str, config: Optional[SessionConfig] = None):
     """Create a new voice session with specified configuration."""
     try:
@@ -198,7 +198,7 @@ async def create_voice_session(session_id: str, config: Optional[SessionConfig] 
                     )
                     if not success:
                         logger.warning(
-                            "Failed to add audio source: %s", source_config.source_id
+                            "Failed to add audio source", source_id=source_config.source_id
                         )
 
             # Enable focus mode if requested
@@ -208,20 +208,20 @@ async def create_voice_session(session_id: str, config: Optional[SessionConfig] 
                 )
                 if not success:
                     logger.warning(
-                        "Failed to enable focus mode for session: %s", session_id
+                        "Failed to enable focus mode for session", session_id=session_id
                     )
 
-        logger.info("Created voice session: %s", session_id)
+        logger.info("Created voice session", session_id=session_id)
         return {"session_id": session_id, "status": "created"}
 
     except Exception as e:
-        logger.error("Failed to create voice session %s: %s", session_id, e)
+        logger.error("Failed to create voice session", session_id=session_id, error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to create voice session: {str(e)}"
         )
 
 
-@router.post("/voice/session/{session_id}/source")
+@router.post("/session/{session_id}/source")
 async def add_audio_source(session_id: str, source_config: AudioSourceConfig):
     """Add an audio source to a voice session."""
     try:
@@ -244,20 +244,20 @@ async def add_audio_source(session_id: str, source_config: AudioSourceConfig):
             raise HTTPException(status_code=500, detail="Failed to add audio source")
 
         logger.info(
-            "Added audio source %s to session %s", source_config.source_id, session_id
+            "Added audio source to session", source_id=source_config.source_id, session_id=session_id
         )
         return {"status": "source_added", "source_id": source_config.source_id}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to add audio source: %s", e)
+        logger.error("Failed to add audio source", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to add audio source: {str(e)}"
         )
 
 
-@router.put("/voice/session/{session_id}/source/{source_id}/position")
+@router.put("/session/{session_id}/source/{source_id}/position")
 async def update_source_position(
     session_id: str, source_id: str, position: SpatialPosition
 ):
@@ -275,20 +275,20 @@ async def update_source_position(
             raise HTTPException(status_code=404, detail="Audio source not found")
 
         logger.info(
-            "Updated position for source %s in session %s", source_id, session_id
+            "Updated position for source in session", source_id=source_id, session_id=session_id
         )
         return {"status": "position_updated"}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to update source position: %s", e)
+        logger.error("Failed to update source position", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to update source position: {str(e)}"
         )
 
 
-@router.put("/voice/session/{session_id}/focus")
+@router.put("/session/{session_id}/focus")
 async def set_focus_mode(
     session_id: str, focus_speaker: Optional[str] = None, enable: bool = True
 ):
@@ -306,19 +306,19 @@ async def set_focus_mode(
             raise HTTPException(status_code=500, detail="Failed to set focus mode")
 
         mode = "enabled" if enable else "disabled"
-        logger.info("Focus mode %s for session %s", mode, session_id)
+        logger.info("Focus mode changed for session", mode=mode, session_id=session_id)
         return {"status": f"focus_mode_{mode}", "focus_speaker": focus_speaker}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to set focus mode: %s", e)
+        logger.error("Failed to set focus mode", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to set focus mode: {str(e)}"
         )
 
 
-@router.get("/voice/session/{session_id}/stats")
+@router.get("/session/{session_id}/stats")
 async def get_session_stats(session_id: str):
     """Get statistics for a voice session."""
     try:
@@ -353,13 +353,13 @@ async def get_session_stats(session_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get session stats: %s", e)
+        logger.error("Failed to get session stats", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get session stats: {str(e)}"
         )
 
 
-@router.delete("/voice/session/{session_id}")
+@router.delete("/session/{session_id}")
 async def cleanup_voice_session(session_id: str):
     """Clean up a voice session and all associated resources."""
     try:
@@ -380,7 +380,7 @@ async def cleanup_voice_session(session_id: str):
             await conversation_intelligence_engine.cleanup_conversation(session_id)
             cleanup_status["conversation_intelligence"] = "cleaned"
 
-        logger.info("Cleaned up voice session: %s", session_id)
+        logger.info("Cleaned up voice session", session_id=session_id)
         return {
             "session_id": session_id,
             "status": "cleaned",
@@ -388,13 +388,13 @@ async def cleanup_voice_session(session_id: str):
         }
 
     except Exception as e:
-        logger.error("Failed to cleanup voice session: %s", e)
+        logger.error("Failed to cleanup voice session", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to cleanup voice session: {str(e)}"
         )
 
 
-@router.get("/voice/conversation/{conversation_id}/summary")
+@router.get("/conversation/{conversation_id}/summary")
 async def get_conversation_summary(conversation_id: str):
     """Get a summary of conversation intelligence analysis."""
     try:
@@ -415,13 +415,13 @@ async def get_conversation_summary(conversation_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to get conversation summary: %s", e)
+        logger.error("Failed to get conversation summary", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get conversation summary: {str(e)}"
         )
 
 
-@router.get("/voice/health")
+@router.get("/health")
 async def get_voice_system_health():
     """Get the health status of all voice system components."""
     try:
@@ -453,7 +453,7 @@ async def get_voice_system_health():
         }
 
     except Exception as e:
-        logger.error("Failed to get voice system health: %s", e)
+        logger.error("Failed to get voice system health", error=str(e))
         raise HTTPException(
             status_code=500, detail=f"Failed to get voice system health: {str(e)}"
         )

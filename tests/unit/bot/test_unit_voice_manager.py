@@ -163,7 +163,8 @@ class TestVoiceConnectionLifecycle:
 class TestParticipantManagement:
     """Test voice participant management."""
 
-    def test_add_participant_success(self):
+    @pytest.mark.asyncio
+    async def test_add_participant_success(self):
         """Test successfully adding a participant."""
         service = VoiceManagerService()
 
@@ -176,20 +177,22 @@ class TestParticipantManagement:
         )
         service._connections["test_conn"] = state
 
-        result = service.add_participant("test_conn", "789")
+        result = await service.add_participant("test_conn", "789")
 
         assert result is True
         assert "789" in state.participants
 
-    def test_add_participant_connection_not_found(self):
+    @pytest.mark.asyncio
+    async def test_add_participant_connection_not_found(self):
         """Test adding participant to non-existent connection."""
         service = VoiceManagerService()
 
-        result = service.add_participant("nonexistent", "789")
+        result = await service.add_participant("nonexistent", "789")
 
         assert result is False
 
-    def test_remove_participant_success(self):
+    @pytest.mark.asyncio
+    async def test_remove_participant_success(self):
         """Test successfully removing a participant."""
         service = VoiceManagerService()
 
@@ -203,20 +206,22 @@ class TestParticipantManagement:
         state.participants.add("789")
         service._connections["test_conn"] = state
 
-        result = service.remove_participant("test_conn", "789")
+        result = await service.remove_participant("test_conn", "789")
 
         assert result is True
         assert "789" not in state.participants
 
-    def test_remove_participant_not_found(self):
+    @pytest.mark.asyncio
+    async def test_remove_participant_not_found(self):
         """Test removing participant from non-existent connection."""
         service = VoiceManagerService()
 
-        result = service.remove_participant("nonexistent", "789")
+        result = await service.remove_participant("nonexistent", "789")
 
         assert result is False
 
-    def test_remove_participant_not_in_channel(self):
+    @pytest.mark.asyncio
+    async def test_remove_participant_not_in_channel(self):
         """Test removing participant not in the channel."""
         service = VoiceManagerService()
 
@@ -229,7 +234,7 @@ class TestParticipantManagement:
         )
         service._connections["test_conn"] = state
 
-        result = service.remove_participant("test_conn", "789")
+        result = await service.remove_participant("test_conn", "789")
 
         assert result is True  # Should succeed even if participant wasn't there
 
@@ -275,7 +280,7 @@ class TestConnectionQueries:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected",
+            status="error",  # Error status allows reconnection
         )
         service._connections["test_conn"] = state
         service._guild_connections["123"] = "test_conn"
@@ -342,7 +347,7 @@ class TestErrorHandling:
             connection_id="test_conn",
             guild_id="123",
             channel_id="456",
-            status="connected",
+            status="error",  # Error status allows reconnection
         )
         service._connections["test_conn"] = state
 
@@ -354,7 +359,8 @@ class TestErrorHandling:
         assert result is True
         assert state.error_count == 1
         assert state.error_message == "Connection timeout"
-        assert mock_reconnect.called
+        # The reconnection is attempted for the first few errors
+        mock_reconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_handle_connection_error_multiple_attempts(self):
@@ -368,7 +374,7 @@ class TestErrorHandling:
             channel_id="456",
             status="connected",
         )
-        state.error_count = 4  # Near limit
+        state.error_count = 5  # At limit - will trigger disconnect
         service._connections["test_conn"] = state
 
         with patch.object(service, "disconnect_connection") as mock_disconnect:
@@ -377,7 +383,7 @@ class TestErrorHandling:
             )
 
         assert result is False
-        assert mock_disconnect.called
+        mock_disconnect.assert_called_once_with("test_conn", reason="too_many_errors", user_id="system")
 
     @pytest.mark.asyncio
     async def test_handle_connection_error_connection_not_found(self):
