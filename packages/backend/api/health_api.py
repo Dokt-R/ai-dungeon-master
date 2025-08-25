@@ -14,10 +14,11 @@ from packages.backend.agents.prompts import prompt_manager
 from packages.backend.components.ai_client import ai_client
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.routes import ROUTES
 
 logger = get_logger(__name__)
 
-router = APIRouter()
+router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/ai")
@@ -56,7 +57,7 @@ async def get_ai_health() -> Dict[str, Any]:
             with observability_service.trace_operation(
                 operation_name="ai_health_check_tracing_test",
                 health_check_type="comprehensive",
-                endpoint="/api/health/ai",
+                endpoint=ROUTES.health_ai(),
             ) as trace:
                 trace_id = trace
                 tracing_works = True
@@ -104,9 +105,7 @@ async def get_ai_health() -> Dict[str, Any]:
             prompt_system_healthy,
         ]
 
-        overall_status = "healthy" if all(components_healthy) else "degraded"
-        if not any(components_healthy):
-            overall_status = "unhealthy"
+        overall_status = "healthy" if all(components_healthy) else "unhealthy"
 
         # Build comprehensive response
         response = {
@@ -293,7 +292,7 @@ async def test_observability_trace() -> Dict[str, Any]:
         with observability_service.trace_operation(
             operation_name="test_observability_trace",
             test_type="health_check",
-            endpoint="/api/health/observability/test-trace",
+            endpoint=ROUTES.health_observability_test_trace(),
         ) as trace_id:
             # Simulate some operations that would be traced
             test_data = {

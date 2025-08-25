@@ -3,7 +3,7 @@ Mock API client for testing purposes.
 Provides the same interface as ApiClient but with controllable responses.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
@@ -355,6 +355,156 @@ class MockApiClient:
             "trace_id": "test-trace-123",
             "test_data": {
                 "operations": ["validate_config", "initialize_client", "send_trace"]
+            }
+        }
+
+    # Action endpoints
+    async def submit_action(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock submit action."""
+        self._track_call("submit_action", action_data)
+        override = self._check_overrides("submit_action")
+        if override is not None:
+            return override
+
+        return {
+            "narrative": "The DM responds with a narrative continuation based on your action.",
+            "session_id": action_data.get("session_id", "test-session"),
+            "metadata": action_data.get("metadata", {}),
+            "processing_time": 0.5,
+            "status": "success",
+            "correlation_id": "test-cid-123"
+        }
+
+    async def test_action_endpoint(self) -> Dict[str, Any]:
+        """Mock test action endpoint."""
+        self._track_call("test_action_endpoint")
+        override = self._check_overrides("test_action_endpoint")
+        if override is not None:
+            return override
+
+        return {
+            "status": "success",
+            "message": "Action API is operational",
+            "endpoint": "/api/action",
+            "test_endpoint": "/api/action/test"
+        }
+
+    # Voice endpoints
+    async def get_voice_status(self) -> Dict[str, Any]:
+        """Mock get voice status."""
+        self._track_call("get_voice_status")
+        override = self._check_overrides("get_voice_status")
+        if override is not None:
+            return override
+
+        return {
+            "speaker_identification": {"enabled": True, "status": "active"},
+            "advanced_vad": {"enabled": False, "status": "not_available"},
+            "audio_mixing": {"enabled": True, "status": "active"},
+            "conversation_intelligence": {"enabled": True, "status": "active"},
+            "multi_user_conversation": {"enabled": False, "status": "not_available"}
+        }
+
+    async def create_voice_session(self, session_id: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Mock create voice session."""
+        self._track_call("create_voice_session", session_id, config)
+        override = self._check_overrides("create_voice_session")
+        if override is not None:
+            return override
+
+        return {"session_id": session_id, "status": "created"}
+
+    async def add_audio_source(self, session_id: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock add audio source."""
+        self._track_call("add_audio_source", session_id, source_config)
+        override = self._check_overrides("add_audio_source")
+        if override is not None:
+            return override
+
+        return {"status": "source_added", "source_id": source_config.get("source_id")}
+
+    async def update_audio_source_position(self, session_id: str, source_id: str, position: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock update audio source position."""
+        self._track_call("update_audio_source_position", session_id, source_id, position)
+        override = self._check_overrides("update_audio_source_position")
+        if override is not None:
+            return override
+
+        return {"status": "position_updated"}
+
+    async def set_focus_mode(self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True) -> Dict[str, Any]:
+        """Mock set focus mode."""
+        self._track_call("set_focus_mode", session_id, focus_speaker, enable)
+        override = self._check_overrides("set_focus_mode")
+        if override is not None:
+            return override
+
+        mode = "enabled" if enable else "disabled"
+        return {"status": f"focus_mode_{mode}", "focus_speaker": focus_speaker}
+
+    async def get_voice_session_stats(self, session_id: str) -> Dict[str, Any]:
+        """Mock get voice session stats."""
+        self._track_call("get_voice_session_stats", session_id)
+        override = self._check_overrides("get_voice_session_stats")
+        if override is not None:
+            return override
+
+        return {
+            "audio_mixing": {
+                "active_sources": 2,
+                "master_volume": 1.0,
+                "focus_mode": True,
+                "focus_speaker": "user123"
+            }
+        }
+
+    async def cleanup_voice_session(self, session_id: str) -> Dict[str, Any]:
+        """Mock cleanup voice session."""
+        self._track_call("cleanup_voice_session", session_id)
+        override = self._check_overrides("cleanup_voice_session")
+        if override is not None:
+            return override
+
+        return {
+            "session_id": session_id,
+            "status": "cleaned",
+            "services": {
+                "audio_mixing": "cleaned",
+                "multi_user_conversation": "cleaned",
+                "conversation_intelligence": "cleaned"
+            }
+        }
+
+    async def get_conversation_summary(self, conversation_id: str) -> Dict[str, Any]:
+        """Mock get conversation summary."""
+        self._track_call("get_conversation_summary", conversation_id)
+        override = self._check_overrides("get_conversation_summary")
+        if override is not None:
+            return override
+
+        return {
+            "conversation_id": conversation_id,
+            "summary": "This is a mock conversation summary.",
+            "participants": ["user1", "user2"],
+            "duration": 300,
+            "topics": ["adventure", "combat"]
+        }
+
+    async def get_voice_health(self) -> Dict[str, Any]:
+        """Mock get voice health."""
+        self._track_call("get_voice_health")
+        override = self._check_overrides("get_voice_health")
+        if override is not None:
+            return override
+
+        return {
+            "overall_status": "healthy",
+            "services": {
+                "speaker_identification": {"status": "healthy", "available": True},
+                "advanced_vad": {"status": "not_available", "available": False},
+                "audio_mixing": {"status": "healthy", "available": True},
+                "conversation_intelligence": {"status": "healthy", "available": True},
+                "multi_user_conversation": {"status": "not_available", "available": False}
             }
         }
 

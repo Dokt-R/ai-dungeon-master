@@ -20,6 +20,7 @@ from packages.backend.components.observability_service import (
     observability_service,
 )
 from packages.backend.main import app
+from packages.shared.routes import ROUTES
 
 
 @pytest.fixture
@@ -52,7 +53,7 @@ class TestObservabilityHealthEndpoint:
                 "tracing_enabled": True,
             }
 
-            response = client.get("/api/health/observability")
+            response = client.get(ROUTES.health_observability())
 
             assert response.status_code == 200
             data = response.json()
@@ -76,7 +77,7 @@ class TestObservabilityHealthEndpoint:
                 "error": "configuration_failed",
             }
 
-            response = client.get("/api/health/observability")
+            response = client.get(ROUTES.health_observability())
 
             assert response.status_code == 200
             data = response.json()
@@ -93,7 +94,7 @@ class TestObservabilityHealthEndpoint:
         with patch.object(observability_service, "get_health_status") as mock_health:
             mock_health.side_effect = Exception("Internal service error")
 
-            response = client.get("/api/health/observability")
+            response = client.get(ROUTES.health_observability())
 
             assert response.status_code == 500
             data = response.json()
@@ -108,19 +109,38 @@ class TestGeneralHealthEndpoint:
 
     def test_get_general_health_success(self, client):
         """Test getting general health status successfully."""
-        response = client.get("/api/health/general")
+        # Mock the services to return healthy status
+        with (
+            patch.object(observability_service, "get_health_status") as mock_obs_health,
+            patch.object(ai_client, "get_health_status") as mock_ai_health,
+        ):
+            mock_obs_health.return_value = {
+                "status": "healthy",
+                "provider": "langsmith",
+                "project": "ai-dungeon-master",
+            }
 
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "healthy"
-        assert data["service"] == "ai-dungeon-master-backend"
-        assert data["version"] == "1.0.0"
+            mock_ai_health.return_value = {
+                "status": "healthy",
+                "provider": "openai",
+                "model": "gpt-4",
+            }
+
+            response = client.get(ROUTES.health_general())
+
+            assert response.status_code == 200
+            data = response.json()
+            assert data["status"] == "healthy"
+            assert data["service"] == "ai-dungeon-master-backend"
+            assert data["version"] == "1.0.0"
+            assert data["components"]["observability"]["status"] == "healthy"
+            assert data["components"]["ai_client"]["status"] == "healthy"
 
     def test_get_general_health_with_exception(self, client):
         """Test general health endpoint with exception handling."""
         # This is harder to test since the endpoint doesn't currently throw exceptions
         # But we can test the structure
-        response = client.get("/api/health/general")
+        response = client.get(ROUTES.health_general())
 
         assert response.status_code == 200
         data = response.json()
@@ -148,7 +168,7 @@ class TestObservabilityTestTraceEndpoint:
                 "project": "test-project",
             }
 
-            response = client.post("/api/health/observability/test-trace")
+            response = client.post(ROUTES.health_observability_test_trace())
 
             assert response.status_code == 200
             data = response.json()
@@ -161,7 +181,7 @@ class TestObservabilityTestTraceEndpoint:
             mock_trace.assert_called_once_with(
                 operation_name="test_observability_trace",
                 test_type="health_check",
-                endpoint="/api/health/observability/test-trace",
+                endpoint=ROUTES.health_observability_test_trace(),
             )
             mock_health.assert_called_once()
 
@@ -175,7 +195,7 @@ class TestObservabilityTestTraceEndpoint:
             mock_trace.side_effect = Exception("Trace operation failed")
             mock_health.return_value = {"status": "unhealthy", "error": "trace_failed"}
 
-            response = client.post("/api/health/observability/test-trace")
+            response = client.post(ROUTES.health_observability_test_trace())
 
             assert response.status_code == 200
             data = response.json()
@@ -230,7 +250,7 @@ class TestAIHealthEndpoint:
                 "template2": mock_template,
             }
 
-            response = client.get("/api/health/ai")
+            response = client.get(ROUTES.health_ai())
 
             assert response.status_code == 200
             data = response.json()
@@ -271,7 +291,7 @@ class TestAIHealthEndpoint:
                 Mock()
             )  # Template exists but AI is unhealthy
 
-            response = client.get("/api/health/ai")
+            response = client.get(ROUTES.health_ai())
 
             assert response.status_code == 200
             data = response.json()
@@ -301,7 +321,7 @@ class TestAIHealthEndpoint:
             mock_trace.side_effect = Exception("Tracing failed")
             mock_get_template.return_value = Mock()
 
-            response = client.get("/api/health/ai")
+            response = client.get(ROUTES.health_ai())
 
             assert response.status_code == 200
             data = response.json()
@@ -330,7 +350,7 @@ class TestAIHealthEndpoint:
 
             mock_get_template.side_effect = Exception("Prompt system error")
 
-            response = client.get("/api/health/ai")
+            response = client.get(ROUTES.health_ai())
 
             assert response.status_code == 200
             data = response.json()
@@ -345,7 +365,7 @@ class TestAIHealthEndpoint:
         with patch.object(ai_client, "get_health_status") as mock_ai_health:
             mock_ai_health.side_effect = Exception("Internal service error")
 
-            response = client.get("/api/health/ai")
+            response = client.get(ROUTES.health_ai())
 
             assert response.status_code == 500
             data = response.json()
@@ -378,8 +398,8 @@ class TestGeneralHealthEndpointWithAI:
                 "model": "gpt-4",
             }
 
-            response = client.get("/api/health/general")
-
+            response = client.get(ROUTES.health_general())
+    
             assert response.status_code == 200
             data = response.json()
             assert data["status"] == "healthy"
@@ -408,7 +428,7 @@ class TestGeneralHealthEndpointWithAI:
                 "error": "connection_failed",
             }
 
-            response = client.get("/api/health/general")
+            response = client.get(ROUTES.health_general())
 
             assert response.status_code == 200
             data = response.json()
@@ -423,10 +443,10 @@ class TestHealthEndpointsIntegration:
     def test_all_health_endpoints_exist_and_respond(self, client):
         """Test that all expected health endpoints exist and return proper responses."""
         endpoints = [
-            "/api/health/observability",
-            "/api/health/ai",
-            "/api/health/general",
-            "/api/health/observability/test-trace",
+            ROUTES.health_observability(),
+            ROUTES.health_ai(),
+            ROUTES.health_general(),
+            ROUTES.health_observability_test_trace(),
         ]
 
         for endpoint in endpoints:
@@ -439,9 +459,9 @@ class TestHealthEndpointsIntegration:
     def test_health_endpoints_have_consistent_structure(self, client):
         """Test that health endpoints return consistent response structures."""
         endpoints = [
-            "/api/health/observability",
-            "/api/health/ai",
-            "/api/health/general",
+            ROUTES.health_observability(),
+            ROUTES.health_ai(),
+            ROUTES.health_general(),
         ]
 
         for endpoint in endpoints:
@@ -458,7 +478,7 @@ class TestHealthEndpointsIntegration:
         """Test observability trace test when service is not initialized."""
         # Don't mock anything - service should handle not being initialized
 
-        response = client.post("/api/health/observability/test-trace")
+        response = client.post(ROUTES.health_observability_test_trace())
 
         # The endpoint should still work even if service isn't initialized
         assert response.status_code == 200
@@ -473,7 +493,7 @@ class TestHealthEndpointsIntegration:
 
     def test_all_health_endpoints_exist(self, client):
         """Test that all expected health endpoints exist and return proper responses."""
-        endpoints = ["/api/health/observability", "/api/health/general"]
+        endpoints = [ROUTES.health_observability(), ROUTES.health_general()]
 
         for endpoint in endpoints:
             response = client.get(endpoint)
@@ -487,12 +507,12 @@ class TestHealthEndpointsIntegration:
     def test_health_endpoints_with_different_methods(self, client):
         """Test health endpoints with different HTTP methods."""
         # Test POST on GET-only endpoints
-        response = client.post("/api/health/observability")
+        response = client.post(ROUTES.health_observability())
         assert response.status_code == 405  # Method not allowed
 
-        response = client.post("/api/health/general")
+        response = client.post(ROUTES.health_general())
         assert response.status_code == 405  # Method not allowed
 
         # Test GET on POST endpoint
-        response = client.get("/api/health/observability/test-trace")
+        response = client.get(ROUTES.health_observability_test_trace())
         assert response.status_code == 405  # Method not allowed

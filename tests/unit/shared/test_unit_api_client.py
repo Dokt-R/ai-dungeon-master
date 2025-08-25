@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 from packages.shared.api_client import ApiClient
+from packages.shared.routes import ROUTES
 
 pytestmark = pytest.mark.asyncio
 
@@ -24,7 +25,7 @@ async def test_get_ai_health():
         result = await client.get_ai_health()
 
         # Verify the correct endpoint was called
-        mock_request.assert_awaited_once_with("GET", "/api/health/ai", headers={})
+        mock_request.assert_awaited_once_with("GET", ROUTES.health_ai(), headers={})
 
         # Verify response is returned correctly
         assert result["status"] == "healthy"
@@ -46,7 +47,7 @@ async def test_get_observability_health():
     with patch.object(client.client, 'request', return_value=mock_response) as mock_request:
         result = await client.get_observability_health()
 
-        mock_request.assert_awaited_once_with("GET", "/api/health/observability", headers={})
+        mock_request.assert_awaited_once_with("GET", ROUTES.health_observability(), headers={})
 
         assert result["status"] == "healthy"
         assert result["provider"] == "langsmith"
@@ -67,7 +68,7 @@ async def test_get_general_health():
     with patch.object(client.client, 'request', return_value=mock_response) as mock_request:
         result = await client.get_general_health()
 
-        mock_request.assert_awaited_once_with("GET", "/api/health/general", headers={})
+        mock_request.assert_awaited_once_with("GET", ROUTES.health_general(), headers={})
 
         assert result["status"] == "healthy"
         assert result["service"] == "ai-dungeon-master-backend"
@@ -88,7 +89,7 @@ async def test_test_observability_trace():
     with patch.object(client.client, 'request', return_value=mock_response) as mock_request:
         result = await client.test_observability_trace()
 
-        mock_request.assert_awaited_once_with("POST", "/api/health/observability/test-trace", headers={})
+        mock_request.assert_awaited_once_with("POST", ROUTES.health_observability_test_trace(), headers={})
 
         assert result["status"] == "success"
         assert result["trace_id"] == "test-123"

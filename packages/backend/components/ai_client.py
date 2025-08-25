@@ -431,7 +431,13 @@ class AIClient:
     def reset_instance(cls) -> None:
         """Reset the singleton instance (mainly for testing)."""
         if cls._instance:
-            asyncio.create_task(cls._instance.close())
+            # Handle the case where there's no running event loop (e.g., in tests)
+            try:
+                loop = asyncio.get_running_loop()
+                asyncio.create_task(cls._instance.close())
+            except RuntimeError:
+                # No running event loop, close synchronously if possible
+                logger.debug("no_event_loop_for_async_close")
         cls._instance = None
         cls._is_initialized = False
 

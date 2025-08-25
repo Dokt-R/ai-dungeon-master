@@ -19,6 +19,7 @@ from packages.shared.models import (
     ServerConfigModel,
     UpdateCharacterRequest,
 )
+from packages.shared.routes import ROUTES
 
 
 class ApiClient:
@@ -255,68 +256,74 @@ class ApiClient:
         resp = await self._request("POST", url, json=data)
         return await self._handle_response(resp)
 
+    # --------------------------- Action API Methods ---------------------------
+
+    async def submit_action(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Submit a player action to the AI DM."""
+        url = ROUTES.action()
+        resp = await self._request("POST", url, json=action_data)
+        return await self._handle_response(resp)
+
+    async def test_action_endpoint(self) -> Dict[str, Any]:
+        """Test the action API endpoint."""
+        url = ROUTES.action_test()
+        resp = await self._request("GET", url)
+        return await self._handle_response(resp)
+
     # --------------------------- Voice API Methods ---------------------------
 
     async def get_voice_status(self) -> Dict[str, Any]:
         """Get the status of all voice features."""
-        url = "/api/v1/voice/status"
+        url = ROUTES.voice_status()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
-    async def create_voice_session(
-        self, session_id: str, config: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Create a new voice session."""
-        url = f"/api/v1/voice/session/{session_id}/create"
+    async def create_voice_session(self, session_id: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Create a new voice session with specified configuration."""
+        url = ROUTES.voice_session_create(session_id)
         resp = await self._request("POST", url, json=config or {})
         return await self._handle_response(resp)
 
-    async def add_audio_source(
-        self, session_id: str, source_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def add_audio_source(self, session_id: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
         """Add an audio source to a voice session."""
-        url = f"/api/v1/voice/session/{session_id}/source"
+        url = ROUTES.voice_session_source(session_id)
         resp = await self._request("POST", url, json=source_config)
         return await self._handle_response(resp)
 
-    async def update_audio_source_position(
-        self, session_id: str, source_id: str, position: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    async def update_audio_source_position(self, session_id: str, source_id: str, position: Dict[str, Any]) -> Dict[str, Any]:
         """Update the spatial position of an audio source."""
-        url = f"/api/v1/voice/session/{session_id}/source/{source_id}/position"
+        url = ROUTES.voice_session_source_position(session_id, source_id)
         resp = await self._request("PUT", url, json=position)
         return await self._handle_response(resp)
 
-    async def set_focus_mode(
-        self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True
-    ) -> Dict[str, Any]:
+    async def set_focus_mode(self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True) -> Dict[str, Any]:
         """Enable or disable focus mode for a session."""
-        url = f"/api/v1/voice/session/{session_id}/focus"
+        url = ROUTES.voice_session_focus(session_id)
         data = {"focus_speaker": focus_speaker, "enable": enable}
         resp = await self._request("PUT", url, json=data)
         return await self._handle_response(resp)
 
     async def get_voice_session_stats(self, session_id: str) -> Dict[str, Any]:
         """Get statistics for a voice session."""
-        url = f"/api/v1/voice/session/{session_id}/stats"
+        url = ROUTES.voice_session_stats(session_id)
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
     async def cleanup_voice_session(self, session_id: str) -> Dict[str, Any]:
         """Clean up a voice session and all associated resources."""
-        url = f"/api/v1/voice/session/{session_id}"
+        url = ROUTES.voice_session_cleanup(session_id)
         resp = await self._request("DELETE", url)
         return await self._handle_response(resp)
 
     async def get_conversation_summary(self, conversation_id: str) -> Dict[str, Any]:
         """Get a summary of conversation intelligence analysis."""
-        url = f"/api/v1/voice/conversation/{conversation_id}/summary"
+        url = ROUTES.voice_conversation_summary(conversation_id)
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
-    async def get_voice_system_health(self) -> Dict[str, Any]:
+    async def get_voice_health(self) -> Dict[str, Any]:
         """Get the health status of all voice system components."""
-        url = "/api/v1/voice/health"
+        url = ROUTES.voice_health()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
@@ -324,25 +331,25 @@ class ApiClient:
 
     async def get_ai_health(self) -> Dict[str, Any]:
         """Get the comprehensive health status of the AI system."""
-        url = "/api/health/ai"
+        url = ROUTES.health_ai()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
     async def get_observability_health(self) -> Dict[str, Any]:
         """Get the health status of the observability service."""
-        url = "/api/health/observability"
+        url = ROUTES.health_observability()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
     async def get_general_health(self) -> Dict[str, Any]:
         """Get comprehensive application health status."""
-        url = "/api/health/general"
+        url = ROUTES.health_general()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
     async def test_observability_trace(self) -> Dict[str, Any]:
         """Test endpoint to validate observability tracing functionality."""
-        url = "/api/health/observability/test-trace"
+        url = ROUTES.health_observability_test_trace()
         resp = await self._request("POST", url)
         return await self._handle_response(resp)
 

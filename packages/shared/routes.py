@@ -76,16 +76,51 @@ class Routes:
 
     # Health endpoints
     def health_ai(self) -> str:
-        return "/api/health/ai"
+        return f"{self.prefix}/health/ai"
 
     def health_observability(self) -> str:
-        return "/api/health/observability"
+        return f"{self.prefix}/health/observability"
 
     def health_general(self) -> str:
-        return "/api/health/general"
+        return f"{self.prefix}/health/general"
 
     def health_observability_test_trace(self) -> str:
-        return "/api/health/observability/test-trace"
+        return f"{self.prefix}/health/observability/test-trace"
+
+    # Action endpoints
+    def action(self) -> str:
+        return f"{self.prefix}/action"
+
+    def action_test(self) -> str:
+        return f"{self.prefix}/action/test"
+
+    # Voice endpoints
+    def voice_status(self) -> str:
+        return f"{self.prefix}/voice/status"
+
+    def voice_session_create(self, session_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}/create"
+
+    def voice_session_source(self, session_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}/source"
+
+    def voice_session_source_position(self, session_id: str, source_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}/source/{source_id}/position"
+
+    def voice_session_focus(self, session_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}/focus"
+
+    def voice_session_stats(self, session_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}/stats"
+
+    def voice_session_cleanup(self, session_id: str) -> str:
+        return f"{self.prefix}/voice/session/{session_id}"
+
+    def voice_conversation_summary(self, conversation_id: str) -> str:
+        return f"{self.prefix}/voice/conversation/{conversation_id}/summary"
+
+    def voice_health(self) -> str:
+        return f"{self.prefix}/voice/health"
 
 
 ROUTES = Routes()
