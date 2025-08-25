@@ -293,7 +293,11 @@ class TestOpenAIProvider:
         # Setup mocks
         mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.choices[0].message.content = "Generated text"
+        mock_choice = Mock()
+        mock_message = Mock()
+        mock_message.content = "Generated text"
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
@@ -315,7 +319,11 @@ class TestOpenAIProvider:
         """Test text generation with custom options."""
         mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.choices[0].message.content = "Generated text"
+        mock_choice = Mock()
+        mock_message = Mock()
+        mock_message.content = "Generated text"
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
@@ -381,7 +389,11 @@ class TestOpenAIProvider:
         """Test successful chat generation with OpenAI provider."""
         mock_client = AsyncMock()
         mock_response = Mock()
-        mock_response.choices[0].message.content = "Chat response"
+        mock_choice = Mock()
+        mock_message = Mock()
+        mock_message.content = "Chat response"
+        mock_choice.message = mock_message
+        mock_response.choices = [mock_choice]
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 

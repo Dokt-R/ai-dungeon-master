@@ -25,13 +25,23 @@ from packages.shared.logging_config import get_logger
 class ValidationResult:
     """Result of AI response validation."""
 
-    is_accurate: bool
-    accuracy_score: float
-    issues_found: List[str]
-    corrections_suggested: List[str]
-    validation_details: List[str]
-    validated_at: datetime
-    validation_type: str
+    is_accurate: bool = False
+    accuracy_score: float = 0.0
+    issues_found: Optional[List[str]] = None
+    corrections_suggested: Optional[List[str]] = None
+    validation_details: Optional[List[str]] = None
+    validated_at: Optional[datetime] = None
+    validation_type: str = "general"
+
+    def __post_init__(self):
+        if self.issues_found is None:
+            self.issues_found = []
+        if self.corrections_suggested is None:
+            self.corrections_suggested = []
+        if self.validation_details is None:
+            self.validation_details = []
+        if self.validated_at is None:
+            self.validated_at = datetime.utcnow()
 
 
 @dataclass
@@ -80,6 +90,19 @@ class AIValidationService:
             "challenge_ratings": self._validate_challenge_ratings,
             "saving_throws": self._validate_saving_throws,
             "ability_scores": self._validate_ability_scores,
+        }
+
+        # Common D&D terms and their correct forms
+        self.terminology_rules = {
+            "hit points": ["hp", "hit points", "health points"],
+            "armor class": ["ac", "armor class"],
+            "challenge rating": ["cr", "challenge rating"],
+            "proficiency bonus": ["proficiency", "prof bonus", "proficiency bonus"],
+            "saving throw": ["save", "saving throw"],
+            "spell slot": ["spell slot", "spell slots"],
+            "concentration": ["concentration", "concentrating"],
+            "advantage": ["advantage", "advantage on"],
+            "disadvantage": ["disadvantage", "disadvantage on"],
         }
 
         # Initialize validation methods
@@ -258,19 +281,6 @@ class AIValidationService:
 
         return issues
 
-        # Common D&D terms and their correct forms
-        self.terminology_rules = {
-            "hit points": ["hp", "hit points", "health points"],
-            "armor class": ["ac", "armor class"],
-            "challenge rating": ["cr", "challenge rating"],
-            "proficiency bonus": ["proficiency", "prof bonus", "proficiency bonus"],
-            "saving throw": ["save", "saving throw"],
-            "spell slot": ["spell slot", "spell slots"],
-            "concentration": ["concentration", "concentrating"],
-            "advantage": ["advantage", "advantage on"],
-            "disadvantage": ["disadvantage", "disadvantage on"],
-        }
-
     async def validate_ai_response(
         self,
         query: str,
@@ -289,15 +299,27 @@ class AIValidationService:
             # Extract entities mentioned in the response
             mentioned_entities = self._extract_mentioned_entities(ai_response)
 
-            # If specific entities were expected, check if they were mentioned
+            # If specific entities were expected, check if they were mentioned (case insensitive)
             if expected_entities:
-                missing_entities = set(expected_entities) - set(mentioned_entities)
+                mentioned_entities_lower = [entity.lower() for entity in mentioned_entities]
+                expected_entities_lower = [entity.lower() for entity in expected_entities]
+                missing_entities = set(expected_entities_lower) - set(mentioned_entities_lower)
                 if missing_entities:
+                    # Convert back to original case for display
+                    missing_display = []
+                    for missing in missing_entities:
+                        # Find original case version
+                        for expected in expected_entities:
+                            if expected.lower() == missing:
+                                missing_display.append(expected)
+                                break
+                        else:
+                            missing_display.append(missing)
                     issues.append(
-                        f"Missing expected entities: {', '.join(missing_entities)}"
+                        f"Missing expected entities: {', '.join(missing_display)}"
                     )
                     corrections.append(
-                        f"Include information about: {', '.join(missing_entities)}"
+                        f"Include information about: {', '.join(missing_display)}"
                     )
 
             # Validate each mentioned entity
@@ -308,7 +330,8 @@ class AIValidationService:
                 )
                 entity_validations.append(entity_validation)
 
-                if not entity_validation["is_accurate"]:
+                # Check if entity validation found issues
+                if entity_validation["issues"]:
                     issues.extend(entity_validation["issues"])
                     corrections.extend(entity_validation["corrections"])
 
@@ -334,7 +357,6 @@ class AIValidationService:
                 issues_found=issues,
                 corrections_suggested=corrections,
                 validation_details=validation_details,
-                validated_at=datetime.utcnow(),
                 validation_type=validation_type,
             )
 
@@ -357,7 +379,6 @@ class AIValidationService:
                 issues_found=[f"Validation failed: {str(e)}"],
                 corrections_suggested=["Manual review required"],
                 validation_details=[],
-                validated_at=datetime.utcnow(),
                 validation_type=validation_type,
             )
 
@@ -524,8 +545,7 @@ class AIValidationService:
 
         # Check for rule violations
         rule_issues = self._validate_rule_compliance(ai_response)
-        issues.extend(rule_issues["issues"])
-        corrections.extend(rule_issues["corrections"])
+        issues.extend(rule_issues)
 
         return {"issues": issues, "corrections": corrections}
 
@@ -573,34 +593,26 @@ class AIValidationService:
 
         return {"issues": issues, "corrections": corrections}
 
-    def _validate_rule_compliance(self, response: str) -> Dict[str, List[str]]:
+    def _validate_rule_compliance(self, response: str) -> List[str]:
         """Validate compliance with D&D rules."""
         issues = []
-        corrections = []
 
         response_lower = response.lower()
 
         # Check for common rule misunderstandings
-        if "critical hit on 19-20" in response_lower:
-            issues.append("Critical hit range is incorrect")
-            corrections.append("Critical hits occur on natural 20 only")
+        if ("critical hit" in response_lower or "critical hits" in response_lower) and ("19-20" in response_lower or "19 to 20" in response_lower):
+            issues.append("Critical hit range incorrect")
 
         if (
             "double damage on critical" in response_lower
             and "with magic weapon" not in response_lower
         ):
             issues.append("Critical hit damage rule may be incomplete")
-            corrections.append(
-                "Critical hits double dice damage, not including modifiers unless specified"
-            )
 
         if "advantage and disadvantage cancel" in response_lower:
             issues.append("Advantage/Disadvantage rule oversimplified")
-            corrections.append(
-                "Multiple advantage/disadvantage sources require careful tracking"
-            )
 
-        return {"issues": issues, "corrections": corrections}
+        return issues
 
     def _extract_mentioned_entities(self, text: str) -> List[str]:
         """Extract D&D entity names mentioned in text."""
@@ -678,6 +690,7 @@ class AIValidationService:
             "pike",
             "lance",
             "trident",
+            "scimitar",
             "bow",
             "crossbow",
             "shortbow",
@@ -695,7 +708,8 @@ class AIValidationService:
             (weapon_names, "weapon"),
         ]:
             for entity in entity_list:
-                if entity in text_lower:
+                # Use word boundaries to avoid partial matches, case insensitive
+                if re.search(r'\b' + re.escape(entity) + r'\b', text_lower, re.IGNORECASE):
                     # Avoid duplicates
                     if entity not in entities:
                         entities.append(entity)
@@ -712,9 +726,9 @@ class AIValidationService:
             stats["armor_class"] = int(ac_match.group(1))
 
         # Extract hit points
-        hp_match = re.search(r"hit points (\d+)", text.lower())
+        hp_match = re.search(r"hit points (?:of )?([^\n.,;]+)", text.lower())
         if hp_match:
-            stats["hit_points"] = hp_match.group(1)
+            stats["hit_points"] = hp_match.group(1).strip()
 
         # Extract challenge rating
         cr_match = re.search(r"challenge rating (\d+(?:/\d+)?)", text.lower())
@@ -731,7 +745,7 @@ class AIValidationService:
         level_match = re.search(r"(\d+)(?:st|nd|rd|th) level spell", text.lower())
         if level_match:
             info["level"] = int(level_match.group(1))
-        elif "cantrip" in text.lower():
+        elif "cantrip" in text.lower() or "0th level" in text.lower():
             info["level"] = 0
 
         # Extract casting time
@@ -750,17 +764,48 @@ class AIValidationService:
         """Extract weapon information from AI response text."""
         info = {}
 
-        # Extract damage
-        damage_match = re.search(r"damage:?\s*([^.\n]+)", text.lower())
-        if damage_match:
-            info["damage"] = damage_match.group(1).strip()
+        text_lower = text.lower()
+
+        # Extract damage - look for "deals X damage" pattern
+        deals_pattern = r"deals\s+([^\n,]+?)\s+damage"
+        deals_match = re.search(deals_pattern, text_lower)
+        if deals_match:
+            damage_text = deals_match.group(1).strip()
+            # Split by "and" to get just the damage part
+            if " and " in damage_text:
+                damage_part = damage_text.split(" and ")[0].strip()
+                # Extract the damage dice pattern
+                dice_match = re.search(r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_part)
+                if dice_match:
+                    info["damage"] = dice_match.group(1).strip()
+                else:
+                    info["damage"] = damage_part
+            else:
+                # No "and", just extract the damage dice
+                dice_match = re.search(r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_text)
+                if dice_match:
+                    info["damage"] = dice_match.group(1).strip()
+                else:
+                    info["damage"] = damage_text
+        else:
+            # Try other patterns
+            damage_match = re.search(r"damage:?\s*([^.\n]+)", text_lower)
+            if damage_match:
+                info["damage"] = damage_match.group(1).strip()
 
         # Extract properties (this is more complex, simplified version)
-        properties_match = re.search(r"properties:?\s*([^.\n]+)", text.lower())
+        properties_match = re.search(r"properties:?\s*([^.\n]+)", text_lower)
         if properties_match:
             properties_text = properties_match.group(1)
             # Simple property extraction (could be improved)
             info["properties"] = [prop.strip() for prop in properties_text.split(",")]
+        else:
+            # Try to extract properties from common patterns
+            versatile_match = re.search(r"versatile", text_lower)
+            if versatile_match:
+                if "properties" not in info:
+                    info["properties"] = []
+                info["properties"].append("Versatile")
 
         return info
 
@@ -777,9 +822,19 @@ class AIValidationService:
 
     def _compare_challenge_ratings(self, ai_cr: str, srd_cr: str) -> bool:
         """Compare challenge rating formats."""
-        # Normalize fractional CRs
-        ai_normalized = ai_cr.replace("/", ".")
-        srd_normalized = srd_cr.replace("/", ".")
+        def normalize_cr(cr: str) -> str:
+            """Normalize challenge rating to decimal format."""
+            if "/" in cr:
+                try:
+                    num, den = cr.split("/")
+                    return str(float(num) / float(den))
+                except (ValueError, ZeroDivisionError):
+                    return cr.replace("/", ".")
+
+            return cr
+
+        ai_normalized = normalize_cr(ai_cr)
+        srd_normalized = normalize_cr(srd_cr)
 
         try:
             ai_value = float(ai_normalized)
@@ -930,12 +985,12 @@ class AIValidationService:
                 term in issue_lower for term in ["should be", "terminology", "term"]
             ):
                 categories["terminology"].append(issue)
+            elif any(term in issue_lower for term in ["rule", "mechanics", "critical"]):
+                categories["mechanics"].append(issue)
             elif any(
                 term in issue_lower for term in ["mismatch", "incorrect", "wrong"]
             ):
                 categories["statistics"].append(issue)
-            elif any(term in issue_lower for term in ["rule", "mechanics", "critical"]):
-                categories["mechanics"].append(issue)
             elif any(term in issue_lower for term in ["missing", "not found"]):
                 categories["missing_info"].append(issue)
             else:

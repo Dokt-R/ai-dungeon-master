@@ -26,6 +26,14 @@ from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+# Import OpenAI with fallback for testing
+try:
+    from openai import AsyncOpenAI
+except ImportError:
+    # Handle case where openai package is not installed
+    AsyncOpenAI = None
+    logger.warning("openai_package_not_available", message="OpenAI package is not installed. OpenAI provider will not be available.")
+
 
 class AIProvider(Enum):
     """Supported AI providers."""
@@ -306,7 +314,8 @@ class OpenAIProvider(AIProviderInterface):
     async def initialize(self) -> None:
         """Initialize OpenAI client."""
         try:
-            from openai import AsyncOpenAI
+            if AsyncOpenAI is None:
+                raise ImportError("OpenAI package is not installed")
 
             self.client = AsyncOpenAI(
                 api_key=self.config.api_key,
@@ -440,6 +449,10 @@ class AIClient:
                 logger.debug("no_event_loop_for_async_close")
         cls._instance = None
         cls._is_initialized = False
+
+        # Also reset the global instance for testing
+        global ai_client
+        ai_client = AIClient()
 
     async def initialize(self, config: Optional[AIClientConfig] = None) -> bool:
         """

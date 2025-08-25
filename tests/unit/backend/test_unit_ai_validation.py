@@ -102,6 +102,16 @@ class TestAIValidationService:
             }
             mock_engine.query_monster = AsyncMock(return_value=mock_monster)
 
+            # Mock Longsword weapon data (different from AI response)
+            mock_weapon = Mock()
+            mock_weapon.found = True
+            mock_weapon.data = {
+                "weapon_name": "longsword",
+                "damage": "1d8 slashing",
+                "properties": ["Versatile (1d10)"],
+            }
+            mock_engine.query_weapon = AsyncMock(return_value=mock_weapon)
+
             result = await validation_service.validate_ai_response(
                 **sample_inaccurate_response
             )
@@ -229,7 +239,7 @@ class TestAIValidationService:
 
         # Issues should reduce score
         score = validation_service._calculate_accuracy_score(["Issue 1"], [])
-        assert score == 0.7  # 0.8 - 0.1
+        assert score == pytest.approx(0.7, abs=1e-10)  # 0.8 - 0.1
 
         # Corrections should reduce score further
         score = validation_service._calculate_accuracy_score(
@@ -421,13 +431,13 @@ class TestValidationResult:
         """Test ValidationResult default values."""
         result = ValidationResult()
 
-        assert result.is_accurate is None
-        assert result.accuracy_score is None
-        assert result.issues_found is None
-        assert result.corrections_suggested is None
-        assert result.validation_details is None
-        assert result.validated_at is None
-        assert result.validation_type is None
+        assert result.is_accurate is False
+        assert result.accuracy_score == 0.0
+        assert result.issues_found == []
+        assert result.corrections_suggested == []
+        assert result.validation_details == []
+        assert result.validated_at is not None  # Should have a datetime
+        assert result.validation_type == "general"
 
 
 class TestValidationMetrics:
