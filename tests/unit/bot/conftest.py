@@ -125,6 +125,7 @@ def mock_voice_cog(mock_bot):
         from packages.bot.cogs.voice_cog import VoiceCog
 
         cog = VoiceCog(mock_bot)
+        
         cog.api_client = MockApiClient()
         return cog
 

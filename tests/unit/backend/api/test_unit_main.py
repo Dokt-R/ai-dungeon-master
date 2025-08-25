@@ -8,6 +8,7 @@ from packages.backend.components.server_manager import ServerSettingsManager
 from packages.backend.main import app
 from packages.shared.exceptions import NotFoundError
 from packages.shared.models import Server
+from packages.shared.routes import ROUTES
 
 
 @pytest.fixture
@@ -38,7 +39,7 @@ async def test_set_server_config_success(
     }
 
     # Act
-    response = await client.put("/servers/123/config", json=payload)
+    response = await client.put(ROUTES.server_config("123"), json=payload)
 
     # Assert
     assert response.status_code == 200
@@ -69,7 +70,7 @@ async def test_set_server_config_failure(
 
     # Act
 
-    response = await client.put("/servers/123/config", json=payload)
+    response = await client.put(ROUTES.server_config("123"), json=payload)
 
     # Assert
     assert response.status_code == 400
@@ -88,7 +89,7 @@ async def test_set_server_config_validation_error(client: AsyncClient):
         "character_sheet_mode": "digital_sheet",
     }
     # Act
-    response = await client.put("/servers/123/config", json=payload)
+    response = await client.put(ROUTES.server_config("123"), json=payload)
 
     # Assert
     assert response.status_code == 422
@@ -113,7 +114,7 @@ async def test_set_server_config_not_found(
     }
 
     # Act
-    response = await client.put("/servers/123/config", json=payload)
+    response = await client.put(ROUTES.server_config("123"), json=payload)
 
     # Assert
     assert response.status_code == 404

@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from packages.backend.main import app
+from packages.shared.routes import ROUTES
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ class TestActionEndpoint:
             "session_id": "session_123",
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -59,7 +60,7 @@ class TestActionEndpoint:
             "metadata": {"source": "discord", "channel_id": "123456789"},
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -86,18 +87,20 @@ class TestActionEndpoint:
             # Missing "prompt"
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 422
         data = response.json()
 
-        assert "detail" in data
-        assert "error" in data["detail"]
-        assert "correlation_id" in data["detail"]
-        assert (
-            "missing" in data["detail"]["error"].lower()
-            or "required" in data["detail"]["error"].lower()
-        )
+        assert "error" in data
+        assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+        assert data["error"]["message"] == "Validation failed"
+        assert "details" in data["error"]
+        assert len(data["error"]["details"]) > 0
+        # Check that the error mentions the missing prompt field
+        error_details = str(data["error"]["details"])
+        assert "prompt" in error_details.lower()
+        assert "missing" in error_details.lower() or "required" in error_details.lower()
 
     def test_invalid_request_missing_session_id(self, client):
         """Test POST /action with missing session_id field."""
@@ -106,39 +109,59 @@ class TestActionEndpoint:
             # Missing "session_id"
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 422
         data = response.json()
 
-        assert "detail" in data
-        assert "error" in data["detail"]
-        assert "correlation_id" in data["detail"]
+        assert "error" in data
+        assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+        assert data["error"]["message"] == "Validation failed"
+        assert "details" in data["error"]
+        assert len(data["error"]["details"]) > 0
+        # Check that the error mentions the missing session_id field
+        error_details = str(data["error"]["details"])
+        assert "session_id" in error_details.lower()
+        assert "missing" in error_details.lower() or "required" in error_details.lower()
 
     def test_invalid_request_empty_prompt(self, client):
         """Test POST /action with empty prompt."""
         request_data = {"prompt": "", "session_id": "session_123"}
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 422
         data = response.json()
 
-        assert "detail" in data
-        assert "error" in data["detail"]
+        assert "error" in data
+        assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+        assert data["error"]["message"] == "Validation failed"
+        assert "details" in data["error"]
+        assert len(data["error"]["details"]) > 0
+        # Check that the error mentions the empty prompt
+        error_details = str(data["error"]["details"])
+        assert "prompt" in error_details.lower()
+        assert "character" in error_details.lower() or "empty" in error_details.lower()
 
     def test_invalid_request_prompt_too_long(self, client):
         """Test POST /action with prompt exceeding maximum length."""
         long_prompt = "x" * 2001  # Exceeds 2000 character limit
         request_data = {"prompt": long_prompt, "session_id": "session_123"}
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 422
         data = response.json()
 
-        assert "detail" in data
-        assert "error" in data["detail"]
+        assert "error" in data
+        assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+        assert data["error"]["message"] == "Validation failed"
+        assert "details" in data["error"]
+        assert len(data["error"]["details"]) > 0
+        # Check that the error mentions the maximum length
+        error_details = str(data["error"]["details"])
+        assert "prompt" in error_details.lower()
+        assert "2000" in error_details or "max_length" in error_details.lower()
 
     def test_invalid_request_invalid_session_id(self, client):
         """Test POST /action with invalid session_id pattern."""
@@ -152,20 +175,32 @@ class TestActionEndpoint:
         for invalid_id in invalid_session_ids:
             request_data = {"prompt": "I want to investigate", "session_id": invalid_id}
 
-            response = client.post("/api/action", json=request_data)
+            response = client.post(ROUTES.action(), json=request_data)
 
             assert response.status_code == 422
             data = response.json()
-            assert "detail" in data
-            assert "error" in data["detail"]
 
+            assert "error" in data
+            assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+            assert data["error"]["message"] == "Validation failed"
+            assert "details" in data["error"]
+            assert len(data["error"]["details"]) > 0
+            # Check that the error mentions session_id validation
+            error_details = str(data["error"]["details"])
+            assert "session_id" in error_details.lower()
+            # Handle different types of validation errors:
+            # - pattern validation for invalid characters (spaces, @, .)
+            # - length validation for empty strings
+            has_pattern_error = "pattern" in error_details.lower() or "match" in error_details.lower()
+            has_length_error = "character" in error_details.lower() or "short" in error_details.lower()
+            assert has_pattern_error or has_length_error, f"Expected pattern or length error, got: {error_details}"
     def test_request_with_correlation_id_header(self, client):
         """Test POST /action with custom correlation ID header."""
         custom_correlation_id = "550e8400-e29b-41d4-a716-446655440000"
         request_data = {"prompt": "I want to explore", "session_id": "session_123"}
 
         response = client.post(
-            "/api/action",
+            ROUTES.action(),
             json=request_data,
             headers={"X-Correlation-ID": custom_correlation_id},
         )
@@ -183,7 +218,7 @@ class TestActionEndpoint:
             "campaign_context": {"campaign_name": "Test Campaign"},
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -198,7 +233,7 @@ class TestActionEndpoint:
             "user_id": "player_456",
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -213,7 +248,7 @@ class TestActionEndpoint:
             "metadata": {"source": "discord", "channel": "123"},
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -223,7 +258,7 @@ class TestActionEndpoint:
     def test_malformed_json_request(self, client):
         """Test POST /action with malformed JSON."""
         response = client.post(
-            "/api/action",
+            ROUTES.action(),
             content="invalid json {",
             headers={"Content-Type": "application/json"},
         )
@@ -238,7 +273,7 @@ class TestActionEndpoint:
             "unexpected_field": "should_be_ignored",
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         # FastAPI should ignore unexpected fields
         assert response.status_code == 200
@@ -253,7 +288,7 @@ class TestActionEndpointResponseFormats:
         """Test minimal response format."""
         request_data = {"prompt": "I look around", "session_id": "session_123"}
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -279,7 +314,7 @@ class TestActionEndpointResponseFormats:
             "metadata": {"spell_slot": 3},
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -307,15 +342,20 @@ class TestActionEndpointResponseFormats:
             "session_id": "session_123",
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 422
         data = response.json()
 
-        assert "detail" in data
-        assert "error" in data["detail"]
-        assert "correlation_id" in data["detail"]
-        assert "details" in data["detail"]
+        assert "error" in data
+        assert data["error"]["error_code"] == "REQUEST_VALIDATION_ERROR"
+        assert data["error"]["message"] == "Validation failed"
+        assert "details" in data["error"]
+        assert len(data["error"]["details"]) > 0
+        # Check that the error mentions the empty prompt
+        error_details = str(data["error"]["details"])
+        assert "prompt" in error_details.lower()
+        assert "character" in error_details.lower() or "empty" in error_details.lower()
 
 
 class TestActionEndpointIntegration:
@@ -325,7 +365,7 @@ class TestActionEndpointIntegration:
         """Test that the action endpoint is properly registered."""
         # Test main endpoint
         response = client.post(
-            "/api/action", json={"prompt": "test", "session_id": "session_123"}
+            ROUTES.action(), json={"prompt": "test", "session_id": "session_123"}
         )
         assert response.status_code in [
             200,
@@ -333,7 +373,7 @@ class TestActionEndpointIntegration:
         ]  # 422 for validation error, but endpoint exists
 
         # Test test endpoint
-        response = client.get("/api/action/test")
+        response = client.get(ROUTES.action_test())
         assert response.status_code == 200
         data = response.json()
         assert "status" in data
@@ -346,7 +386,7 @@ class TestActionEndpointIntegration:
         for i in range(3):
             request_data = {"prompt": f"I perform action {i}", "session_id": session_id}
 
-            response = client.post("/api/action", json=request_data)
+            response = client.post(ROUTES.action(), json=request_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -363,7 +403,7 @@ class TestActionEndpointIntegration:
                 "session_id": session_id,
             }
 
-            response = client.post("/api/action", json=request_data)
+            response = client.post(ROUTES.action(), json=request_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -376,7 +416,7 @@ class TestActionEndpointIntegration:
             "session_id": "session_timing",
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -395,7 +435,7 @@ class TestActionEndpointIntegration:
         }
 
         response = client.post(
-            "/api/action",
+            ROUTES.action(),
             json=request_data,
             headers={"X-Correlation-ID": custom_correlation_id},
         )
@@ -422,7 +462,7 @@ class TestActionEndpointEdgeCases:
         for prompt in special_prompts:
             request_data = {"prompt": prompt, "session_id": "session_special"}
 
-            response = client.post("/api/action", json=request_data)
+            response = client.post(ROUTES.action(), json=request_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -440,7 +480,7 @@ class TestActionEndpointEdgeCases:
         for prompt in unicode_prompts:
             request_data = {"prompt": prompt, "session_id": "session_unicode"}
 
-            response = client.post("/api/action", json=request_data)
+            response = client.post(ROUTES.action(), json=request_data)
 
             assert response.status_code == 200
             data = response.json()
@@ -468,7 +508,7 @@ class TestActionEndpointEdgeCases:
             "metadata": large_metadata,
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
@@ -481,13 +521,13 @@ class TestActionEndpointEdgeCases:
             "prompt": "a",  # 1 character
             "session_id": "session_boundary",
         }
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
         assert response.status_code == 200
 
         # Test maximum length
         max_prompt = "a" * 2000
         request_data = {"prompt": max_prompt, "session_id": "session_boundary"}
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
         assert response.status_code == 200
 
     def test_empty_optional_fields(self, client):
@@ -500,7 +540,7 @@ class TestActionEndpointEdgeCases:
             "metadata": None,
         }
 
-        response = client.post("/api/action", json=request_data)
+        response = client.post(ROUTES.action(), json=request_data)
 
         assert response.status_code == 200
         data = response.json()
