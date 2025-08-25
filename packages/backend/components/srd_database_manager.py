@@ -7,10 +7,65 @@ This module provides database management functionality for SRD data including:
 - Backup and recovery procedures
 - Query optimization and indexing
 - CRUD operations for monsters, spells, and weapons
+
+FUTURE: Consider migrating to SQLModel/SQLAlchemy like CampaignManager for consistency.
+Current SQLite approach prioritizes:
+- Simplicity for isolated SRD operations
+- No async complexity for file-based operations
+- Direct control over schema evolution
+- Independence from main application database
+
+🏗️ Recommended Migration Strategy
+If you want to align the SRD system with the SQLModel pattern, here's how I'd approach it:
+
+Phase 1: Create SRD SQLModel Classes
+# packages/shared/models.py - Add SRD SQLModels
+class SRDMonster(SQLModel, table=True):
+    __tablename__ = "srd_monsters"
+    monster_id: Optional[int] = SQLField(primary_key=True)
+    monster_name: str = SQLField(unique=True)
+    # ... other fields
+    
+class SRDSpell(SQLModel, table=True):
+    __tablename__ = "srd_spells"
+    spell_id: Optional[int] = SQLField(primary_key=True)
+    spell_name: str = SQLField(unique=True)
+    # ... other fields
+
+python
+
+
+Phase 2: Update SRD Database Manager
+class SRDDatabaseManager:
+    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+        self.session = session
+    
+    async def create_monster(self, monster: Monster) -> int:
+        srd_monster = SRDMonster(**monster.model_dump())
+        self.session.add(srd_monster)
+        await self.session.commit()
+        return srd_monster.monster_id
+
+python
+
+
+Phase 3: Migration Benefits
+Consistency: All database operations follow the same pattern
+Better testing: Can use the same test fixtures as campaign manager
+Async support: Better performance for concurrent operations
+Built-in validation: Pydantic integration through SQLModel
+🎯 Current Recommendation
+For the immediate term, the SQLite approach is acceptable because:
+
+SRD data is relatively static - it's reference data, not transactional data
+File-based distribution - easy to share/pack with the application
+Performance - direct SQLite queries are very fast for read-heavy operations
+Isolation - keeps SRD concerns separate from main application logic
 """
 
 import json
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -62,121 +117,142 @@ class SRDDatabaseManager:
     def _ensure_database_exists(self) -> None:
         """Ensure the SRD database exists with proper schema."""
         db_path = Path(self.database_path)
-        db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with sqlite3.connect(self.database_path) as conn:
-            cursor = conn.cursor()
+        # Validate path is accessible before attempting to create
+        try:
+            # Check if we can at least resolve the path
+            db_path.resolve()
+        except (OSError, RuntimeError) as e:
+            raise ValueError(f"Invalid database path: {e}")
 
-            # Create monsters table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS monsters (
-                    monster_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    monster_name TEXT NOT NULL UNIQUE,
-                    armor_class INTEGER NOT NULL,
-                    hit_points TEXT NOT NULL,
-                    strength INTEGER NOT NULL,
-                    dexterity INTEGER NOT NULL,
-                    constitution INTEGER NOT NULL,
-                    intelligence INTEGER NOT NULL,
-                    wisdom INTEGER NOT NULL,
-                    charisma INTEGER NOT NULL,
-                    challenge_rating TEXT NOT NULL,
-                    actions TEXT,
-                    special_abilities TEXT,
-                    description TEXT,
-                    srd_compliance TEXT NOT NULL,
-                    data_source TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    is_active BOOLEAN NOT NULL DEFAULT 1
+        try:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            raise ValueError(f"Cannot create database directory: {e}")
+
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Create monsters table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS monsters (
+                        monster_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        monster_name TEXT NOT NULL UNIQUE,
+                        armor_class INTEGER NOT NULL,
+                        hit_points TEXT NOT NULL,
+                        strength INTEGER NOT NULL,
+                        dexterity INTEGER NOT NULL,
+                        constitution INTEGER NOT NULL,
+                        intelligence INTEGER NOT NULL,
+                        wisdom INTEGER NOT NULL,
+                        charisma INTEGER NOT NULL,
+                        challenge_rating TEXT NOT NULL,
+                        actions TEXT,
+                        special_abilities TEXT,
+                        description TEXT,
+                        srd_compliance TEXT NOT NULL,
+                        data_source TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        is_active BOOLEAN NOT NULL DEFAULT 1
+                    )
+                """)
+
+                # Create spells table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS spells (
+                        spell_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        spell_name TEXT NOT NULL UNIQUE,
+                        level INTEGER NOT NULL CHECK(level >= 0 AND level <= 9),
+                        school TEXT NOT NULL,
+                        casting_time TEXT NOT NULL,
+                        range TEXT NOT NULL,
+                        components TEXT NOT NULL,
+                        duration TEXT NOT NULL,
+                        description TEXT NOT NULL,
+                        at_higher_levels TEXT,
+                        classes TEXT NOT NULL,
+                        srd_compliance TEXT NOT NULL,
+                        data_source TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        is_active BOOLEAN NOT NULL DEFAULT 1
+                    )
+                """)
+
+                # Create weapons table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS weapons (
+                        weapon_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        weapon_name TEXT NOT NULL UNIQUE,
+                        category TEXT NOT NULL,
+                        cost TEXT NOT NULL,
+                        damage TEXT NOT NULL,
+                        weight TEXT NOT NULL,
+                        properties TEXT NOT NULL,
+                        description TEXT,
+                        srd_compliance TEXT NOT NULL,
+                        data_source TEXT NOT NULL,
+                        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        is_active BOOLEAN NOT NULL DEFAULT 1
+                    )
+                """)
+
+                # Create indexes for better query performance
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_monsters_name ON monsters(monster_name)"
                 )
-            """)
-
-            # Create spells table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS spells (
-                    spell_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    spell_name TEXT NOT NULL UNIQUE,
-                    level INTEGER NOT NULL CHECK(level >= 0 AND level <= 9),
-                    school TEXT NOT NULL,
-                    casting_time TEXT NOT NULL,
-                    range TEXT NOT NULL,
-                    components TEXT NOT NULL,
-                    duration TEXT NOT NULL,
-                    description TEXT NOT NULL,
-                    at_higher_levels TEXT,
-                    classes TEXT NOT NULL,
-                    srd_compliance TEXT NOT NULL,
-                    data_source TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    is_active BOOLEAN NOT NULL DEFAULT 1
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_monsters_cr ON monsters(challenge_rating)"
                 )
-            """)
-
-            # Create weapons table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS weapons (
-                    weapon_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    weapon_name TEXT NOT NULL UNIQUE,
-                    category TEXT NOT NULL,
-                    cost TEXT NOT NULL,
-                    damage TEXT NOT NULL,
-                    weight TEXT NOT NULL,
-                    properties TEXT NOT NULL,
-                    description TEXT,
-                    srd_compliance TEXT NOT NULL,
-                    data_source TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    is_active BOOLEAN NOT NULL DEFAULT 1
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_spells_name ON spells(spell_name)"
                 )
-            """)
-
-            # Create indexes for better query performance
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_monsters_name ON monsters(monster_name)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_monsters_cr ON monsters(challenge_rating)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_spells_name ON spells(spell_name)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_spells_level ON spells(level)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_weapons_name ON weapons(weapon_name)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_weapons_category ON weapons(category)"
-            )
-
-            # Create database metadata table
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS database_metadata (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_spells_level ON spells(level)"
                 )
-            """)
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_weapons_name ON weapons(weapon_name)"
+                )
+                cursor.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_weapons_category ON weapons(category)"
+                )
 
-            # Set initial schema version
-            cursor.execute("""
-                INSERT OR REPLACE INTO database_metadata (key, value)
-                VALUES ('schema_version', '1.0')
-            """)
+                # Create database metadata table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS database_metadata (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
 
-            conn.commit()
+                # Set initial schema version
+                cursor.execute("""
+                    INSERT OR REPLACE INTO database_metadata (key, value)
+                    VALUES ('schema_version', '1.0')
+                """)
+
+                conn.commit()
+
+        except Exception as e:
+            raise ValueError(f"Cannot connect to database: {e}")
 
         self.logger.info("SRD database initialized", database_path=self.database_path)
 
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with row factory."""
-        conn = sqlite3.connect(self.database_path)
-        conn.row_factory = sqlite3.Row
-        return conn
+    @contextmanager
+    def _get_connection(self):
+        """Get database connection with proper cleanup."""
+        conn = None
+        try:
+            conn = sqlite3.connect(self.database_path)
+            conn.row_factory = sqlite3.Row
+            yield conn
+        finally:
+            if conn:
+                conn.close()
 
     def _serialize_compliance(self, compliance: SRDCompliance) -> str:
         """Serialize SRDCompliance to JSON string."""
@@ -219,6 +295,21 @@ class SRDDatabaseManager:
             }
         )
 
+    def _validate_ability_scores(self, monster: Monster) -> None:
+        """Validate monster ability scores."""
+        ability_scores = [
+            ("strength", monster.strength),
+            ("dexterity", monster.dexterity),
+            ("constitution", monster.constitution),
+            ("intelligence", monster.intelligence),
+            ("wisdom", monster.wisdom),
+            ("charisma", monster.charisma),
+        ]
+
+        for score_name, score_value in ability_scores:
+            if not (1 <= score_value <= 30):
+                raise ValueError(f"Invalid {score_name} score: {score_value} (must be between 1 and 30)")
+
     def _deserialize_data_source(self, data: str) -> DataSource:
         """Deserialize JSON string to DataSource."""
         parsed = json.loads(data)
@@ -235,6 +326,9 @@ class SRDDatabaseManager:
     # Monster CRUD Operations
     def create_monster(self, monster: Monster, user: str = "system") -> int:
         """Create a new monster in the database."""
+        # Validate ability scores
+        self._validate_ability_scores(monster)
+
         try:
             with self._get_connection() as conn:
                 cursor = conn.cursor()
@@ -295,7 +389,8 @@ class SRDDatabaseManager:
                 cursor = conn.cursor()
 
                 cursor.execute(
-                    "SELECT * FROM monsters WHERE monster_id = ?", (monster_id,)
+                    "SELECT * FROM monsters WHERE monster_id = ? AND is_active = 1",
+                    (monster_id,)
                 )
                 row = cursor.fetchone()
 
@@ -668,6 +763,50 @@ class SRDDatabaseManager:
 
         return None
 
+    def get_monster_by_name(self, monster_name: str) -> Optional[Monster]:
+        """Get monster by name."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "SELECT * FROM monsters WHERE monster_name = ? AND is_active = 1",
+                    (monster_name,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    return Monster(
+                        monster_id=row["monster_id"],
+                        monster_name=row["monster_name"],
+                        armor_class=row["armor_class"],
+                        hit_points=row["hit_points"],
+                        strength=row["strength"],
+                        dexterity=row["dexterity"],
+                        constitution=row["constitution"],
+                        intelligence=row["intelligence"],
+                        wisdom=row["wisdom"],
+                        charisma=row["charisma"],
+                        challenge_rating=row["challenge_rating"],
+                        actions=row["actions"],
+                        special_abilities=row["special_abilities"],
+                        description=row["description"],
+                        srd_compliance=self._deserialize_compliance(
+                            row["srd_compliance"]
+                        ),
+                        data_source=self._deserialize_data_source(row["data_source"]),
+                        created_at=datetime.fromisoformat(row["created_at"]),
+                        updated_at=datetime.fromisoformat(row["updated_at"]),
+                        is_active=row["is_active"],
+                    )
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get monster by name", monster_name=monster_name, error=str(e)
+            )
+
+        return None
+
     def get_weapon_by_name(self, weapon_name: str) -> Optional[Weapon]:
         """Get weapon by name."""
         try:
@@ -791,7 +930,7 @@ class SRDDatabaseManager:
         try:
             stats = self.get_database_stats()
 
-            return {
+            result = {
                 "status": "healthy" if stats.connection_healthy else "unhealthy",
                 "database_exists": Path(self.database_path).exists(),
                 "database_path": self.database_path,
@@ -803,7 +942,14 @@ class SRDDatabaseManager:
                 if stats.last_backup
                 else None,
                 "schema_version": stats.schema_version,
+                "database_connected": stats.connection_healthy,
             }
+
+            # Include error information if connection is unhealthy
+            if not stats.connection_healthy:
+                result["error"] = "Database connection failed"
+
+            return result
 
         except Exception as e:
             return {
@@ -811,6 +957,7 @@ class SRDDatabaseManager:
                 "database_exists": Path(self.database_path).exists(),
                 "database_path": self.database_path,
                 "error": str(e),
+                "database_connected": False,
             }
 
 

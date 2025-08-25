@@ -141,6 +141,19 @@ class BaseRuleProvider:
         error_message: Optional[str] = None,
     ) -> None:
         """Record performance metrics."""
+        # Initialize counters if not exist
+        if not hasattr(self, '_total_queries'):
+            self._total_queries = 0
+            self._cache_hits = 0
+            self._cache_misses = 0
+
+        # Update counters
+        self._total_queries += 1
+        if cache_hit:
+            self._cache_hits += 1
+        else:
+            self._cache_misses += 1
+
         metrics = QueryMetrics(
             query_type=query_type,
             provider_type=self.provider_type.value,
@@ -181,6 +194,22 @@ class BaseRuleProvider:
             )
 
         return len(expired_keys)
+
+    def get_provider_stats(self) -> Dict[str, Any]:
+        """Get provider statistics."""
+        total_queries = getattr(self, '_total_queries', 0)
+        cache_hits = getattr(self, '_cache_hits', 0)
+        cache_misses = getattr(self, '_cache_misses', 0)
+
+        return {
+            "cache_entries": len(self.cache),
+            "cache_ttl": self.default_ttl,
+            "provider_type": self.provider_type.value,
+            "supported_filters": ["name", "context"],
+            "special_methods": ["query", "clear_cache", "cleanup_expired_cache"],
+            "total_queries": total_queries,
+            "cache_hit_rate": cache_hits / max(total_queries, 1),
+        }
 
 
 class MonsterRuleProvider(BaseRuleProvider):

@@ -12,12 +12,14 @@ This module provides data import functionality for SRD data including:
 import csv
 import hashlib
 import json
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from packages.backend.components.srd_database_manager import srd_database_manager
+from packages.backend.components.srd_database_manager import SRDDatabaseManager
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 
@@ -86,9 +88,21 @@ class SRDDataImportService:
     - Import history and rollback support
     """
 
-    def __init__(self):
+    def __init__(self, database_path: Optional[str] = None):
         self.logger = get_logger(f"{__name__}.SRDDataImportService")
         self._active_imports: Dict[str, ImportProgress] = {}
+        self._database_path = database_path
+        self._db_manager = None
+
+    def _get_database_manager(self) -> SRDDatabaseManager:
+        """Get or create database manager instance."""
+        if self._db_manager is None:
+            # Create a unique database path for this service instance to avoid conflicts
+            if self._database_path is None:
+                unique_id = f"srd_import_{id(self)}_{hash(tempfile.mktemp())}"
+                self._database_path = str(Path(tempfile.gettempdir()) / f"{unique_id}.sqlite")
+            self._db_manager = SRDDatabaseManager(self._database_path)
+        return self._db_manager
 
     def import_from_json_file(
         self,
@@ -416,7 +430,14 @@ class SRDDataImportService:
                 last_verified=datetime.utcnow(),
                 verification_hash=self._calculate_record_hash(record),
                 compliance_officer="SRD Import Service",
-                audit_trail=[f"Imported on {datetime.utcnow().isoformat()}"],
+                audit_trail=[
+                    {
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "action": "imported",
+                        "user": "SRD Import Service",
+                        "details": f"Record imported from {data_type} data"
+                    }
+                ],
             )
 
             if data_type == "monsters":
@@ -485,15 +506,18 @@ class SRDDataImportService:
     ) -> bool:
         """Check if a record already exists in the database."""
         try:
+            db_manager = self._get_database_manager()
             if isinstance(entity, Monster):
-                return srd_database_manager.get_monster(entity.monster_id) is not None
+                # For monsters, check by name since ID might not be set for new records
+                monster = db_manager.get_monster_by_name(entity.monster_name)
+                return monster is not None
             elif isinstance(entity, Spell):
                 # For spells, we check by name and level since ID might not be set
                 return (
                     len(
                         [
                             s
-                            for s in srd_database_manager.get_spells_by_level(
+                            for s in db_manager.get_spells_by_level(
                                 entity.level
                             )
                             if s.spell_name == entity.spell_name
@@ -506,7 +530,7 @@ class SRDDataImportService:
                     len(
                         [
                             w
-                            for w in srd_database_manager.get_weapons_by_category(
+                            for w in db_manager.get_weapons_by_category(
                                 entity.category
                             )
                             if w.weapon_name == entity.weapon_name
@@ -525,12 +549,13 @@ class SRDDataImportService:
     ) -> None:
         """Import a single record to the database."""
         try:
+            db_manager = self._get_database_manager()
             if isinstance(entity, Monster):
-                srd_database_manager.create_monster(entity, user)
+                db_manager.create_monster(entity, user)
             elif isinstance(entity, Spell):
-                srd_database_manager.create_spell(entity, user)
+                db_manager.create_spell(entity, user)
             elif isinstance(entity, Weapon):
-                srd_database_manager.create_weapon(entity, user)
+                db_manager.create_weapon(entity, user)
 
         except Exception as e:
             self.logger.error("Failed to import single record", error=str(e))

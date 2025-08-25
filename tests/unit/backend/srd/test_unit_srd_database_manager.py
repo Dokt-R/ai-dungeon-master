@@ -34,6 +34,12 @@ class TestSRDDatabaseManager:
         with tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False) as f:
             temp_path = f.name
         yield temp_path
+        # Force garbage collection to close any lingering connections
+        import gc
+        gc.collect()
+        # Small delay to ensure file handles are released
+        import time
+        time.sleep(0.1)
         # Cleanup
         Path(temp_path).unlink(missing_ok=True)
 
@@ -42,6 +48,9 @@ class TestSRDDatabaseManager:
         """Create a database manager with temporary database."""
         manager = SRDDatabaseManager(temp_db_path)
         yield manager
+        # Ensure proper cleanup
+        import gc
+        gc.collect()
 
     @pytest.fixture
     def sample_data_source(self):
@@ -69,7 +78,14 @@ class TestSRDDatabaseManager:
             last_verified=datetime.utcnow(),
             verification_hash="test_hash_123",
             compliance_officer="Test Officer",
-            audit_trail=["Initial import"],
+            audit_trail=[
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "initial_import",
+                    "user": "Test Officer",
+                    "details": "Initial import for testing"
+                }
+            ],
         )
 
     @pytest.fixture
@@ -281,20 +297,29 @@ class TestSRDDatabaseManager:
     def test_invalid_monster_creation(self, db_manager, sample_monster):
         """Test error handling for invalid monster creation."""
         # Create a monster with invalid ability score
-        sample_monster.strength = 50  # Invalid score
+        sample_monster.strength = 50  # Invalid score (> 30)
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError, match="Invalid strength score: 50"):
             db_manager.create_monster(sample_monster, "test_user")
 
     def test_database_connection_error(self, temp_db_path):
         """Test database connection error handling."""
-        # Create manager with invalid path
-        invalid_path = "/invalid/path/database.sqlite"
-        manager = SRDDatabaseManager(invalid_path)
+        import tempfile
+        from unittest.mock import patch, MagicMock
 
-        health = manager.get_health_status()
-        assert health["status"] == "unhealthy"
-        assert health["database_connected"] is False
+        # Create a temporary database manager
+        manager = SRDDatabaseManager(temp_db_path)
+
+        # Mock sqlite3.connect to raise an exception
+        with patch('packages.backend.components.srd_database_manager.sqlite3.connect') as mock_connect:
+            mock_connect.side_effect = sqlite3.Error("Connection failed")
+
+            # Test that get_health_status handles connection errors gracefully
+            health = manager.get_health_status()
+
+            assert health["status"] == "unhealthy"
+            assert health["database_connected"] is False
+            assert "error" in health
 
     def test_empty_database_stats(self, db_manager):
         """Test database stats with empty database."""

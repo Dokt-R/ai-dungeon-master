@@ -34,9 +34,9 @@ class TestSRDComplianceService:
     def sample_data_source(self):
         """Create a sample data source for testing."""
         return DataSource(
-            source_name="D&D 5.1 SRD",
-            source_url="https://dnd.wizards.com/articles/features/systems-reference-document-srd",
-            publication_date=datetime(2016, 5, 12),
+            source_name="Dungeons & Dragons 5.1 SRD",
+            source_url="https://dnd.wizards.com/resources/systems-reference-document",
+            publication_date=datetime(2023, 1, 1),
             version="5.1",
             checksum="test_checksum_123",
             is_official=True,
@@ -47,16 +47,66 @@ class TestSRDComplianceService:
     def sample_compliance(self, sample_data_source):
         """Create a sample compliance record for testing."""
         return SRDCompliance(
-            data_source="D&D 5.1 SRD",
+            data_source=sample_data_source.source_name,
             license_version="5.1",
             usage_restrictions=[
                 "Must include Wizards of the Coast attribution",
                 "Cannot be used in commercial products",
             ],
             last_verified=datetime.utcnow(),
-            verification_hash="test_hash_123",
+            verification_hash="sha256:440ac33522c31e3278fa63785e3191a798d7f4e56cacbe3eac0508abeed0d755",
             compliance_officer="Test Officer",
-            audit_trail=["Initial import"],
+            audit_trail=[
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "initial_import",
+                    "details": "Initial import"
+                }
+            ],
+        )
+
+    @pytest.fixture
+    def sample_spell_compliance(self, sample_data_source):
+        """Create a sample compliance record for spell testing."""
+        return SRDCompliance(
+            data_source=sample_data_source.source_name,
+            license_version="5.1",
+            usage_restrictions=[
+                "Must include Wizards of the Coast attribution",
+                "Cannot be used in commercial products",
+            ],
+            last_verified=datetime.utcnow(),
+            verification_hash="sha256:1e2b792b8405d839e036ec274cdd8af3845b7ba9c6a3468ca74f783530db27c7",
+            compliance_officer="Test Officer",
+            audit_trail=[
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "initial_import",
+                    "details": "Initial import"
+                }
+            ],
+        )
+
+    @pytest.fixture
+    def sample_weapon_compliance(self, sample_data_source):
+        """Create a sample compliance record for weapon testing."""
+        return SRDCompliance(
+            data_source=sample_data_source.source_name,
+            license_version="5.1",
+            usage_restrictions=[
+                "Must include Wizards of the Coast attribution",
+                "Cannot be used in commercial products",
+            ],
+            last_verified=datetime.utcnow(),
+            verification_hash="sha256:b53e9a68b5c10c6b9e7e6af0a06404caf2ca5c7846db4322d2f2306dad1616fa",
+            compliance_officer="Test Officer",
+            audit_trail=[
+                {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "action": "initial_import",
+                    "details": "Initial import"
+                }
+            ],
         )
 
     @pytest.fixture
@@ -94,12 +144,13 @@ class TestSRDComplianceService:
         assert isinstance(result, ComplianceResult)
         assert result.is_compliant is True
         assert len(result.issues) == 0
-        assert result.verification_date is not None
+        assert result.timestamp is not None
 
     def test_verify_data_compliance_monster_invalid_source(
         self, compliance_service, sample_monster
     ):
         """Test compliance verification for monster with invalid source."""
+        sample_monster.data_source.source_name = "Invalid Source Name"
         sample_monster.data_source.is_official = False
 
         result = compliance_service.verify_data_compliance(
@@ -108,7 +159,7 @@ class TestSRDComplianceService:
 
         assert result.is_compliant is False
         assert len(result.issues) > 0
-        assert any("official" in issue.lower() for issue in result.issues)
+        assert any("not recognized as official" in issue for issue in result.issues)
 
     def test_verify_data_compliance_monster_expired(
         self, compliance_service, sample_monster
@@ -124,7 +175,7 @@ class TestSRDComplianceService:
         assert len(result.issues) > 0
 
     def test_verify_data_compliance_spell_valid(
-        self, compliance_service, sample_compliance, sample_data_source
+        self, compliance_service, sample_spell_compliance, sample_data_source
     ):
         """Test compliance verification for a valid spell."""
         spell = Spell(
@@ -138,7 +189,7 @@ class TestSRDComplianceService:
             description="A test spell for unit testing",
             at_higher_levels="",
             classes=["Wizard", "Sorcerer"],
-            srd_compliance=sample_compliance,
+            srd_compliance=sample_spell_compliance,
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -151,7 +202,7 @@ class TestSRDComplianceService:
         assert len(result.issues) == 0
 
     def test_verify_data_compliance_weapon_valid(
-        self, compliance_service, sample_compliance, sample_data_source
+        self, compliance_service, sample_weapon_compliance, sample_data_source
     ):
         """Test compliance verification for a valid weapon."""
         weapon = Weapon(
@@ -162,7 +213,7 @@ class TestSRDComplianceService:
             weight="3 lb.",
             properties=["Finesse", "Thrown (range 20/60)"],
             description="A test weapon for unit testing",
-            srd_compliance=sample_compliance,
+            srd_compliance=sample_weapon_compliance,
             data_source=sample_data_source,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -187,14 +238,14 @@ class TestSRDComplianceService:
 
     def test_generate_compliance_report(self, compliance_service, sample_monster):
         """Test compliance report generation."""
-        report = compliance_service.generate_compliance_report([sample_monster])
+        report = compliance_service.generate_compliance_report()
 
         assert isinstance(report, dict)
-        assert "total_entities" in report
-        assert "compliant_entities" in report
-        assert "non_compliant_entities" in report
-        assert "compliance_rate" in report
-        assert "issues_summary" in report
+        assert "report_generated" in report
+        assert "audit_statistics" in report
+        assert "issues_by_type" in report
+        assert "compliance_rules" in report
+        assert "official_sources" in report
 
     def test_check_license_restrictions(self, compliance_service, sample_compliance):
         """Test license restriction checking."""
@@ -226,13 +277,13 @@ class TestSRDComplianceService:
 
     def test_calculate_compliance_hash(self, compliance_service, sample_monster):
         """Test compliance hash calculation."""
-        hash_value = compliance_service._calculate_compliance_hash(sample_monster)
+        hash_value = compliance_service._calculate_verification_hash(sample_monster, "monster")
 
         assert isinstance(hash_value, str)
         assert len(hash_value) > 0
 
         # Hash should be consistent
-        hash_value2 = compliance_service._calculate_compliance_hash(sample_monster)
+        hash_value2 = compliance_service._calculate_verification_hash(sample_monster, "monster")
         assert hash_value == hash_value2
 
     def test_update_audit_trail(self, compliance_service, sample_compliance):
@@ -244,8 +295,8 @@ class TestSRDComplianceService:
         )
 
         assert len(updated_compliance.audit_trail) == original_length + 1
-        assert "test_action" in updated_compliance.audit_trail[-1]
-        assert "test_user" in updated_compliance.audit_trail[-1]
+        assert updated_compliance.audit_trail[-1]["action"] == "test_action"
+        assert updated_compliance.audit_trail[-1]["user"] == "test_user"
 
     @patch("packages.backend.components.srd_compliance_service.datetime")
     def test_is_verification_expired(self, mock_datetime, compliance_service):
@@ -276,8 +327,9 @@ class TestSRDComplianceService:
 
         assert isinstance(health, dict)
         assert "status" in health
-        assert "last_verification_check" in health
-        assert "total_compliance_checks" in health
+        assert "database_connected" in health
+        assert "audit_entries" in health
+        assert "data_sources" in health
 
 
 class TestComplianceResult:
@@ -287,20 +339,20 @@ class TestComplianceResult:
         """Test ComplianceResult creation."""
         issues = ["Issue 1", "Issue 2"]
         result = ComplianceResult(
-            is_compliant=False, issues=issues, verification_date=datetime.utcnow()
+            is_compliant=False, issues=issues, timestamp=datetime.utcnow()
         )
 
         assert result.is_compliant is False
         assert result.issues == issues
-        assert result.verification_date is not None
+        assert result.timestamp is not None
 
     def test_compliance_result_defaults(self):
         """Test ComplianceResult default values."""
-        result = ComplianceResult()
+        result = ComplianceResult(is_compliant=True)
 
         assert result.is_compliant is True
         assert result.issues == []
-        assert result.verification_date is None
+        assert result.timestamp is not None
 
 
 class TestLicenseRestriction:

@@ -209,14 +209,14 @@ class SRDToolService:
                 "success": response.found,
                 "query": name,
                 "execution_time": execution_time,
-                "data": response.data if response.found else None,
+                "data": response.result if response.found else None,
                 "error": response.error if not response.found else None,
             }
 
             # Log audit event
             if response.found:
                 srd_audit_service.log_data_access(
-                    response.data, "tool_service", "ai_agent", "tool_query"
+                    response.result, "tool_service", "ai_agent", "tool_query"
                 )
 
             return result_data
@@ -269,14 +269,14 @@ class SRDToolService:
                 "success": response.found,
                 "query": name,
                 "execution_time": execution_time,
-                "data": response.data if response.found else None,
+                "data": response.result if response.found else None,
                 "error": response.error if not response.found else None,
             }
 
             # Log audit event
             if response.found:
                 srd_audit_service.log_data_access(
-                    response.data, "tool_service", "ai_agent", "tool_query"
+                    response.result, "tool_service", "ai_agent", "tool_query"
                 )
 
             return result_data
@@ -329,14 +329,14 @@ class SRDToolService:
                 "success": response.found,
                 "query": name,
                 "execution_time": execution_time,
-                "data": response.data if response.found else None,
+                "data": response.result if response.found else None,
                 "error": response.error if not response.found else None,
             }
 
             # Log audit event
             if response.found:
                 srd_audit_service.log_data_access(
-                    response.data, "tool_service", "ai_agent", "tool_query"
+                    response.result, "tool_service", "ai_agent", "tool_query"
                 )
 
             return result_data
@@ -372,7 +372,7 @@ class SRDToolService:
                     response = await rules_engine.query(query)
                     if response.found:
                         comparison_results.append(
-                            {"name": name, "data": response.data, "found": True}
+                            {"name": name, "data": response.result, "found": True}
                         )
                     else:
                         comparison_results.append(
@@ -387,7 +387,7 @@ class SRDToolService:
                     response = await rules_engine.query(query)
                     if response.found:
                         comparison_results.append(
-                            {"name": name, "data": response.data, "found": True}
+                            {"name": name, "data": response.result, "found": True}
                         )
                     else:
                         comparison_results.append(
@@ -402,7 +402,7 @@ class SRDToolService:
                     response = await rules_engine.query(query)
                     if response.found:
                         comparison_results.append(
-                            {"name": name, "data": response.data, "found": True}
+                            {"name": name, "data": response.result, "found": True}
                         )
                     else:
                         comparison_results.append(
@@ -660,9 +660,10 @@ class SRDToolService:
 
         self._tool_metrics.append(metrics)
 
-        # Maintain metrics history limit
+        # Maintain metrics history limit - trim if exceeded
         if len(self._tool_metrics) > self.max_metrics_history:
-            self._tool_metrics = self._tool_metrics[-self.max_metrics_history :]
+            # Keep only the most recent metrics
+            self._tool_metrics = self._tool_metrics[-self.max_metrics_history:]
 
         # Log performance
         self.logger.info(

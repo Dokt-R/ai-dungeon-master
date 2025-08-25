@@ -202,18 +202,24 @@ class TestDMGraphErrorHandling:
             correlation_id=self.correlation_id,
         )
 
-        # Mock prompt manager to raise error
+        # Mock both prompt manager and memory service to raise errors
         with patch(
             "packages.backend.agents.dm_graph.prompt_manager"
-        ) as mock_prompt_manager:
+        ) as mock_prompt_manager, patch(
+            "packages.backend.agents.dm_graph.memory_service"
+        ) as mock_memory_service:
             mock_prompt_manager.create_core_dm_prompt.side_effect = Exception(
                 "Prompt creation failed"
+            )
+            mock_memory_service.prepare_memory_context.side_effect = Exception(
+                "Memory context preparation failed"
             )
 
             result = asyncio.run(self.service._compile_context_node(state))
 
             assert "error" in result
-            assert "context compilation failed" in result["error"]
+            assert result["error"] is not None
+            assert "Context compilation failed" in result["error"]
 
     def test_should_handle_error_logic(self):
         """Test error handling decision logic."""

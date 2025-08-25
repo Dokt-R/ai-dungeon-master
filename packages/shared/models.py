@@ -2,7 +2,13 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field as PydanticField, SecretStr, field_serializer
+from pydantic import (
+    BaseModel,
+    Field as PydanticField,
+    SecretStr,
+    field_serializer,
+    model_validator,
+)
 from pydantic.config import ConfigDict
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Mapped
@@ -463,10 +469,27 @@ class MemoryState(BaseModel):
         ],
     )
 
+    turn_count_explicitly_set: bool = PydanticField(
+        default=False,
+        description="Whether turn_count was explicitly set (not auto-calculated)",
+        exclude=True,  # Don't include in serialization
+    )
+
+    @model_validator(mode='after')
+    def detect_explicit_turn_count(self):
+        """Detect if turn_count was explicitly set."""
+        # Check if turn_count was set to a non-default value
+        if hasattr(self, '__pydantic_fields_set__'):
+            if 'turn_count' in self.__pydantic_fields_set__ and self.turn_count != 0:
+                self.turn_count_explicitly_set = True
+        return self
+
     def add_message(self, role: str, content: str) -> None:
         """Add a message to the conversation history."""
         self.messages.append({"role": role, "content": content})
-        self.turn_count = len([msg for msg in self.messages if msg["role"] == "user"])
+        # Only auto-update turn_count if it wasn't explicitly set
+        if not self.turn_count_explicitly_set:
+            self.turn_count = len([msg for msg in self.messages if msg["role"] == "user"])
         self.last_activity = datetime.utcnow()
 
     def add_to_scratchpad(self, note: str) -> None:
@@ -499,6 +522,9 @@ class MemoryState(BaseModel):
             turn_count=data.get("turn_count", 0),
             scratchpad=data.get("scratchpad", []),
         )
+        # Mark turn_count as explicitly set if it was in the data
+        if "turn_count" in data:
+            instance.turn_count_explicitly_set = True
         if "last_activity" in data:
             instance.last_activity = datetime.fromisoformat(data["last_activity"])
         return instance
@@ -1251,6 +1277,8 @@ class AudioStreamInfo(BaseModel):
         ..., description="Voice channel ID", pattern=r"^[0-9]+$"
     )
 
+    session_id: str = PydanticField(..., description="Voice session identifier")
+
     format: str = PydanticField(..., description="Audio format (e.g., 's16le', 'opus')")
 
     sample_rate: int = PydanticField(
@@ -1283,6 +1311,26 @@ class AudioStreamInfo(BaseModel):
 
     silence_threshold: float = PydanticField(
         ..., description="Silence detection threshold", ge=0.0, le=1.0
+    )
+
+    is_active: bool = PydanticField(
+        True, description="Whether stream is currently active"
+    )
+
+    buffer_size: int = PydanticField(
+        0, description="Current buffer size in bytes", ge=0
+    )
+
+    processed_chunks: int = PydanticField(
+        0, description="Number of chunks processed", ge=0
+    )
+
+    total_transcriptions: int = PydanticField(
+        0, description="Total transcriptions generated", ge=0
+    )
+
+    average_confidence: float = PydanticField(
+        0.0, description="Average transcription confidence", ge=0.0, le=1.0
     )
 
 
@@ -2433,15 +2481,23 @@ class RulesQuery(BaseModel):
 class RulesResponse(BaseModel):
     """Response model for SRD rules data queries."""
 
-    query_type: str = PydanticField(
-        ...,
+    query_type: Optional[str] = PydanticField(
+        None,
         description="Type of data that was queried",
         examples=["monster", "spell", "weapon"],
     )
 
-    found: bool = PydanticField(..., description="Whether the requested data was found")
+    found: Optional[bool] = PydanticField(None, description="Whether the requested data was found")
 
     result: Optional[Any] = PydanticField(None, description="The query result data")
+
+    name: Optional[str] = PydanticField(
+        None, description="Name of the queried item", examples=["Goblin", "Fire Bolt"]
+    )
+
+    data: Optional[Any] = PydanticField(
+        None, description="The raw data returned from the query"
+    )
 
     error: Optional[str] = PydanticField(
         None, description="Error message if the query failed"
@@ -2760,66 +2816,6 @@ class AudioProcessingConfig(BaseModel):
 
     normalize_audio: bool = PydanticField(
         True, description="Enable audio normalization"
-    )
-
-
-class AudioStreamInfo(BaseModel):
-    """Information about an audio stream for STT processing."""
-
-    stream_id: str = PydanticField(
-        ...,
-        description="Unique stream identifier",
-        pattern=r"^[a-zA-Z0-9_-]+$",
-        min_length=1,
-        max_length=128,
-    )
-
-    user_id: str = PydanticField(
-        ..., description="User ID of the stream source", pattern=r"^[0-9]+$"
-    )
-
-    channel_id: str = PydanticField(
-        ..., description="Voice channel ID", pattern=r"^[0-9]+$"
-    )
-
-    session_id: str = PydanticField(..., description="Voice session identifier")
-
-    format: str = PydanticField(..., description="Audio format (e.g., 's16le', 'opus')")
-
-    sample_rate: int = PydanticField(
-        ..., description="Sample rate in Hz", ge=8000, le=192000
-    )
-
-    channels: int = PydanticField(
-        ..., description="Number of audio channels", ge=1, le=2
-    )
-
-    started_at: datetime = PydanticField(
-        default_factory=datetime.utcnow, description="When the stream started"
-    )
-
-    last_activity: datetime = PydanticField(
-        default_factory=datetime.utcnow, description="Last audio activity"
-    )
-
-    is_active: bool = PydanticField(
-        True, description="Whether stream is currently active"
-    )
-
-    buffer_size: int = PydanticField(
-        0, description="Current buffer size in bytes", ge=0
-    )
-
-    processed_chunks: int = PydanticField(
-        0, description="Number of chunks processed", ge=0
-    )
-
-    total_transcriptions: int = PydanticField(
-        0, description="Total transcriptions generated", ge=0
-    )
-
-    average_confidence: float = PydanticField(
-        0.0, description="Average transcription confidence", ge=0.0, le=1.0
     )
 
 

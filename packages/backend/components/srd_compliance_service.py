@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from packages.shared.logging_config import get_logger
-from packages.shared.models import DataSource
+from packages.shared.models import DataSource, SRDCompliance
 from enum import Enum
 
 logger = get_logger(__name__)
@@ -80,7 +80,13 @@ class SRDComplianceService:
         self.logger = get_logger(f"{__name__}.SRDComplianceService")
 
         # Database path for compliance data
-        self.database_path = database_path or "data/srd_compliance.db"
+        if database_path is None:
+            # Use a default path, but allow tests to override
+            import tempfile
+            temp_dir = Path(tempfile.gettempdir())
+            self.database_path = str(temp_dir / "srd_compliance.db")
+        else:
+            self.database_path = database_path
         self._ensure_database_exists()
 
         # Official SRD sources (this would be configurable)
@@ -205,6 +211,10 @@ class SRDComplianceService:
         Returns:
             ComplianceCheckResult with verification results
         """
+        # Validate entity type
+        if entity_type not in ["monster", "spell", "weapon"]:
+            raise ValueError(f"Unsupported data type: {entity_type}")
+
         issues = []
         warnings = []
         recommendations = []
@@ -235,6 +245,10 @@ class SRDComplianceService:
 
         if not compliance.verification_hash:
             issues.append("Missing verification hash")
+
+        # Check if verification is expired
+        if compliance.last_verified and self._is_verification_expired(compliance.last_verified):
+            issues.append("Verification has expired")
 
         # Check if data is within acceptable usage limits
         usage_issues = self._check_usage_limits(data, entity_type)
@@ -294,9 +308,16 @@ class SRDComplianceService:
             return issues
 
         # Check if it's an official source
-        official_source = self._official_sources.get(
-            data_source.source_name.lower().replace(" ", "_")
-        )
+        # First try exact match with normalized key
+        normalized_key = data_source.source_name.lower().replace(" ", "_").replace("&", "and")
+        official_source = self._official_sources.get(normalized_key)
+
+        # If not found, try to match by source name
+        if not official_source:
+            for key, source in self._official_sources.items():
+                if source.source_name.lower() == data_source.source_name.lower():
+                    official_source = source
+                    break
         if not official_source:
             issues.append(
                 f"Source '{data_source.source_name}' not recognized as official"
@@ -309,6 +330,66 @@ class SRDComplianceService:
                 issues.append("Source version does not match official source")
 
         return issues
+
+    def _validate_data_source(self, data_source: DataSource) -> List[str]:
+        """Validate data source information (alias for _verify_data_source)."""
+        return self._verify_data_source(data_source)
+
+    def _is_verification_expired(self, verification_date: datetime) -> bool:
+        """Check if a verification date is expired."""
+        # Consider verification expired if it's more than 1 year old
+        expiration_period = datetime.utcnow() - verification_date
+        return expiration_period.days > 365
+
+    def get_license_requirements(self) -> Dict[str, Any]:
+        """Get license requirements and restrictions."""
+        return {
+            "attribution": self._compliance_rules.get("attribution_requirements", []),
+            "usage_restrictions": self._compliance_rules.get("usage_restrictions", []),
+            "compliance_officer": "system",
+            "last_updated": datetime.utcnow().isoformat(),
+        }
+
+    def health_check(self) -> Dict[str, Any]:
+        """Get health status of the SRD compliance service."""
+        return self.get_health_status()
+
+    def _check_license_restrictions(self, compliance: "SRDCompliance") -> List[str]:
+        """Check license restrictions for compliance."""
+        restrictions = []
+
+        if not compliance.usage_restrictions:
+            restrictions.append("No usage restrictions specified")
+        else:
+            # Check for common OGL restrictions
+            for restriction in compliance.usage_restrictions:
+                if "non-commercial" in restriction.lower():
+                    restrictions.append("OGL Non-Commercial Use Restriction")
+                if "attribution" in restriction.lower():
+                    restrictions.append("OGL Attribution Requirement")
+
+        return restrictions
+
+    def _update_audit_trail(
+        self, compliance: "SRDCompliance", action: str, user: str
+    ) -> "SRDCompliance":
+        """Update audit trail for compliance record."""
+        # Create a new audit entry
+        new_entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "action": action,
+            "user": user,
+            "details": f"Action performed by {user}"
+        }
+
+        # Add to audit trail
+        updated_audit_trail = compliance.audit_trail.copy()
+        updated_audit_trail.append(new_entry)
+
+        # Return updated compliance record
+        updated_compliance = compliance.model_copy()
+        updated_compliance.audit_trail = updated_audit_trail
+        return updated_compliance
 
     def _check_usage_limits(self, data: Any, entity_type: str) -> List[str]:
         """Check if data usage is within acceptable limits."""
@@ -591,6 +672,7 @@ class SRDComplianceService:
 
 
 # Global SRD compliance service instance
+# Note: This will use a temporary database path by default
 srd_compliance_service = SRDComplianceService()
 
 # Alias for backward compatibility with tests

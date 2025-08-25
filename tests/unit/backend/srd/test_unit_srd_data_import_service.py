@@ -219,7 +219,7 @@ class TestSRDDataImportService:
             "monster_name": "Test Monster",
             "armor_class": 15,
             "hit_points": "10 (3d6)",
-            "strength": 25,  # Invalid score (> 20)
+            "strength": 35,  # Invalid score (> 30)
             "dexterity": 12,
             "constitution": 13,
             "intelligence": 8,

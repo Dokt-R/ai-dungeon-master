@@ -14,10 +14,10 @@ from datetime import datetime
 
 import pytest
 
-from packages.backend.components.providers.monster_provider import MonsterRuleProvider
-from packages.backend.components.providers.spell_provider import SpellRuleProvider
-from packages.backend.components.providers.weapon_provider import WeaponRuleProvider
 from packages.backend.components.rules_engine import (
+    MonsterRuleProvider,
+    SpellRuleProvider,
+    WeaponRuleProvider,
     QueryMetrics,
     RuleProviderType,
     RulesEngine,
