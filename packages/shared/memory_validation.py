@@ -101,10 +101,11 @@ class MemoryValidator:
                 "Event ID must contain only alphanumeric characters, underscores, and hyphens"
             )
 
-        if event.event_type not in self._valid_event_types:
-            errors.append(
-                f"Invalid event type: {event.event_type}. Must be one of: {', '.join(self._valid_event_types)}"
-            )
+        # Skip basic event_type and participants validation here - will be handled later
+        # if event.event_type not in self._valid_event_types:
+        #     errors.append(
+        #         f"Invalid event type: {event.event_type}. Must be one of: {', '.join(self._valid_event_types)}"
+        #     )
 
         if not event.description or not event.description.strip():
             errors.append("Event description cannot be empty")
@@ -113,9 +114,10 @@ class MemoryValidator:
                 f"Event description exceeds maximum length of {self._max_description_length} characters"
             )
 
-        if not event.participants or len(event.participants) == 0:
-            errors.append("Event must have at least one participant")
-        elif len(event.participants) > self._max_participants:
+        # Skip basic participants validation here - will be handled later
+        # if not event.participants or len(event.participants) == 0:
+        #     errors.append("Event must have at least one participant")
+        elif event.participants and len(event.participants) > self._max_participants:
             errors.append(
                 f"Event cannot have more than {self._max_participants} participants"
             )
@@ -126,6 +128,10 @@ class MemoryValidator:
 
         if event.timestamp < datetime.utcnow() - timedelta(days=365 * 10):
             warnings.append("Event timestamp is more than 10 years in the past")
+
+        # Business rule validation - call this early to catch specific business rules
+        business_issues = self._validate_event_business_rules(event)
+        errors.extend(business_issues)
 
         # Validate participants
         participant_issues = self._validate_participants(event.participants)
@@ -141,9 +147,14 @@ class MemoryValidator:
             metadata_issues = self._validate_metadata(event.metadata)
             errors.extend(metadata_issues)
 
-        # Business rule validation
-        business_issues = self._validate_event_business_rules(event)
-        errors.extend(business_issues)
+        # Additional validation for manually modified fields
+        if event.event_type not in self._valid_event_types:
+            errors.append(
+                f"Invalid event type: {event.event_type}. Must be one of: {', '.join(self._valid_event_types)}"
+            )
+
+        if not event.participants or len(event.participants) == 0:
+            errors.append("Event must have at least one participant")
 
         # Generate suggestions
         if not event.location and event.event_type in ["combat", "exploration"]:
@@ -186,10 +197,11 @@ class MemoryValidator:
                 "Fact ID must contain only alphanumeric characters, underscores, and hyphens"
             )
 
-        if fact.fact_type not in self._valid_fact_types:
-            errors.append(
-                f"Invalid fact type: {fact.fact_type}. Must be one of: {', '.join(self._valid_fact_types)}"
-            )
+        # Skip basic fact_type validation here - will be handled later
+        # if fact.fact_type not in self._valid_fact_types:
+        #     errors.append(
+        #         f"Invalid fact type: {fact.fact_type}. Must be one of: {', '.join(self._valid_fact_types)}"
+        #     )
 
         if not fact.subject or not fact.subject.strip():
             errors.append("Fact subject cannot be empty")
@@ -235,9 +247,15 @@ class MemoryValidator:
                     f"Invalid event IDs in related_events: {', '.join(event_id_issues)}"
                 )
 
-        # Business rule validation
+        # Business rule validation - call this before checking for errors
         business_issues = self._validate_fact_business_rules(fact)
         errors.extend(business_issues)
+
+        # Additional validation for manually modified fields
+        if fact.fact_type not in self._valid_fact_types:
+            errors.append(
+                f"Invalid fact type: {fact.fact_type}. Must be one of: {', '.join(self._valid_fact_types)}"
+            )
 
         # Generate suggestions
         if fact.confidence > 0.9 and len(fact.description) < 100:
