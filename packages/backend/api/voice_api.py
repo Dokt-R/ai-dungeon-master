@@ -198,7 +198,8 @@ async def create_voice_session(session_id: str, config: Optional[SessionConfig] 
                     )
                     if not success:
                         logger.warning(
-                            "Failed to add audio source", source_id=source_config.source_id
+                            "Failed to add audio source",
+                            source_id=source_config.source_id,
                         )
 
             # Enable focus mode if requested
@@ -215,7 +216,9 @@ async def create_voice_session(session_id: str, config: Optional[SessionConfig] 
         return {"session_id": session_id, "status": "created"}
 
     except Exception as e:
-        logger.error("Failed to create voice session", session_id=session_id, error=str(e))
+        logger.error(
+            "Failed to create voice session", session_id=session_id, error=str(e)
+        )
         raise HTTPException(
             status_code=500, detail=f"Failed to create voice session: {str(e)}"
         )
@@ -244,7 +247,9 @@ async def add_audio_source(session_id: str, source_config: AudioSourceConfig):
             raise HTTPException(status_code=500, detail="Failed to add audio source")
 
         logger.info(
-            "Added audio source to session", source_id=source_config.source_id, session_id=session_id
+            "Added audio source to session",
+            source_id=source_config.source_id,
+            session_id=session_id,
         )
         return {"status": "source_added", "source_id": source_config.source_id}
 
@@ -275,7 +280,9 @@ async def update_source_position(
             raise HTTPException(status_code=404, detail="Audio source not found")
 
         logger.info(
-            "Updated position for source in session", source_id=source_id, session_id=session_id
+            "Updated position for source in session",
+            source_id=source_id,
+            session_id=session_id,
         )
         return {"status": "position_updated"}
 

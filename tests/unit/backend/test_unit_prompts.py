@@ -104,7 +104,7 @@ class TestPromptTemplate:
         """Test token count estimation."""
         filled_content = "Hello Alice, welcome to Wonderland!"
         estimated_tokens = self.template.estimate_token_count(filled_content)
-        assert estimated_tokens == 6  # 30 characters / 4 = 7.5, floored to 6
+        assert estimated_tokens == 7  # Actual tiktoken count for this string
 
     def test_validate_token_limit_under_limit(self):
         """Test token limit validation when under limit."""
@@ -113,7 +113,9 @@ class TestPromptTemplate:
 
     def test_validate_token_limit_over_limit(self):
         """Test token limit validation when over limit."""
-        long_content = "x" * 4001  # This will exceed 1000 token limit
+        long_content = (
+            "x" * 10000
+        )  # Much longer content to exceed 1000 tokens with tiktoken
         assert self.template.validate_token_limit(long_content) is False
 
 
@@ -194,6 +196,7 @@ class TestPromptManager:
             version=PromptVersion(major=1, minor=0, patch=0),
             prompt_type=PromptType.CORE_DM,
             name="Test Template v1",
+            description="Version 1 of test template",
             content="Hello {name}!",
             variables=["name"],
         )
@@ -203,6 +206,7 @@ class TestPromptManager:
             version=PromptVersion(major=1, minor=1, patch=0),
             prompt_type=PromptType.CORE_DM,
             name="Test Template v2",
+            description="Version 2 of test template",
             content="Hi {name}!",
             variables=["name"],
         )
@@ -255,6 +259,7 @@ class TestPromptManager:
             version=PromptVersion(major=1, minor=0, patch=0),
             prompt_type=PromptType.CORE_DM,
             name="Bad Template",
+            description="Template with invalid format string for testing",
             content="Hello {name",  # Missing closing brace
             variables=["name"],
         )

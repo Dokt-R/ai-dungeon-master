@@ -16,7 +16,7 @@ import pytest
 
 from packages.backend.components.observability_service import (
     ObservabilityService,
-    ObservabilityConfig
+    ObservabilityConfig,
 )
 
 
@@ -30,7 +30,7 @@ class TestTracingWorkflowIntegration:
             api_key="test_api_key",
             project="test_project",
             endpoint="https://test.langsmith.com",
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
     @pytest.fixture
@@ -39,8 +39,8 @@ class TestTracingWorkflowIntegration:
         service = ObservabilityService()
         service.reset_instance()
 
-        with patch.object(service, 'load_config', return_value=mock_config):
-            with patch.object(service, '_initialize_langsmith_client'):
+        with patch.object(service, "load_config", return_value=mock_config):
+            with patch.object(service, "_initialize_langsmith_client"):
                 service.initialize()
                 yield service
 
@@ -48,13 +48,14 @@ class TestTracingWorkflowIntegration:
 
     def test_trace_ai_operation_decorator(self, service):
         """Test the AI operation tracing decorator."""
+
         @service.trace_ai_operation(operation_type="test_operation")
         def sample_ai_function(param1: str, param2: int = 42):
             time.sleep(0.01)  # Simulate some processing time
             return f"processed_{param1}_{param2}"
 
-        with patch.object(service, '_add_performance_metrics') as mock_perf:
-            with patch.object(service, '_add_result_metadata') as mock_result:
+        with patch.object(service, "_add_performance_metrics") as mock_perf:
+            with patch.object(service, "_add_result_metadata") as mock_result:
                 result = sample_ai_function("test", param2=123)
 
                 assert result == "processed_test_123"
@@ -63,12 +64,13 @@ class TestTracingWorkflowIntegration:
 
     def test_trace_llm_call_decorator(self, service):
         """Test the LLM call tracing decorator."""
+
         @service.trace_llm_call_decorator(model_name="gpt-4", include_prompt=True)
         def mock_llm_call(prompt: str, model: str = "gpt-4"):
             time.sleep(0.01)
             return f"Response to: {prompt}"
 
-        with patch.object(service, 'trace_llm_response') as mock_response:
+        with patch.object(service, "trace_llm_response") as mock_response:
             result = mock_llm_call("Test prompt", model="gpt-4")
 
             assert result == "Response to: Test prompt"
@@ -76,6 +78,7 @@ class TestTracingWorkflowIntegration:
 
     def test_trace_ai_workflow_decorator(self, service):
         """Test the AI workflow tracing decorator."""
+
         @service.trace_ai_workflow_decorator(workflow_type="narrative_generation")
         def generate_narrative(topic: str):
             time.sleep(0.02)
@@ -87,7 +90,8 @@ class TestTracingWorkflowIntegration:
 
     def test_performance_metrics_collection(self, service):
         """Test performance metrics collection."""
-        with patch.object(service, '_add_performance_metrics') as mock_perf:
+        with patch.object(service, "_add_performance_metrics") as mock_perf:
+
             @service.trace_ai_operation(operation_type="performance_test")
             def slow_operation():
                 time.sleep(0.05)
@@ -105,18 +109,23 @@ class TestTracingWorkflowIntegration:
 
     def test_custom_trace_tags(self, service):
         """Test custom trace tags functionality."""
-        with patch.object(service, 'add_custom_trace_tags') as mock_tags:
+        with patch.object(service, "add_custom_trace_tags") as mock_tags:
             tags = service.create_ai_trace_tags(
                 operation_type="llm_call",
                 model_name="gpt-4",
                 provider="openai",
                 prompt_tokens=150,
-                response_tokens=75
+                response_tokens=75,
             )
 
             expected_keys = {
-                "ai_operation", "operation_type", "ai_service",
-                "llm_model", "llm_provider", "prompt_tokens", "response_tokens"
+                "ai_operation",
+                "operation_type",
+                "ai_service",
+                "llm_model",
+                "llm_provider",
+                "prompt_tokens",
+                "response_tokens",
             }
             assert expected_keys.issubset(tags.keys())
             assert tags["operation_type"] == "llm_call"
@@ -124,6 +133,7 @@ class TestTracingWorkflowIntegration:
 
     def test_trace_error_handling(self, service):
         """Test error handling in traced operations."""
+
         @service.trace_ai_operation(operation_type="error_test")
         def failing_operation():
             time.sleep(0.01)
@@ -134,6 +144,7 @@ class TestTracingWorkflowIntegration:
 
     def test_nested_trace_operations(self, service):
         """Test nested tracing operations."""
+
         @service.trace_ai_operation(operation_type="outer_operation")
         def outer_operation():
             time.sleep(0.01)
@@ -156,12 +167,12 @@ class TestTracingWorkflowIntegration:
         @service.trace_ai_operation(operation_type="context_test")
         def operation_with_context():
             # Simulate storing context for verification
-            trace_context['executed'] = True
+            trace_context["executed"] = True
             return "context_result"
 
         result = operation_with_context()
         assert result == "context_result"
-        assert trace_context.get('executed') is True
+        assert trace_context.get("executed") is True
 
     def test_performance_metrics_api(self, service):
         """Test performance metrics retrieval API."""
@@ -179,7 +190,7 @@ class TestTracingWorkflowIntegration:
             operation_type="llm_call",
             model_name="gpt-4",
             provider="openai",
-            temperature=0.7
+            temperature=0.7,
         )
         assert llm_tags["operation_type"] == "llm_call"
         assert llm_tags["llm_model"] == "gpt-4"
@@ -190,7 +201,7 @@ class TestTracingWorkflowIntegration:
             operation_type="ai_workflow",
             stage="generation",
             step="narrative_creation",
-            data_size=1024
+            data_size=1024,
         )
         assert workflow_tags["operation_type"] == "ai_workflow"
         assert workflow_tags["workflow_stage"] == "generation"
@@ -200,19 +211,17 @@ class TestTracingWorkflowIntegration:
             operation_type="embedding",
             model_name="text-embedding-ada-002",
             dimension=1536,
-            text_length=512
+            text_length=512,
         )
         assert embedding_tags["operation_type"] == "embedding"
         assert embedding_tags["embedding_dimension"] == 1536
 
     def test_decorator_with_various_argument_types(self, service):
         """Test tracing decorators with various argument types."""
+
         @service.trace_ai_operation(operation_type="args_test", include_args=True)
         def function_with_various_args(
-            required_arg: str,
-            optional_arg: int = 42,
-            *args,
-            **kwargs
+            required_arg: str, optional_arg: int = 42, *args, **kwargs
         ):
             return f"{required_arg}_{optional_arg}_{len(args)}_{len(kwargs)}"
 
@@ -223,11 +232,12 @@ class TestTracingWorkflowIntegration:
 
     def test_decorator_result_inclusion(self, service):
         """Test including function results in trace metadata."""
+
         @service.trace_ai_operation(operation_type="result_test", include_result=True)
         def function_with_result():
             return {"status": "success", "data": [1, 2, 3, 4, 5]}
 
-        with patch.object(service, '_add_result_metadata') as mock_result:
+        with patch.object(service, "_add_result_metadata") as mock_result:
             result = function_with_result()
 
             assert result["status"] == "success"
@@ -270,7 +280,7 @@ class TestTracingWorkflowIntegration:
             "workflow_started",
             "preprocessing",
             "content_generation",
-            "workflow_completed"
+            "workflow_completed",
         ]
         assert execution_log == expected_log
 
@@ -301,6 +311,7 @@ class TestTracingErrorScenarios:
 
     def test_decorator_with_exception_propagation(self, service):
         """Test that exceptions are properly propagated through decorators."""
+
         @service.trace_ai_operation(operation_type="exception_test")
         def function_that_raises():
             raise RuntimeError("Test exception")
@@ -310,7 +321,8 @@ class TestTracingErrorScenarios:
 
     def test_performance_metrics_with_exceptions(self, service):
         """Test performance metrics are still collected even when operations fail."""
-        with patch.object(service, '_add_performance_metrics') as mock_perf:
+        with patch.object(service, "_add_performance_metrics") as mock_perf:
+
             @service.trace_ai_operation(operation_type="failing_performance_test")
             def failing_function():
                 time.sleep(0.01)

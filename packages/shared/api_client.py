@@ -278,25 +278,33 @@ class ApiClient:
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
 
-    async def create_voice_session(self, session_id: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def create_voice_session(
+        self, session_id: str, config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Create a new voice session with specified configuration."""
         url = ROUTES.voice_session_create(session_id)
         resp = await self._request("POST", url, json=config or {})
         return await self._handle_response(resp)
 
-    async def add_audio_source(self, session_id: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_audio_source(
+        self, session_id: str, source_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Add an audio source to a voice session."""
         url = ROUTES.voice_session_source(session_id)
         resp = await self._request("POST", url, json=source_config)
         return await self._handle_response(resp)
 
-    async def update_audio_source_position(self, session_id: str, source_id: str, position: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_audio_source_position(
+        self, session_id: str, source_id: str, position: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Update the spatial position of an audio source."""
         url = ROUTES.voice_session_source_position(session_id, source_id)
         resp = await self._request("PUT", url, json=position)
         return await self._handle_response(resp)
 
-    async def set_focus_mode(self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True) -> Dict[str, Any]:
+    async def set_focus_mode(
+        self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True
+    ) -> Dict[str, Any]:
         """Enable or disable focus mode for a session."""
         url = ROUTES.voice_session_focus(session_id)
         data = {"focus_speaker": focus_speaker, "enable": enable}

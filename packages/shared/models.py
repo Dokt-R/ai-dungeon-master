@@ -2,7 +2,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field as PydanticField, SecretStr
+from pydantic import BaseModel, Field as PydanticField, SecretStr, field_serializer
+from pydantic.config import ConfigDict
 from sqlalchemy import Column, String
 from sqlalchemy.orm import Mapped
 from sqlmodel import Field as SQLField, Relationship, SQLModel
@@ -99,12 +100,14 @@ class MemoryStateModel(SQLModel, table=True):
     memory_id: Optional[int] = SQLField(default=None, primary_key=True)
     session_id: str = SQLField(..., index=True, unique=True)
     user_id: Optional[str] = SQLField(default=None, index=True)
-    campaign_id: Optional[int] = SQLField(default=None, foreign_key="campaigns.campaign_id", index=True)
+    campaign_id: Optional[int] = SQLField(
+        default=None, foreign_key="campaigns.campaign_id", index=True
+    )
 
     # JSON serialized memory data
     messages: str = SQLField(..., sa_column=Column(String))  # JSON serialized
-    context: str = SQLField(..., sa_column=Column(String))   # JSON serialized
-    scratchpad: str = SQLField(..., sa_column=Column(String)) # JSON serialized
+    context: str = SQLField(..., sa_column=Column(String))  # JSON serialized
+    scratchpad: str = SQLField(..., sa_column=Column(String))  # JSON serialized
 
     # Metadata
     turn_count: int = SQLField(default=0)
@@ -119,9 +122,7 @@ class MemoryStateModel(SQLModel, table=True):
     )
 
     # Indexes for performance
-    __table_args__ = (
-        {"sqlite_autoincrement": True},
-    )
+    __table_args__ = ({"sqlite_autoincrement": True},)
 
 
 # ======================================================================================
@@ -875,6 +876,8 @@ class Weapon(BaseModel):
 class MemoryEvent(BaseModel):
     """Represents a historical event in the campaign chronicle."""
 
+    model_config = ConfigDict(serialize_default_values=True)
+
     event_id: str = PydanticField(
         ...,
         description="Unique event identifier",
@@ -896,7 +899,9 @@ class MemoryEvent(BaseModel):
         description="Human-readable event description",
     )
 
-    participants: List[str] = PydanticField(..., description="Characters/NPCs involved")
+    participants: List[str] = PydanticField(
+        ..., description="Characters/NPCs involved", min_length=1
+    )
 
     location: Optional[str] = PydanticField(
         None, description="Where the event occurred"
@@ -910,11 +915,22 @@ class MemoryEvent(BaseModel):
         default_factory=datetime.utcnow, description="When memory was created"
     )
 
+    updated_at: datetime = PydanticField(
+        default_factory=datetime.utcnow, description="When memory was last updated"
+    )
+
     version: int = PydanticField(default=1, description="Memory version for updates")
+
+    @field_serializer("timestamp", "created_at", "updated_at")
+    def serialize_datetime(self, value: datetime) -> str:
+        """Serialize datetime fields to ISO format strings."""
+        return value.isoformat()
 
 
 class MemoryFact(BaseModel):
     """Represents a persistent fact about the campaign world."""
+
+    model_config = ConfigDict(serialize_default_values=True)
 
     fact_id: str = PydanticField(
         ...,
@@ -944,11 +960,18 @@ class MemoryFact(BaseModel):
 
     source: str = PydanticField(..., description="Source of this knowledge")
 
-    tags: List[str] = PydanticField(default_factory=list, description="Searchable tags")
+    tags: List[str] = PydanticField(
+        default_factory=list, description="Searchable tags", max_length=10
+    )
 
     related_events: List[str] = PydanticField(
-        default_factory=list, description="Related event IDs"
+        default_factory=list, description="Related event IDs", max_length=50
     )
+
+    @field_serializer("last_updated")
+    def serialize_datetime(self, value: datetime) -> str:
+        """Serialize datetime fields to ISO format strings."""
+        return value.isoformat()
 
 
 class MemoryContext(BaseModel):
@@ -970,13 +993,17 @@ class MemoryContext(BaseModel):
         ..., description="Current world state snapshot"
     )
 
-    summary: str = PydanticField(..., description="Condensed memory summary for AI")
+    summary: str = PydanticField(
+        ..., description="Condensed memory summary for AI", min_length=1
+    )
 
-    context_size: int = PydanticField(..., description="Estimated token count")
+    context_size: int = PydanticField(..., description="Estimated token count", ge=0)
 
 
 class MemoryOperation(BaseModel):
     """Result of a memory CRUD operation."""
+
+    model_config = ConfigDict(serialize_default_values=True)
 
     operation: Literal["create", "read", "update", "delete"] = PydanticField(
         ..., description="Operation performed"
@@ -994,6 +1021,11 @@ class MemoryOperation(BaseModel):
         default_factory=datetime.utcnow, description="Operation timestamp"
     )
 
+    @field_serializer("timestamp")
+    def serialize_datetime(self, value: datetime) -> str:
+        """Serialize datetime fields to ISO format strings."""
+        return value.isoformat()
+
 
 # Memory CRUD Request/Response Models
 class CreateMemoryEventRequest(BaseModel):
@@ -1007,7 +1039,9 @@ class CreateMemoryEventRequest(BaseModel):
         ..., min_length=1, max_length=1000, description="Event description"
     )
 
-    participants: List[str] = PydanticField(..., description="Characters/NPCs involved")
+    participants: List[str] = PydanticField(
+        ..., description="Characters/NPCs involved", min_length=1
+    )
 
     location: Optional[str] = PydanticField(
         None, description="Where the event occurred"
@@ -2370,19 +2404,19 @@ class RulesQuery(BaseModel):
     query_type: str = PydanticField(
         ...,
         description="Type of data being queried (monster, spell, weapon)",
-        examples=["monster", "spell", "weapon"]
+        examples=["monster", "spell", "weapon"],
     )
 
     name: Optional[str] = PydanticField(
         None,
         description="Name of the specific item to query",
-        examples=["Goblin", "Fireball", "Longsword"]
+        examples=["Goblin", "Fireball", "Longsword"],
     )
 
     context: Optional[str] = PydanticField(
         None,
         description="Context for the query",
-        examples=["combat", "character_creation", "world_lore"]
+        examples=["combat", "character_creation", "world_lore"],
     )
 
     filters: Optional[Dict[str, Any]] = PydanticField(
@@ -2391,8 +2425,8 @@ class RulesQuery(BaseModel):
         examples=[
             {"min_cr": 1, "max_cr": 5},
             {"level": 3, "school": "Evocation"},
-            {"category": "Simple Melee Weapons"}
-        ]
+            {"category": "Simple Melee Weapons"},
+        ],
     )
 
 
@@ -2402,44 +2436,31 @@ class RulesResponse(BaseModel):
     query_type: str = PydanticField(
         ...,
         description="Type of data that was queried",
-        examples=["monster", "spell", "weapon"]
+        examples=["monster", "spell", "weapon"],
     )
 
-    found: bool = PydanticField(
-        ...,
-        description="Whether the requested data was found"
-    )
+    found: bool = PydanticField(..., description="Whether the requested data was found")
 
-    result: Optional[Any] = PydanticField(
-        None,
-        description="The query result data"
-    )
+    result: Optional[Any] = PydanticField(None, description="The query result data")
 
     error: Optional[str] = PydanticField(
-        None,
-        description="Error message if the query failed"
+        None, description="Error message if the query failed"
     )
 
     query_time: Optional[float] = PydanticField(
-        None,
-        ge=0.0,
-        description="Time taken to execute the query in seconds"
+        None, ge=0.0, description="Time taken to execute the query in seconds"
     )
 
     cache_hit: Optional[bool] = PydanticField(
-        None,
-        description="Whether the result came from cache"
+        None, description="Whether the result came from cache"
     )
 
     total_results: Optional[int] = PydanticField(
-        None,
-        ge=0,
-        description="Total number of results found"
+        None, ge=0, description="Total number of results found"
     )
 
     metadata: Optional[Dict[str, Any]] = PydanticField(
-        None,
-        description="Additional metadata about the query"
+        None, description="Additional metadata about the query"
     )
 
 
@@ -2454,7 +2475,7 @@ class ToolCall(BaseModel):
     tool_name: str = PydanticField(
         ...,
         description="Name of the tool to call",
-        examples=["monster_query", "spell_lookup", "weapon_search"]
+        examples=["monster_query", "spell_lookup", "weapon_search"],
     )
 
     tool_args: Dict[str, Any] = PydanticField(
@@ -2462,21 +2483,16 @@ class ToolCall(BaseModel):
         description="Arguments for the tool call",
         examples=[
             {"name": "Goblin", "context": "combat"},
-            {"query_type": "spell", "name": "Fireball"}
-        ]
+            {"query_type": "spell", "name": "Fireball"},
+        ],
     )
 
     query_type: str = PydanticField(
-        ...,
-        description="Type of SRD query",
-        examples=["monster", "spell", "weapon"]
+        ..., description="Type of SRD query", examples=["monster", "spell", "weapon"]
     )
 
     confidence_threshold: float = PydanticField(
-        default=0.8,
-        ge=0.0,
-        le=1.0,
-        description="Minimum confidence for tool usage"
+        default=0.8, ge=0.0, le=1.0, description="Minimum confidence for tool usage"
     )
 
 
@@ -2486,40 +2502,29 @@ class ToolResult(BaseModel):
     tool_name: str = PydanticField(
         ...,
         description="Name of the tool that was called",
-        examples=["monster_query", "spell_lookup"]
+        examples=["monster_query", "spell_lookup"],
     )
 
     success: bool = PydanticField(
-        ...,
-        description="Whether the tool call was successful"
+        ..., description="Whether the tool call was successful"
     )
 
-    data: Optional[Dict[str, Any]] = PydanticField(
-        None,
-        description="Tool result data"
-    )
+    data: Optional[Dict[str, Any]] = PydanticField(None, description="Tool result data")
 
     error: Optional[str] = PydanticField(
-        None,
-        description="Error message if tool failed"
+        None, description="Error message if tool failed"
     )
 
     execution_time: float = PydanticField(
-        ...,
-        ge=0.0,
-        description="Tool execution time in seconds"
+        ..., ge=0.0, description="Tool execution time in seconds"
     )
 
     relevance_score: Optional[float] = PydanticField(
-        None,
-        ge=0.0,
-        le=1.0,
-        description="Result relevance score"
+        None, ge=0.0, le=1.0, description="Result relevance score"
     )
 
     summary: Optional[str] = PydanticField(
-        None,
-        description="Condensed results summary for AI"
+        None, description="Condensed results summary for AI"
     )
 
 
@@ -2529,26 +2534,23 @@ class AccuracyValidation(BaseModel):
     query: str = PydanticField(
         ...,
         description="Original query that was asked",
-        examples=["What are the stats for a goblin?"]
+        examples=["What are the stats for a goblin?"],
     )
 
     ai_response: str = PydanticField(
         ...,
         description="AI's response to validate",
-        examples=["A goblin has AC 15, HP 7 (2d6), and attacks with a scimitar."]
+        examples=["A goblin has AC 15, HP 7 (2d6), and attacks with a scimitar."],
     )
 
     expected_answer: str = PydanticField(
         ...,
         description="Expected correct answer from SRD",
-        examples=["AC 15, HP 7 (2d6), STR 8, DEX 14, CON 10, INT 10, WIS 8, CHA 8"]
+        examples=["AC 15, HP 7 (2d6), STR 8, DEX 14, CON 10, INT 10, WIS 8, CHA 8"],
     )
 
     accuracy_score: float = PydanticField(
-        ...,
-        ge=0.0,
-        le=1.0,
-        description="Accuracy score (0-1)"
+        ..., ge=0.0, le=1.0, description="Accuracy score (0-1)"
     )
 
     validation_details: List[str] = PydanticField(
@@ -2557,13 +2559,12 @@ class AccuracyValidation(BaseModel):
         examples=[
             "Correct AC and HP values",
             "Missing ability scores",
-            "Correct challenge rating"
-        ]
+            "Correct challenge rating",
+        ],
     )
 
     validation_date: datetime = PydanticField(
-        ...,
-        description="When validation was performed"
+        ..., description="When validation was performed"
     )
 
 

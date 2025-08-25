@@ -583,6 +583,129 @@ class SRDDatabaseManager:
             )
             return []
 
+    def get_monster_by_name(self, monster_name: str) -> Optional[Monster]:
+        """Get monster by name."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "SELECT * FROM monsters WHERE monster_name = ? AND is_active = 1",
+                    (monster_name,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    return Monster(
+                        monster_id=row["monster_id"],
+                        monster_name=row["monster_name"],
+                        armor_class=row["armor_class"],
+                        hit_points=row["hit_points"],
+                        strength=row["strength"],
+                        dexterity=row["dexterity"],
+                        constitution=row["constitution"],
+                        intelligence=row["intelligence"],
+                        wisdom=row["wisdom"],
+                        charisma=row["charisma"],
+                        challenge_rating=row["challenge_rating"],
+                        actions=row["actions"],
+                        special_abilities=row["special_abilities"],
+                        description=row["description"],
+                        srd_compliance=self._deserialize_compliance(
+                            row["srd_compliance"]
+                        ),
+                        data_source=self._deserialize_data_source(row["data_source"]),
+                        created_at=datetime.fromisoformat(row["created_at"]),
+                        updated_at=datetime.fromisoformat(row["updated_at"]),
+                        is_active=row["is_active"],
+                    )
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get monster by name", monster_name=monster_name, error=str(e)
+            )
+
+        return None
+
+    def get_spell_by_name(self, spell_name: str) -> Optional[Spell]:
+        """Get spell by name."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "SELECT * FROM spells WHERE spell_name = ? AND is_active = 1",
+                    (spell_name,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    return Spell(
+                        spell_id=row["spell_id"],
+                        spell_name=row["spell_name"],
+                        level=row["level"],
+                        school=row["school"],
+                        casting_time=row["casting_time"],
+                        range=row["range"],
+                        components=row["components"],
+                        duration=row["duration"],
+                        description=row["description"],
+                        at_higher_levels=row["at_higher_levels"],
+                        classes=json.loads(row["classes"]),
+                        srd_compliance=self._deserialize_compliance(
+                            row["srd_compliance"]
+                        ),
+                        data_source=self._deserialize_data_source(row["data_source"]),
+                        created_at=datetime.fromisoformat(row["created_at"]),
+                        updated_at=datetime.fromisoformat(row["updated_at"]),
+                        is_active=row["is_active"],
+                    )
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get spell by name", spell_name=spell_name, error=str(e)
+            )
+
+        return None
+
+    def get_weapon_by_name(self, weapon_name: str) -> Optional[Weapon]:
+        """Get weapon by name."""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+
+                cursor.execute(
+                    "SELECT * FROM weapons WHERE weapon_name = ? AND is_active = 1",
+                    (weapon_name,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    return Weapon(
+                        weapon_id=row["weapon_id"],
+                        weapon_name=row["weapon_name"],
+                        category=row["category"],
+                        cost=row["cost"],
+                        damage=row["damage"],
+                        weight=row["weight"],
+                        properties=json.loads(row["properties"]),
+                        description=row["description"],
+                        srd_compliance=self._deserialize_compliance(
+                            row["srd_compliance"]
+                        ),
+                        data_source=self._deserialize_data_source(row["data_source"]),
+                        created_at=datetime.fromisoformat(row["created_at"]),
+                        updated_at=datetime.fromisoformat(row["updated_at"]),
+                        is_active=row["is_active"],
+                    )
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to get weapon by name", weapon_name=weapon_name, error=str(e)
+            )
+
+        return None
+
     # Database Management Operations
     def create_backup(self, backup_path: Optional[str] = None) -> str:
         """Create database backup."""

@@ -427,7 +427,7 @@ class TestMemoryOperationModel:
         assert operation.success is False
         assert operation.error == "Validation failed: invalid confidence value"
 
-    @pytest.mark.parametrize("invalid_operation", ["invalid", "read", "write"])
+    @pytest.mark.parametrize("invalid_operation", ["invalid", "write", "delete_all"])
     def test_invalid_operation_type(self, invalid_operation):
         """Test that invalid operation types raise validation errors."""
         operation_data = {

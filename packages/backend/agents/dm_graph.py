@@ -366,7 +366,7 @@ class DMGraphService:
             memory_context = await memory_service.prepare_memory_context(
                 session_id=session_id,
                 user_prompt=user_prompt,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             # Compile context messages from memory context
@@ -375,32 +375,34 @@ class DMGraphService:
             # Add recent events from memory context
             for event in memory_context.recent_events:
                 if event["type"] == "message":
-                    context_messages.append({
-                        "role": event["role"],
-                        "content": event["content"]
-                    })
+                    context_messages.append(
+                        {"role": event["role"], "content": event["content"]}
+                    )
                 elif event["type"] == "current_prompt":
                     # Current prompt will be added separately
                     pass
 
             # Add relevant memories as system context
             if memory_context.relevant_memories:
-                memory_context_text = "Relevant context from previous interactions: " + " ".join(
-                    memory_context.relevant_memories[:3]  # Limit to avoid token overflow
+                memory_context_text = (
+                    "Relevant context from previous interactions: "
+                    + " ".join(
+                        memory_context.relevant_memories[
+                            :3
+                        ]  # Limit to avoid token overflow
+                    )
                 )
-                context_messages.append({
-                    "role": "system",
-                    "content": memory_context_text
-                })
+                context_messages.append(
+                    {"role": "system", "content": memory_context_text}
+                )
 
             # Add character knowledge if available
             for char_name, knowledge_list in memory_context.character_knowledge.items():
                 if knowledge_list:
-                    char_context = f"Known information about {char_name}: " + " ".join(knowledge_list[:2])
-                    context_messages.append({
-                        "role": "system",
-                        "content": char_context
-                    })
+                    char_context = f"Known information about {char_name}: " + " ".join(
+                        knowledge_list[:2]
+                    )
+                    context_messages.append({"role": "system", "content": char_context})
 
             # Add world state if available
             if memory_context.world_state:
@@ -409,11 +411,12 @@ class DMGraphService:
                     if value:
                         world_context_parts.append(f"{key}: {value}")
                 if world_context_parts:
-                    world_context_text = "Current world state: " + "; ".join(world_context_parts)
-                    context_messages.append({
-                        "role": "system",
-                        "content": world_context_text
-                    })
+                    world_context_text = "Current world state: " + "; ".join(
+                        world_context_parts
+                    )
+                    context_messages.append(
+                        {"role": "system", "content": world_context_text}
+                    )
 
             # Add scratchpad to context
             if memory_state.scratchpad:
@@ -426,10 +429,12 @@ class DMGraphService:
 
             # Add memory summary if available
             if memory_context.summary:
-                context_messages.append({
-                    "role": "system",
-                    "content": f"Memory summary: {memory_context.summary}"
-                })
+                context_messages.append(
+                    {
+                        "role": "system",
+                        "content": f"Memory summary: {memory_context.summary}",
+                    }
+                )
 
             self.logger.debug(
                 "context_compiled_with_memory_service",
@@ -541,7 +546,7 @@ class DMGraphService:
                 session_id=session_id,
                 user_prompt=user_prompt,
                 ai_response=narrative_response,
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             )
 
             # Clear scratchpad for next interaction

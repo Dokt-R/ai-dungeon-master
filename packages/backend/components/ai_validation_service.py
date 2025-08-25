@@ -135,8 +135,14 @@ class AIValidationService:
             matches = re.findall(pattern, response, re.IGNORECASE)
             if matches:
                 # Validate that ability scores are within reasonable D&D ranges (1-30)
-                if "str" in pattern.lower() or "dex" in pattern.lower() or "con" in pattern.lower() or \
-                   "int" in pattern.lower() or "wis" in pattern.lower() or "cha" in pattern.lower():
+                if (
+                    "str" in pattern.lower()
+                    or "dex" in pattern.lower()
+                    or "con" in pattern.lower()
+                    or "int" in pattern.lower()
+                    or "wis" in pattern.lower()
+                    or "cha" in pattern.lower()
+                ):
                     for match in matches:
                         if isinstance(match, str):
                             # Extract the number from the match
@@ -144,7 +150,9 @@ class AIValidationService:
                             if score_match:
                                 score = int(score_match.group(1))
                                 if score < 1 or score > 30:
-                                    issues.append(f"Invalid ability score: {match} (must be 1-30)")
+                                    issues.append(
+                                        f"Invalid ability score: {match} (must be 1-30)"
+                                    )
 
                 # Validate armor class is reasonable
                 if "armor class" in pattern.lower():
@@ -154,7 +162,9 @@ class AIValidationService:
                             if ac_match:
                                 ac = int(ac_match.group(1))
                                 if ac < 5 or ac > 25:
-                                    issues.append(f"Unusual Armor Class: {ac} (typically 5-25 for most creatures)")
+                                    issues.append(
+                                        f"Unusual Armor Class: {ac} (typically 5-25 for most creatures)"
+                                    )
 
         return issues
 
@@ -174,7 +184,9 @@ class AIValidationService:
             # Check for valid dice sizes in D&D
             valid_sizes = [2, 3, 4, 6, 8, 10, 12, 20, 100]
             if dice_size not in valid_sizes:
-                issues.append(f"Invalid dice size: {dice_size} (valid sizes: {valid_sizes})")
+                issues.append(
+                    f"Invalid dice size: {dice_size} (valid sizes: {valid_sizes})"
+                )
 
             # Check for reasonable dice counts
             if dice_count < 1 or dice_count > 20:
@@ -193,7 +205,10 @@ class AIValidationService:
             issues.append("Use 'cantrip' instead of 'level 0' for 0-level spells")
 
         # Check for proper spell component notation
-        if "v,s,m" in response_lower and "verbal, somatic, material" not in response_lower:
+        if (
+            "v,s,m" in response_lower
+            and "verbal, somatic, material" not in response_lower
+        ):
             issues.append("Spell components should be written as 'V, S, M' not 'v,s,m'")
 
         return issues
@@ -206,7 +221,9 @@ class AIValidationService:
 
         # Check for common monster ability errors
         if "multiattack" in response_lower and "makes" not in response_lower:
-            issues.append("Multiattack should specify how many attacks the creature makes")
+            issues.append(
+                "Multiattack should specify how many attacks the creature makes"
+            )
 
         return issues
 
@@ -217,8 +234,14 @@ class AIValidationService:
         response_lower = response.lower()
 
         # Check for common weapon property errors
-        if "versatile" in response_lower and "(1d8)" not in response_lower and "(1d10)" not in response_lower:
-            issues.append("Versatile weapons should specify two-handed damage in parentheses")
+        if (
+            "versatile" in response_lower
+            and "(1d8)" not in response_lower
+            and "(1d10)" not in response_lower
+        ):
+            issues.append(
+                "Versatile weapons should specify two-handed damage in parentheses"
+            )
 
         return issues
 
@@ -262,7 +285,9 @@ class AIValidationService:
             found_abilities = [abbr for abbr in ability_abbrs if abbr in saves]
 
             if not found_abilities:
-                issues.append("Saving throws should specify which abilities (STR, DEX, CON, INT, WIS, CHA)")
+                issues.append(
+                    "Saving throws should specify which abilities (STR, DEX, CON, INT, WIS, CHA)"
+                )
 
         return issues
 
@@ -277,7 +302,9 @@ class AIValidationService:
         for ability, score in ability_matches:
             score = int(score)
             if score < 1 or score > 30:
-                issues.append(f"Invalid {ability.upper()} score: {score} (must be 1-30)")
+                issues.append(
+                    f"Invalid {ability.upper()} score: {score} (must be 1-30)"
+                )
 
         return issues
 
@@ -301,9 +328,15 @@ class AIValidationService:
 
             # If specific entities were expected, check if they were mentioned (case insensitive)
             if expected_entities:
-                mentioned_entities_lower = [entity.lower() for entity in mentioned_entities]
-                expected_entities_lower = [entity.lower() for entity in expected_entities]
-                missing_entities = set(expected_entities_lower) - set(mentioned_entities_lower)
+                mentioned_entities_lower = [
+                    entity.lower() for entity in mentioned_entities
+                ]
+                expected_entities_lower = [
+                    entity.lower() for entity in expected_entities
+                ]
+                missing_entities = set(expected_entities_lower) - set(
+                    mentioned_entities_lower
+                )
                 if missing_entities:
                     # Convert back to original case for display
                     missing_display = []
@@ -600,7 +633,9 @@ class AIValidationService:
         response_lower = response.lower()
 
         # Check for common rule misunderstandings
-        if ("critical hit" in response_lower or "critical hits" in response_lower) and ("19-20" in response_lower or "19 to 20" in response_lower):
+        if ("critical hit" in response_lower or "critical hits" in response_lower) and (
+            "19-20" in response_lower or "19 to 20" in response_lower
+        ):
             issues.append("Critical hit range incorrect")
 
         if (
@@ -709,7 +744,9 @@ class AIValidationService:
         ]:
             for entity in entity_list:
                 # Use word boundaries to avoid partial matches, case insensitive
-                if re.search(r'\b' + re.escape(entity) + r'\b', text_lower, re.IGNORECASE):
+                if re.search(
+                    r"\b" + re.escape(entity) + r"\b", text_lower, re.IGNORECASE
+                ):
                     # Avoid duplicates
                     if entity not in entities:
                         entities.append(entity)
@@ -775,14 +812,18 @@ class AIValidationService:
             if " and " in damage_text:
                 damage_part = damage_text.split(" and ")[0].strip()
                 # Extract the damage dice pattern
-                dice_match = re.search(r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_part)
+                dice_match = re.search(
+                    r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_part
+                )
                 if dice_match:
                     info["damage"] = dice_match.group(1).strip()
                 else:
                     info["damage"] = damage_part
             else:
                 # No "and", just extract the damage dice
-                dice_match = re.search(r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_text)
+                dice_match = re.search(
+                    r"(\d+d\d+(?:\s*\+\s*\d+)?(?:\s+\w+)?)", damage_text
+                )
                 if dice_match:
                     info["damage"] = dice_match.group(1).strip()
                 else:
@@ -822,6 +863,7 @@ class AIValidationService:
 
     def _compare_challenge_ratings(self, ai_cr: str, srd_cr: str) -> bool:
         """Compare challenge rating formats."""
+
         def normalize_cr(cr: str) -> str:
             """Normalize challenge rating to decimal format."""
             if "/" in cr:

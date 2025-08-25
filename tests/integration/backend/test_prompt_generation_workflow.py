@@ -20,7 +20,7 @@ from packages.backend.agents.prompts import (
     PromptType,
     DungeonMasterPrompts,
     create_prompt_manager,
-    TIKTOKEN_AVAILABLE
+    TIKTOKEN_AVAILABLE,
 )
 
 
@@ -94,7 +94,7 @@ class TestPromptGenerationWorkflowIntegration:
         assert prompt1 == prompt2
 
         # Check cache info if available
-        if hasattr(manager, '_fill_template_cached'):
+        if hasattr(manager, "_fill_template_cached"):
             cache_info = manager._fill_template_cached.cache_info()
             assert cache_info.hits >= 1  # At least one cache hit
             assert cache_info.misses >= 1  # At least one cache miss
@@ -134,14 +134,19 @@ class TestPromptGenerationWorkflowIntegration:
 
         # Test invalid template variables
         with pytest.raises(ValueError, match="Template formatting error"):
-            invalid_variables = {
-                "campaign_context": "Test campaign",
-                "player_count": "{invalid_syntax",  # Invalid syntax
-                "campaign_tone": "epic",
-                "safety_level": "high",
-                "current_date": "2024-08-23",
-            }
-            manager.fill_template(template, invalid_variables)
+            # Create a template with invalid format string to trigger formatting error
+            invalid_template = PromptTemplate(
+                template_id="invalid_template",
+                version=PromptVersion(major=1, minor=0, patch=0),
+                prompt_type=PromptType.CORE_DM,
+                name="Invalid Template",
+                description="Template with invalid format string",
+                content="Template with {invalid:format}",
+                variables=["invalid"],
+                max_tokens=1000,
+            )
+            invalid_variables = {"invalid": "test"}
+            manager.fill_template(invalid_template, invalid_variables)
 
     def test_template_version_management(self):
         """Test template version management and A/B testing capabilities."""
@@ -178,7 +183,9 @@ class TestPromptGenerationWorkflowIntegration:
         assert default_template.version == PromptVersion(major=1, minor=1, patch=0)
 
         # Can retrieve specific versions
-        specific_template = manager.get_template("test_template", PromptVersion(major=1, minor=0, patch=0))
+        specific_template = manager.get_template(
+            "test_template", PromptVersion(major=1, minor=0, patch=0)
+        )
         assert specific_template.version == PromptVersion(major=1, minor=0, patch=0)
 
     def test_dependency_injection_pattern(self):
@@ -250,7 +257,7 @@ class TestPromptGenerationWorkflowIntegration:
         manager = create_prompt_manager()
 
         # Test with corrupted template (simulate database corruption)
-        with patch.object(manager, '_templates', {}):
+        with patch.object(manager, "_templates", {}):
             template = manager.get_default_template(PromptType.CORE_DM)
             assert template is None  # Should handle gracefully
 
@@ -289,11 +296,11 @@ class TestPromptGenerationWorkflowIntegration:
             filled_prompt = manager.fill_template(template, variables)
 
         # Cache should still be functional
-        if hasattr(manager, '_fill_template_cached'):
+        if hasattr(manager, "_fill_template_cached"):
             cache_info = manager._fill_template_cached.cache_info()
             assert cache_info.currsize <= cache_info.maxsize
 
-    @patch('packages.backend.agents.prompts.TIKTOKEN_AVAILABLE', False)
+    @patch("packages.backend.agents.prompts.TIKTOKEN_AVAILABLE", False)
     def test_fallback_token_estimation(self):
         """Test fallback token estimation when tiktoken is not available."""
         manager = create_prompt_manager()
@@ -307,13 +314,13 @@ class TestPromptGenerationWorkflowIntegration:
         expected_tokens = len(test_text) // 4  # 40 // 4 = 10
         assert estimated_tokens == expected_tokens
 
-    @patch('packages.backend.agents.prompts.TIKTOKEN_AVAILABLE', True)
-    @patch('tiktoken.encoding_for_model')
+    @patch("packages.backend.agents.prompts.TIKTOKEN_AVAILABLE", True)
+    @patch("tiktoken.encoding_for_model")
     def test_tiktoken_integration(self, mock_encoding_for_model):
         """Test tiktoken integration when available."""
         # Mock tiktoken encoding
         mock_encoding = Mock()
-        mock_encoding.encode.return_value = ['token1', 'token2', 'token3']  # 3 tokens
+        mock_encoding.encode.return_value = ["token1", "token2", "token3"]  # 3 tokens
         mock_encoding_for_model.return_value = mock_encoding
 
         manager = create_prompt_manager()

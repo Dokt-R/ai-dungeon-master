@@ -27,7 +27,8 @@ from packages.backend.components.observability_service import (
     DependencyContainer,
 )
 
-os.environ['PYTEST_CURRENT_TEST'] = 'integration_test_for_performance'
+os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
+
 
 class TestConfigurationValidation:
     """Test configuration validation features."""
@@ -47,15 +48,15 @@ class TestConfigurationValidation:
             api_key="ls__test_key_123",
             project="ai-dungeon-master",
             endpoint="https://api.langsmith.com",
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         result = validator.validate_config(config)
 
         assert result.is_valid is True
         assert len(result.errors) == 0
-        assert hasattr(result, 'warnings')
-        assert hasattr(result, 'recommendations')
+        assert hasattr(result, "warnings")
+        assert hasattr(result, "recommendations")
 
     def test_validate_invalid_api_key(self):
         """Test validation with invalid API key."""
@@ -63,10 +64,7 @@ class TestConfigurationValidation:
 
         # Test empty API key
         config = ObservabilityConfig(
-            api_key="",
-            project="test_project",
-            endpoint=None,
-            tracing_enabled=True
+            api_key="", project="test_project", endpoint=None, tracing_enabled=True
         )
 
         result = validator.validate_config(config)
@@ -84,7 +82,7 @@ class TestConfigurationValidation:
             api_key="invalid_key_format",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         result = validator.validate_config(config)
@@ -99,10 +97,7 @@ class TestConfigurationValidation:
 
         # Test empty project name
         config = ObservabilityConfig(
-            api_key="ls__test_key",
-            project="",
-            endpoint=None,
-            tracing_enabled=True
+            api_key="ls__test_key", project="", endpoint=None, tracing_enabled=True
         )
 
         result = validator.validate_config(config)
@@ -119,7 +114,7 @@ class TestConfigurationValidation:
             api_key="ls__test_key",
             project="test_project",
             endpoint="not-a-valid-url",
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         result = validator.validate_config(config)
@@ -131,22 +126,28 @@ class TestConfigurationValidation:
         """Test environment variable consistency validation."""
         validator = ConfigurationValidator()
 
-        with patch.dict(os.environ, {
-            "LANGSMITH_API_KEY": "different_key",
-            "LANGSMITH_PROJECT": "different_project"
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "different_key",
+                "LANGSMITH_PROJECT": "different_project",
+            },
+        ):
             config = ObservabilityConfig(
                 api_key="ls__test_key",
                 project="test_project",
                 endpoint=None,
-                tracing_enabled=True
+                tracing_enabled=True,
             )
 
             result = validator.validate_config(config)
 
             assert result.is_valid is True
             assert len(result.warnings) > 0
-            assert any("differs from loaded configuration" in warning for warning in result.warnings)
+            assert any(
+                "differs from loaded configuration" in warning
+                for warning in result.warnings
+            )
 
     def test_security_best_practices(self):
         """Test security best practices validation."""
@@ -157,7 +158,7 @@ class TestConfigurationValidation:
             api_key="ls__test_key",
             project="test_project",
             endpoint="http://localhost:8080",
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         result = validator.validate_config(config)
@@ -218,7 +219,7 @@ class TestCircuitBreaker:
         config = CircuitBreakerConfig(
             failure_threshold=1,
             recovery_timeout=0.1,  # Very short timeout for testing
-            success_threshold=1   # Need only 1 success to fully recover
+            success_threshold=1,  # Need only 1 success to fully recover
         )
         cb = CircuitBreaker(config)
 
@@ -244,9 +245,7 @@ class TestCircuitBreaker:
     def test_circuit_breaker_half_open_failure(self):
         """Test circuit breaker returns to open on half-open failure."""
         config = CircuitBreakerConfig(
-            failure_threshold=1,
-            recovery_timeout=0.1,
-            success_threshold=2
+            failure_threshold=1, recovery_timeout=0.1, success_threshold=2
         )
         cb = CircuitBreaker(config)
 
@@ -315,21 +314,29 @@ class TestDependencyInjection:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
-        with patch('packages.backend.components.observability_service.ObservabilityService.load_config') as mock_load:
+        with patch(
+            "packages.backend.components.observability_service.ObservabilityService.load_config"
+        ) as mock_load:
             mock_load.return_value = config
 
             # Test service creation
-            service = ObservabilityServiceFactory.create_service(config, initialize_on_create=False)
+            service = ObservabilityServiceFactory.create_service(
+                config, initialize_on_create=False
+            )
             assert service is not None
             assert service._config == config
 
     def test_test_service_factory(self):
         """Test creating test service through factory."""
-        with patch('packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client'):
-            service = ObservabilityServiceFactory.create_test_service(mock_langsmith=False)
+        with patch(
+            "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+        ):
+            service = ObservabilityServiceFactory.create_test_service(
+                mock_langsmith=False
+            )
             assert service is not None
             assert service._config.api_key == "test_api_key"
             assert service._config.project == "test_project"
@@ -350,7 +357,7 @@ class TestDependencyInjection:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         container.register_service("test_config", config)
@@ -369,17 +376,19 @@ class TestDependencyInjection:
 
     def test_service_interface_compatibility(self):
         """Test that service implements the expected interface."""
-        from packages.backend.components.observability_service import ObservabilityServiceInterface
+        from packages.backend.components.observability_service import (
+            ObservabilityServiceInterface,
+        )
 
         service = ObservabilityService()
 
         # Check that service has methods from interface
-        assert hasattr(service, 'initialize')
-        assert hasattr(service, 'get_health_status')
-        assert hasattr(service, 'is_initialized')
-        assert hasattr(service, 'trace_operation')
-        assert hasattr(service, 'trace_llm_call')
-        assert hasattr(service, 'trace_ai_workflow')
+        assert hasattr(service, "initialize")
+        assert hasattr(service, "get_health_status")
+        assert hasattr(service, "is_initialized")
+        assert hasattr(service, "trace_operation")
+        assert hasattr(service, "trace_llm_call")
+        assert hasattr(service, "trace_ai_workflow")
 
         # Verify method signatures match interface expectations
         assert callable(service.initialize)
@@ -404,7 +413,9 @@ class TestCorrelationIdIntegration:
         """Test getting correlation ID for a trace."""
         trace_id = "test_trace_123"
 
-        with patch('packages.backend.components.observability_service.get_correlation_id') as mock_get:
+        with patch(
+            "packages.backend.components.observability_service.get_correlation_id"
+        ) as mock_get:
             mock_get.return_value = "test_correlation_id"
 
             correlation_id = service.get_correlation_id_for_trace(trace_id)
@@ -413,12 +424,13 @@ class TestCorrelationIdIntegration:
 
     def test_create_trace_with_correlation(self, service):
         """Test creating trace with correlation ID."""
-        with patch('packages.backend.components.observability_service.get_correlation_id') as mock_get:
+        with patch(
+            "packages.backend.components.observability_service.get_correlation_id"
+        ) as mock_get:
             mock_get.return_value = "test_correlation_id"
 
             trace_id = service.create_trace_with_correlation(
-                "test_operation",
-                custom_tag="test_value"
+                "test_operation", custom_tag="test_value"
             )
 
             assert trace_id.startswith("test_operation_")
@@ -426,7 +438,9 @@ class TestCorrelationIdIntegration:
 
     def test_create_trace_without_correlation(self, service):
         """Test creating trace without correlation ID."""
-        with patch('packages.backend.components.observability_service.get_correlation_id') as mock_get:
+        with patch(
+            "packages.backend.components.observability_service.get_correlation_id"
+        ) as mock_get:
             mock_get.return_value = None
 
             trace_id = service.create_trace_with_correlation("test_operation")
@@ -451,17 +465,17 @@ class TestEnhancedObservabilityService:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
-        with patch.object(service, 'load_config', return_value=config):
+        with patch.object(service, "load_config", return_value=config):
             result = service.validate_config_only()
 
             assert isinstance(result, ConfigurationValidationResult)
-            assert hasattr(result, 'is_valid')
-            assert hasattr(result, 'errors')
-            assert hasattr(result, 'warnings')
-            assert hasattr(result, 'recommendations')
+            assert hasattr(result, "is_valid")
+            assert hasattr(result, "errors")
+            assert hasattr(result, "warnings")
+            assert hasattr(result, "recommendations")
 
     def test_circuit_breaker_state_methods(self, service):
         """Test circuit breaker state access methods."""
@@ -532,11 +546,11 @@ class TestIntegrationWithExistingFeatures:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
-        with patch.object(service, 'load_config', return_value=config):
-            with patch.object(service, '_initialize_langsmith_client'):
+        with patch.object(service, "load_config", return_value=config):
+            with patch.object(service, "_initialize_langsmith_client"):
                 # Initialize should trigger validation
                 result = service.initialize()
 
@@ -551,11 +565,11 @@ class TestIntegrationWithExistingFeatures:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
-        with patch.object(service, 'load_config', return_value=config):
-            with patch.object(service, '_initialize_langsmith_client'):
+        with patch.object(service, "load_config", return_value=config):
+            with patch.object(service, "_initialize_langsmith_client"):
                 service.initialize()
 
                 health_status = service.get_health_status()
@@ -572,11 +586,11 @@ class TestIntegrationWithExistingFeatures:
             api_key="ls__test_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
-        with patch.object(service, 'load_config', return_value=config):
-            with patch.object(service, '_initialize_langsmith_client'):
+        with patch.object(service, "load_config", return_value=config):
+            with patch.object(service, "_initialize_langsmith_client"):
                 # Initialize with all features
                 service.initialize()
 

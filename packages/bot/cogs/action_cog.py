@@ -41,11 +41,13 @@ class ActionCog(commands.Cog):
         name="action", description="AI Dungeon Master action commands"
     )
 
-    @action.command(name="submit", description="Submit an action to the AI Dungeon Master")
+    @action.command(
+        name="submit", description="Submit an action to the AI Dungeon Master"
+    )
     @app_commands.describe(
         action="Your action or command for the AI DM",
         session_id="Optional: Specific session ID (auto-generated if not provided)",
-        campaign_context="Optional: Campaign context information"
+        campaign_context="Optional: Campaign context information",
     )
     @discord_error_handler()
     async def submit(
@@ -53,7 +55,7 @@ class ActionCog(commands.Cog):
         interaction: discord.Interaction,
         action: str,
         session_id: Optional[str] = None,
-        campaign_context: Optional[str] = None
+        campaign_context: Optional[str] = None,
     ) -> None:
         """
         Submit an action to the AI Dungeon Master for narrative response.
@@ -64,14 +66,16 @@ class ActionCog(commands.Cog):
             session_id: Optional session identifier
             campaign_context: Optional campaign context
         """
-        await self._handle_action_submit(interaction, action, session_id, campaign_context)
+        await self._handle_action_submit(
+            interaction, action, session_id, campaign_context
+        )
 
     async def _handle_action_submit(
         self,
         interaction: discord.Interaction,
         action: str,
         session_id: Optional[str] = None,
-        campaign_context: Optional[str] = None
+        campaign_context: Optional[str] = None,
     ) -> None:
         """Handle action submission to AI DM."""
         try:
@@ -79,7 +83,9 @@ class ActionCog(commands.Cog):
 
             # Generate session ID if not provided
             if not session_id:
-                session_id = f"{interaction.guild_id}_{interaction.user.id}_{interaction.id}"
+                session_id = (
+                    f"{interaction.guild_id}_{interaction.user.id}_{interaction.id}"
+                )
 
             # Prepare action data
             action_data = {
@@ -92,7 +98,7 @@ class ActionCog(commands.Cog):
                     "discord_user_id": str(interaction.user.id),
                     "discord_username": interaction.user.name,
                     "timestamp": interaction.created_at.isoformat(),
-                }
+                },
             }
 
             # Add campaign context if provided
@@ -109,36 +115,32 @@ class ActionCog(commands.Cog):
             embed = discord.Embed(
                 title="🎭 AI Dungeon Master Response",
                 color=discord.Color.blue(),
-                description=response.get("narrative", "The DM responds with a narrative continuation...")
+                description=response.get(
+                    "narrative", "The DM responds with a narrative continuation..."
+                ),
             )
 
             embed.add_field(
                 name="🎯 Your Action",
                 value=action[:1024],  # Discord field limit
-                inline=False
+                inline=False,
             )
 
-            embed.add_field(
-                name="⏱️ Processing Time",
-                value=".2f",
-                inline=True
-            )
+            embed.add_field(name="⏱️ Processing Time", value=".2f", inline=True)
 
-            embed.add_field(
-                name="🔢 Session ID",
-                value=session_id,
-                inline=True
-            )
+            embed.add_field(name="🔢 Session ID", value=session_id, inline=True)
 
             embed.add_field(
                 name="📊 Status",
                 value=response.get("status", "unknown").title(),
-                inline=True
+                inline=True,
             )
 
             # Add metadata if available
             if "metadata" in response and "generated_at" in response["metadata"]:
-                embed.set_footer(text=f"Generated at: {response['metadata']['generated_at']}")
+                embed.set_footer(
+                    text=f"Generated at: {response['metadata']['generated_at']}"
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -147,7 +149,7 @@ class ActionCog(commands.Cog):
                 session_id=session_id,
                 user_id=interaction.user.id,
                 action_length=len(action),
-                response_length=len(response.get("narrative", ""))
+                response_length=len(response.get("narrative", "")),
             )
 
         except Exception as e:
@@ -155,15 +157,16 @@ class ActionCog(commands.Cog):
                 "Failed to submit action",
                 error=str(e),
                 user_id=interaction.user.id,
-                action=action[:100]  # Log first 100 chars
+                action=action[:100],  # Log first 100 chars
             )
 
             await interaction.followup.send(
-                f"❌ Failed to submit action to AI DM: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to submit action to AI DM: {str(e)}", ephemeral=True
             )
 
-    @action.command(name="test", description="Test the action API endpoint connectivity")
+    @action.command(
+        name="test", description="Test the action API endpoint connectivity"
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def test(self, interaction: discord.Interaction) -> None:
@@ -185,32 +188,32 @@ class ActionCog(commands.Cog):
 
             embed = discord.Embed(
                 title="🧪 Action API Test",
-                color=discord.Color.green() if test_result.get("status") == "success" else discord.Color.red()
+                color=discord.Color.green()
+                if test_result.get("status") == "success"
+                else discord.Color.red(),
             )
 
             embed.add_field(
                 name="📊 Status",
                 value=test_result.get("status", "unknown").title(),
-                inline=True
+                inline=True,
             )
 
             embed.add_field(
                 name="🔗 Endpoint",
                 value=test_result.get("endpoint", "unknown"),
-                inline=True
+                inline=True,
             )
 
             embed.add_field(
                 name="🧪 Test Endpoint",
                 value=test_result.get("test_endpoint", "unknown"),
-                inline=True
+                inline=True,
             )
 
             if "message" in test_result:
                 embed.add_field(
-                    name="📝 Message",
-                    value=test_result["message"],
-                    inline=False
+                    name="📝 Message", value=test_result["message"], inline=False
                 )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -218,22 +221,22 @@ class ActionCog(commands.Cog):
             self.logger.info(
                 "Action API test completed",
                 user_id=interaction.user.id,
-                status=test_result.get("status")
+                status=test_result.get("status"),
             )
 
         except Exception as e:
             self.logger.error(
-                "Failed to test action API",
-                error=str(e),
-                user_id=interaction.user.id
+                "Failed to test action API", error=str(e), user_id=interaction.user.id
             )
 
             await interaction.followup.send(
-                f"❌ Failed to test action API: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to test action API: {str(e)}", ephemeral=True
             )
 
-    @action.command(name="session_info", description="Get information about the current action session")
+    @action.command(
+        name="session_info",
+        description="Get information about the current action session",
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def session_info(self, interaction: discord.Interaction) -> None:
@@ -256,38 +259,32 @@ class ActionCog(commands.Cog):
                 await interaction.followup.send(
                     "📝 No active action session found for this server.\n"
                     "Use `/action_submit` to start a new session with the AI DM.",
-                    ephemeral=True
+                    ephemeral=True,
                 )
                 return
 
             embed = discord.Embed(
                 title="📊 Action Session Info",
                 color=discord.Color.blue(),
-                description=f"**Session ID:** `{session_id}`"
+                description=f"**Session ID:** `{session_id}`",
             )
 
-            embed.add_field(
-                name="🏰 Guild",
-                value=interaction.guild.name,
-                inline=True
-            )
+            embed.add_field(name="🏰 Guild", value=interaction.guild.name, inline=True)
 
             embed.add_field(
-                name="👥 Initiated By",
-                value=f"<@{interaction.user.id}>",
-                inline=True
+                name="👥 Initiated By", value=f"<@{interaction.user.id}>", inline=True
             )
 
             embed.add_field(
                 name="📅 Active Since",
                 value=f"<t:{int(interaction.created_at.timestamp())}:R>",
-                inline=True
+                inline=True,
             )
 
             embed.add_field(
                 name="💡 Usage Tip",
                 value="Submit actions using `/action_submit` with your narrative commands!",
-                inline=False
+                inline=False,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -297,12 +294,11 @@ class ActionCog(commands.Cog):
                 "Failed to get action session info",
                 error=str(e),
                 guild_id=interaction.guild_id,
-                user_id=interaction.user.id
+                user_id=interaction.user.id,
             )
 
             await interaction.followup.send(
-                f"❌ Failed to get session information: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to get session information: {str(e)}", ephemeral=True
             )
 
     @action.command(name="help", description="Get help with AI DM action commands")
@@ -325,61 +321,60 @@ class ActionCog(commands.Cog):
             embed = discord.Embed(
                 title="🎭 AI Dungeon Master - Action Commands",
                 color=discord.Color.gold(),
-                description="Learn how to interact with the AI Dungeon Master!"
+                description="Learn how to interact with the AI Dungeon Master!",
             )
 
             embed.add_field(
                 name="📝 Submit Action",
-                value="`/action submit action:\"I swing my sword at the goblin\"`\n"
-                      "Submit actions, dialogue, or commands to the AI DM",
-                inline=False
+                value='`/action submit action:"I swing my sword at the goblin"`\n'
+                "Submit actions, dialogue, or commands to the AI DM",
+                inline=False,
             )
 
             embed.add_field(
                 name="🔧 Advanced Options",
                 value="• `session_id`: Custom session tracking\n"
-                      "• `campaign_context`: Additional campaign info",
-                inline=False
+                "• `campaign_context`: Additional campaign info",
+                inline=False,
             )
 
             embed.add_field(
                 name="📋 Action Examples",
-                value="• `\"I attack the dragon with my magic sword\"`\n"
-                      "• `\"I talk to the mysterious stranger\"`\n"
-                      "• `\"I search the ancient chest\"`\n"
-                      "• `\"I cast fireball at the enemy group\"`",
-                inline=False
+                value='• `"I attack the dragon with my magic sword"`\n'
+                '• `"I talk to the mysterious stranger"`\n'
+                '• `"I search the ancient chest"`\n'
+                '• `"I cast fireball at the enemy group"`',
+                inline=False,
             )
 
             embed.add_field(
                 name="🧪 Testing",
                 value="`/action test` - Verify API connectivity\n"
-                      "`/action session_info` - View current session",
-                inline=False
+                "`/action session_info` - View current session",
+                inline=False,
             )
 
             embed.add_field(
                 name="💡 Tips",
                 value="• Be descriptive in your actions\n"
-                      "• The AI DM will respond with narrative continuation\n"
-                      "• Include dialogue, combat, exploration, or any adventure action!",
-                inline=False
+                "• The AI DM will respond with narrative continuation\n"
+                "• Include dialogue, combat, exploration, or any adventure action!",
+                inline=False,
             )
 
-            embed.set_footer(text="The AI DM will respond with rich narrative based on your actions!")
+            embed.set_footer(
+                text="The AI DM will respond with rich narrative based on your actions!"
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             self.logger.error(
-                "Failed to show action help",
-                error=str(e),
-                user_id=interaction.user.id
+                "Failed to show action help", error=str(e), user_id=interaction.user.id
             )
 
             await interaction.followup.send(
-                f"❌ Failed to show help: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to show help: {str(e)}", ephemeral=True
             )
 
     async def cog_load(self) -> None:

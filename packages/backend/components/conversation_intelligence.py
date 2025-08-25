@@ -777,5 +777,6 @@ class ConversationIntelligenceEngine:
             / 60,
         }
 
+
 # Global conversation intelligence engine instance
 conversation_intelligence_engine = ConversationIntelligenceEngine()

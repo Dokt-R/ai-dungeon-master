@@ -39,7 +39,9 @@ class AudioProcessingConfig:
     sample_rate: int = 16000  # Optimal for most STT services
     channels: int = 1  # Mono audio
     bit_depth: int = 16
-    supported_formats: List[str] = field(default_factory=lambda: ["wav", "mp3", "ogg", "flac"])
+    supported_formats: List[str] = field(
+        default_factory=lambda: ["wav", "mp3", "ogg", "flac"]
+    )
     max_duration: int = 300  # Maximum audio duration in seconds
     min_duration: float = 0.1  # Minimum audio duration in seconds
     normalize_audio: bool = True
@@ -99,7 +101,7 @@ class STTCache:
         language: str,
         provider: str,
         audio_data: bytes,
-        processing_time: float
+        processing_time: float,
     ) -> None:
         """Cache transcription result."""
         # Generate audio hash for cache key
@@ -113,7 +115,7 @@ class STTCache:
             provider=provider,
             audio_hash=audio_hash,
             created_at=datetime.utcnow(),
-            size_bytes=len(transcription.encode('utf-8')),
+            size_bytes=len(transcription.encode("utf-8")),
             processing_time=processing_time,
         )
 
@@ -174,7 +176,7 @@ class STTProvider(ABC):
         audio_data: bytes,
         audio_format: str,
         language: str = "en",
-        session_id: str = None
+        session_id: str = None,
     ) -> TranscriptionResult:
         """Transcribe audio to text."""
         pass
@@ -242,7 +244,9 @@ class STTProvider(ABC):
         """Get current health status."""
         return self._health_status
 
-    def preprocess_audio(self, audio_data: bytes, input_format: str) -> Tuple[bytes, str]:
+    def preprocess_audio(
+        self, audio_data: bytes, input_format: str
+    ) -> Tuple[bytes, str]:
         """
         Preprocess audio data for optimal transcription.
 
@@ -279,14 +283,16 @@ class OpenAISTTProvider(STTProvider):
         audio_data: bytes,
         audio_format: str,
         language: str = "en",
-        session_id: str = None
+        session_id: str = None,
     ) -> TranscriptionResult:
         """Transcribe audio using OpenAI Whisper."""
         start_time = time.time()
 
         try:
             # Preprocess audio
-            processed_audio, output_format = self.preprocess_audio(audio_data, audio_format)
+            processed_audio, output_format = self.preprocess_audio(
+                audio_data, audio_format
+            )
 
             # In a real implementation, this would call the OpenAI API
             # For now, return a mock result
@@ -313,14 +319,105 @@ class OpenAISTTProvider(STTProvider):
     async def get_supported_languages(self) -> List[str]:
         """Get supported languages for OpenAI Whisper."""
         return [
-            "en", "zh", "de", "es", "ru", "ko", "fr", "ja", "pt", "tr", "pl", "ca", "nl",
-            "ar", "sv", "it", "id", "hi", "fi", "vi", "he", "uk", "el", "ms", "cs", "ro",
-            "da", "hu", "ta", "no", "th", "ur", "hr", "bg", "lt", "la", "mi", "ml", "cy",
-            "sk", "te", "fa", "lv", "bn", "sr", "az", "sl", "kn", "et", "mk", "br", "eu",
-            "is", "hy", "ne", "mn", "bs", "kk", "sq", "sw", "gl", "mr", "pa", "si", "km",
-            "sn", "yo", "so", "af", "oc", "ka", "be", "tg", "sd", "gu", "am", "yi", "lo",
-            "uz", "fo", "ht", "ps", "tk", "nn", "mt", "sa", "lb", "my", "bo", "tl", "mg",
-            "as", "tt", "haw", "ln", "ha", "ba", "jw", "su"
+            "en",
+            "zh",
+            "de",
+            "es",
+            "ru",
+            "ko",
+            "fr",
+            "ja",
+            "pt",
+            "tr",
+            "pl",
+            "ca",
+            "nl",
+            "ar",
+            "sv",
+            "it",
+            "id",
+            "hi",
+            "fi",
+            "vi",
+            "he",
+            "uk",
+            "el",
+            "ms",
+            "cs",
+            "ro",
+            "da",
+            "hu",
+            "ta",
+            "no",
+            "th",
+            "ur",
+            "hr",
+            "bg",
+            "lt",
+            "la",
+            "mi",
+            "ml",
+            "cy",
+            "sk",
+            "te",
+            "fa",
+            "lv",
+            "bn",
+            "sr",
+            "az",
+            "sl",
+            "kn",
+            "et",
+            "mk",
+            "br",
+            "eu",
+            "is",
+            "hy",
+            "ne",
+            "mn",
+            "bs",
+            "kk",
+            "sq",
+            "sw",
+            "gl",
+            "mr",
+            "pa",
+            "si",
+            "km",
+            "sn",
+            "yo",
+            "so",
+            "af",
+            "oc",
+            "ka",
+            "be",
+            "tg",
+            "sd",
+            "gu",
+            "am",
+            "yi",
+            "lo",
+            "uz",
+            "fo",
+            "ht",
+            "ps",
+            "tk",
+            "nn",
+            "mt",
+            "sa",
+            "lb",
+            "my",
+            "bo",
+            "tl",
+            "mg",
+            "as",
+            "tt",
+            "haw",
+            "ln",
+            "ha",
+            "ba",
+            "jw",
+            "su",
         ]
 
     def get_provider_info(self) -> Dict[str, Any]:
@@ -334,7 +431,12 @@ class OpenAISTTProvider(STTProvider):
             "max_file_size": "25MB",
             "quality": "high",
             "pricing": "per_minute",
-            "features": ["language_detection", "speaker_detection", "punctuation", "timestamps"]
+            "features": [
+                "language_detection",
+                "speaker_detection",
+                "punctuation",
+                "timestamps",
+            ],
         }
 
 
@@ -353,14 +455,16 @@ class GoogleSTTProvider(STTProvider):
         audio_data: bytes,
         audio_format: str,
         language: str = "en",
-        session_id: str = None
+        session_id: str = None,
     ) -> TranscriptionResult:
         """Transcribe audio using Google Speech-to-Text."""
         start_time = time.time()
 
         try:
             # Preprocess audio
-            processed_audio, output_format = self.preprocess_audio(audio_data, audio_format)
+            processed_audio, output_format = self.preprocess_audio(
+                audio_data, audio_format
+            )
 
             # In a real implementation, this would call the Google Cloud API
             # For now, return a mock result
@@ -387,10 +491,54 @@ class GoogleSTTProvider(STTProvider):
     async def get_supported_languages(self) -> List[str]:
         """Get supported languages for Google Speech-to-Text."""
         return [
-            "en", "es", "fr", "de", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi",
-            "bn", "pa", "te", "mr", "ta", "ur", "gu", "kn", "ml", "or", "as", "mai",
-            "bho", "aw", "bg", "hr", "cs", "da", "nl", "fi", "el", "hu", "id", "lv",
-            "lt", "no", "pl", "ro", "sr", "sk", "sl", "sv", "th", "tr", "uk", "vi"
+            "en",
+            "es",
+            "fr",
+            "de",
+            "it",
+            "pt",
+            "ru",
+            "ja",
+            "ko",
+            "zh",
+            "ar",
+            "hi",
+            "bn",
+            "pa",
+            "te",
+            "mr",
+            "ta",
+            "ur",
+            "gu",
+            "kn",
+            "ml",
+            "or",
+            "as",
+            "mai",
+            "bho",
+            "aw",
+            "bg",
+            "hr",
+            "cs",
+            "da",
+            "nl",
+            "fi",
+            "el",
+            "hu",
+            "id",
+            "lv",
+            "lt",
+            "no",
+            "pl",
+            "ro",
+            "sr",
+            "sk",
+            "sl",
+            "sv",
+            "th",
+            "tr",
+            "uk",
+            "vi",
         ]
 
     def get_provider_info(self) -> Dict[str, Any]:
@@ -403,7 +551,13 @@ class GoogleSTTProvider(STTProvider):
             "max_file_size": "10MB",
             "quality": "high",
             "pricing": "per_minute",
-            "features": ["language_detection", "speaker_diarization", "punctuation", "timestamps", "word_confidence"]
+            "features": [
+                "language_detection",
+                "speaker_diarization",
+                "punctuation",
+                "timestamps",
+                "word_confidence",
+            ],
         }
 
 
@@ -628,7 +782,9 @@ class STTService:
                 error=str(e),
             )
 
-    def _preprocess_audio(self, audio_data: bytes, input_format: str) -> Tuple[bytes, str]:
+    def _preprocess_audio(
+        self, audio_data: bytes, input_format: str
+    ) -> Tuple[bytes, str]:
         """
         Preprocess audio data for optimal transcription.
 

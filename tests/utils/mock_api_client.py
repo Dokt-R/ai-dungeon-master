@@ -308,7 +308,7 @@ class MockApiClient:
             "provider": "openai",
             "model": "gpt-4",
             "traced": True,
-            "timestamp": "2025-08-24T20:30:00Z"
+            "timestamp": "2025-08-24T20:30:00Z",
         }
 
     async def get_observability_health(self) -> Dict[str, Any]:
@@ -321,7 +321,7 @@ class MockApiClient:
         return {
             "status": "healthy",
             "provider": "langsmith",
-            "project": "ai-dungeon-master"
+            "project": "ai-dungeon-master",
         }
 
     async def get_general_health(self) -> Dict[str, Any]:
@@ -337,9 +337,9 @@ class MockApiClient:
             "version": "1.0.0",
             "components": {
                 "observability": {"status": "healthy"},
-                "ai_client": {"status": "healthy"}
+                "ai_client": {"status": "healthy"},
             },
-            "timestamp": "2025-08-24T20:30:00Z"
+            "timestamp": "2025-08-24T20:30:00Z",
         }
 
     async def test_observability_trace(self) -> Dict[str, Any]:
@@ -355,7 +355,7 @@ class MockApiClient:
             "trace_id": "test-trace-123",
             "test_data": {
                 "operations": ["validate_config", "initialize_client", "send_trace"]
-            }
+            },
         }
 
     # Action endpoints
@@ -372,7 +372,7 @@ class MockApiClient:
             "metadata": action_data.get("metadata", {}),
             "processing_time": 0.5,
             "status": "success",
-            "correlation_id": "test-cid-123"
+            "correlation_id": "test-cid-123",
         }
 
     async def test_action_endpoint(self) -> Dict[str, Any]:
@@ -386,7 +386,7 @@ class MockApiClient:
             "status": "success",
             "message": "Action API is operational",
             "endpoint": "/api/action",
-            "test_endpoint": "/api/action/test"
+            "test_endpoint": "/api/action/test",
         }
 
     # Voice endpoints
@@ -402,10 +402,12 @@ class MockApiClient:
             "advanced_vad": {"enabled": False, "status": "not_available"},
             "audio_mixing": {"enabled": True, "status": "active"},
             "conversation_intelligence": {"enabled": True, "status": "active"},
-            "multi_user_conversation": {"enabled": False, "status": "not_available"}
+            "multi_user_conversation": {"enabled": False, "status": "not_available"},
         }
 
-    async def create_voice_session(self, session_id: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def create_voice_session(
+        self, session_id: str, config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """Mock create voice session."""
         self._track_call("create_voice_session", session_id, config)
         override = self._check_overrides("create_voice_session")
@@ -414,7 +416,9 @@ class MockApiClient:
 
         return {"session_id": session_id, "status": "created"}
 
-    async def add_audio_source(self, session_id: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_audio_source(
+        self, session_id: str, source_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Mock add audio source."""
         self._track_call("add_audio_source", session_id, source_config)
         override = self._check_overrides("add_audio_source")
@@ -423,16 +427,22 @@ class MockApiClient:
 
         return {"status": "source_added", "source_id": source_config.get("source_id")}
 
-    async def update_audio_source_position(self, session_id: str, source_id: str, position: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_audio_source_position(
+        self, session_id: str, source_id: str, position: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Mock update audio source position."""
-        self._track_call("update_audio_source_position", session_id, source_id, position)
+        self._track_call(
+            "update_audio_source_position", session_id, source_id, position
+        )
         override = self._check_overrides("update_audio_source_position")
         if override is not None:
             return override
 
         return {"status": "position_updated"}
 
-    async def set_focus_mode(self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True) -> Dict[str, Any]:
+    async def set_focus_mode(
+        self, session_id: str, focus_speaker: Optional[str] = None, enable: bool = True
+    ) -> Dict[str, Any]:
         """Mock set focus mode."""
         self._track_call("set_focus_mode", session_id, focus_speaker, enable)
         override = self._check_overrides("set_focus_mode")
@@ -454,7 +464,7 @@ class MockApiClient:
                 "active_sources": 2,
                 "master_volume": 1.0,
                 "focus_mode": True,
-                "focus_speaker": "user123"
+                "focus_speaker": "user123",
             }
         }
 
@@ -471,8 +481,8 @@ class MockApiClient:
             "services": {
                 "audio_mixing": "cleaned",
                 "multi_user_conversation": "cleaned",
-                "conversation_intelligence": "cleaned"
-            }
+                "conversation_intelligence": "cleaned",
+            },
         }
 
     async def get_conversation_summary(self, conversation_id: str) -> Dict[str, Any]:
@@ -487,7 +497,7 @@ class MockApiClient:
             "summary": "This is a mock conversation summary.",
             "participants": ["user1", "user2"],
             "duration": 300,
-            "topics": ["adventure", "combat"]
+            "topics": ["adventure", "combat"],
         }
 
     async def get_voice_health(self) -> Dict[str, Any]:
@@ -504,8 +514,11 @@ class MockApiClient:
                 "advanced_vad": {"status": "not_available", "available": False},
                 "audio_mixing": {"status": "healthy", "available": True},
                 "conversation_intelligence": {"status": "healthy", "available": True},
-                "multi_user_conversation": {"status": "not_available", "available": False}
-            }
+                "multi_user_conversation": {
+                    "status": "not_available",
+                    "available": False,
+                },
+            },
         }
 
     # Context manager support

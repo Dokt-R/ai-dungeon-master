@@ -7,13 +7,16 @@ async def test_ai_health_command_success(mock_interaction, mock_health_cog):
     """Test successful AI health check command."""
     cog = mock_health_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("get_ai_health", {
-        "status": "healthy",
-        "provider": "openai",
-        "model": "gpt-4",
-        "traced": True,
-        "timestamp": "2025-08-24T20:30:00Z"
-    })
+    cog.api_client.set_response_override(
+        "get_ai_health",
+        {
+            "status": "healthy",
+            "provider": "openai",
+            "model": "gpt-4",
+            "traced": True,
+            "timestamp": "2025-08-24T20:30:00Z",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -24,7 +27,7 @@ async def test_ai_health_command_success(mock_interaction, mock_health_cog):
 
     # Check that embed was created with correct data
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🟢 AI System Health"
     assert "Status" in embed.fields[0].name
@@ -57,11 +60,10 @@ async def test_observability_health_command_success(mock_interaction, mock_healt
     """Test successful observability health check command."""
     cog = mock_health_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("get_observability_health", {
-        "status": "healthy",
-        "provider": "langsmith",
-        "project": "ai-dungeon-master"
-    })
+    cog.api_client.set_response_override(
+        "get_observability_health",
+        {"status": "healthy", "provider": "langsmith", "project": "ai-dungeon-master"},
+    )
 
     interaction = mock_interaction
 
@@ -71,7 +73,7 @@ async def test_observability_health_command_success(mock_interaction, mock_healt
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🟢 Observability Health"
     assert "Status" in embed.fields[0].name
@@ -82,16 +84,19 @@ async def test_general_health_command_success(mock_interaction, mock_health_cog)
     """Test successful general health check command."""
     cog = mock_health_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("get_general_health", {
-        "status": "healthy",
-        "service": "ai-dungeon-master-backend",
-        "version": "1.0.0",
-        "components": {
-            "observability": {"status": "healthy"},
-            "ai_client": {"status": "healthy"}
+    cog.api_client.set_response_override(
+        "get_general_health",
+        {
+            "status": "healthy",
+            "service": "ai-dungeon-master-backend",
+            "version": "1.0.0",
+            "components": {
+                "observability": {"status": "healthy"},
+                "ai_client": {"status": "healthy"},
+            },
+            "timestamp": "2025-08-24T20:30:00Z",
         },
-        "timestamp": "2025-08-24T20:30:00Z"
-    })
+    )
 
     interaction = mock_interaction
 
@@ -101,7 +106,7 @@ async def test_general_health_command_success(mock_interaction, mock_health_cog)
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🟢 General System Health"
     assert "Status" in embed.fields[0].name
@@ -112,14 +117,17 @@ async def test_test_trace_command_success(mock_interaction, mock_health_cog):
     """Test successful observability trace test command."""
     cog = mock_health_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("test_observability_trace", {
-        "status": "success",
-        "message": "Observability trace test completed",
-        "trace_id": "test-trace-123",
-        "test_data": {
-            "operations": ["validate_config", "initialize_client", "send_trace"]
-        }
-    })
+    cog.api_client.set_response_override(
+        "test_observability_trace",
+        {
+            "status": "success",
+            "message": "Observability trace test completed",
+            "trace_id": "test-trace-123",
+            "test_data": {
+                "operations": ["validate_config", "initialize_client", "send_trace"]
+            },
+        },
+    )
 
     interaction = mock_interaction
 
@@ -129,7 +137,7 @@ async def test_test_trace_command_success(mock_interaction, mock_health_cog):
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🟢 Observability Trace Test"
     assert "Status" in embed.fields[0].name
@@ -142,11 +150,14 @@ async def test_test_trace_command_error(mock_interaction, mock_health_cog):
     """Test observability trace test command with error."""
     cog = mock_health_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("test_observability_trace", {
-        "status": "error",
-        "message": "Observability trace test failed",
-        "error": "Connection timeout"
-    })
+    cog.api_client.set_response_override(
+        "test_observability_trace",
+        {
+            "status": "error",
+            "message": "Observability trace test failed",
+            "error": "Connection timeout",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -156,7 +167,7 @@ async def test_test_trace_command_error(mock_interaction, mock_health_cog):
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🔴 Observability Trace Test Failed"
     assert "Status" in embed.fields[0].name
@@ -187,10 +198,10 @@ async def test_api_client_initialization(mock_health_cog):
 
     # The fixture already handles the initialization, so we just verify the api_client exists
     assert cog.api_client is not None
-    assert hasattr(cog.api_client, 'get_ai_health')
-    assert hasattr(cog.api_client, 'get_observability_health')
-    assert hasattr(cog.api_client, 'get_general_health')
-    assert hasattr(cog.api_client, 'test_observability_trace')
+    assert hasattr(cog.api_client, "get_ai_health")
+    assert hasattr(cog.api_client, "get_observability_health")
+    assert hasattr(cog.api_client, "get_general_health")
+    assert hasattr(cog.api_client, "test_observability_trace")
 
 
 async def test_api_client_base_url(mock_health_cog):
@@ -202,6 +213,3 @@ async def test_api_client_base_url(mock_health_cog):
     # but we can verify the client is working by calling a method
     result = await cog.api_client.get_ai_health()
     assert "status" in result
-
-
-

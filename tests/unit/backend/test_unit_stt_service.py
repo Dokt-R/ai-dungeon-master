@@ -100,7 +100,13 @@ class TestSTTCache:
 
         # Put data in cache
         self.cache.put(
-            test_key, transcription, confidence, language, provider, audio_data, processing_time
+            test_key,
+            transcription,
+            confidence,
+            language,
+            provider,
+            audio_data,
+            processing_time,
         )
 
         # Get data from cache
@@ -124,9 +130,7 @@ class TestSTTCache:
         old_time = datetime.utcnow() - timedelta(hours=2)
 
         # Put data with old timestamp
-        self.cache.put(
-            test_key, transcription, 0.9, "en", "openai", b"audio", 0.5
-        )
+        self.cache.put(test_key, transcription, 0.9, "en", "openai", b"audio", 0.5)
 
         # Manually modify timestamp to simulate expiration
         if test_key in self.cache._cache:
@@ -147,9 +151,7 @@ class TestSTTCache:
             key = f"key_{i}"
             transcription = f"Transcription {i}"
             audio_data = f"audio_{i}".encode()
-            small_cache.put(
-                key, transcription, 0.9, "en", "openai", audio_data, 0.5
-            )
+            small_cache.put(key, transcription, 0.9, "en", "openai", audio_data, 0.5)
 
         # Cache should only contain max_size entries
         assert len(small_cache._cache) == 2
@@ -281,7 +283,9 @@ class TestOpenAISTTProvider:
         audio_data = b"original_audio_data"
         input_format = "mp3"
 
-        processed_audio, output_format = self.provider.preprocess_audio(audio_data, input_format)
+        processed_audio, output_format = self.provider.preprocess_audio(
+            audio_data, input_format
+        )
 
         # In mock implementation, should return same data with WAV format
         assert processed_audio == audio_data
@@ -495,7 +499,9 @@ class TestSTTService:
         audio_data = b"original_audio_data"
         input_format = "mp3"
 
-        processed_audio, output_format = self.service._preprocess_audio(audio_data, input_format)
+        processed_audio, output_format = self.service._preprocess_audio(
+            audio_data, input_format
+        )
 
         # In mock implementation, should return same data with WAV format
         assert processed_audio == audio_data
@@ -506,10 +512,10 @@ class TestSTTService:
         status = self.service.get_service_status()
 
         # Should have the expected structure
-        assert hasattr(status, 'is_available')
-        assert hasattr(status, 'healthy_providers')
-        assert hasattr(status, 'total_providers')
-        assert hasattr(status, 'average_response_time')
+        assert hasattr(status, "is_available")
+        assert hasattr(status, "healthy_providers")
+        assert hasattr(status, "total_providers")
+        assert hasattr(status, "average_response_time")
 
     def test_cache_operations(self):
         """Test cache management operations."""

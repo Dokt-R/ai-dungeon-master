@@ -580,7 +580,8 @@ class WeaponRuleProvider(BaseRuleProvider):
                 analysis["special_properties"].append(prop)
 
         # Determine weapon type based on category and properties
-        analysis["melee_weapon"] = "melee" in prop_lower or not analysis["ammunition"]
+        # A weapon is melee if it's not ammunition-based and not thrown
+        analysis["melee_weapon"] = not analysis["ammunition"] and not analysis["thrown"]
         analysis["ranged_weapon"] = analysis["ammunition"] or analysis["thrown"]
 
         return analysis
@@ -643,7 +644,8 @@ class WeaponRuleProvider(BaseRuleProvider):
         property_analysis = self._analyze_weapon_properties(weapon.properties)
 
         if property_analysis["ranged_weapon"]:
-            if "ammunition" in [p.lower() for p in weapon.properties]:
+            # Check if any property contains "ammunition" (case-insensitive)
+            if any("ammunition" in p.lower() for p in weapon.properties):
                 return "Ranged Damage Dealer"
             else:
                 return "Light Ranged Support"

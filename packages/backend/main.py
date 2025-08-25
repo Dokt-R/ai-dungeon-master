@@ -56,7 +56,7 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning(
             "observability_service_initialization_failed",
-            error="observability_not_available"
+            error="observability_not_available",
         )
 
     # Initialize AI client
@@ -66,15 +66,10 @@ async def lifespan(app: FastAPI):
         if ai_initialized:
             logger.info("ai_client_initialization_successful")
         else:
-            logger.warning(
-                "ai_client_initialization_failed",
-                reason="client_not_ready"
-            )
+            logger.warning("ai_client_initialization_failed", reason="client_not_ready")
     except Exception as e:
         logger.warning(
-            "ai_client_initialization_error",
-            error=str(e),
-            service="ai_client"
+            "ai_client_initialization_error", error=str(e), service="ai_client"
         )
 
     # Initialize campaign memory service
@@ -86,10 +81,7 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("campaign_memory_service_initialization_failed")
     except Exception as e:
-        logger.warning(
-            "campaign_memory_service_initialization_error",
-            error=str(e)
-        )
+        logger.warning("campaign_memory_service_initialization_error", error=str(e))
 
     # Initialize STT service
     logger.info("stt_service_initialization_started")
@@ -97,10 +89,7 @@ async def lifespan(app: FastAPI):
         # STT service is ready to use (no special initialization needed)
         logger.info("stt_service_initialization_successful")
     except Exception as e:
-        logger.warning(
-            "stt_service_initialization_error",
-            error=str(e)
-        )
+        logger.warning("stt_service_initialization_error", error=str(e))
 
     # Initialize advanced voice services (optional)
     import os
@@ -125,10 +114,7 @@ async def lifespan(app: FastAPI):
             else:
                 logger.warning("speaker_identification_service_initialization_failed")
         except Exception as e:
-            logger.warning(
-                "speaker_identification_initialization_error",
-                error=str(e)
-            )
+            logger.warning("speaker_identification_initialization_error", error=str(e))
 
     # Initialize advanced VAD processor
     if enable_advanced_vad:
@@ -137,10 +123,7 @@ async def lifespan(app: FastAPI):
             # Advanced VAD is ready to use (no special initialization needed)
             logger.info("advanced_vad_processor_initialization_successful")
         except Exception as e:
-            logger.warning(
-                "advanced_vad_initialization_error",
-                error=str(e)
-            )
+            logger.warning("advanced_vad_initialization_error", error=str(e))
 
     # Initialize audio mixer service
     if enable_audio_mixing:
@@ -149,10 +132,7 @@ async def lifespan(app: FastAPI):
             # Audio mixer is ready to use (no special initialization needed)
             logger.info("audio_mixer_service_initialization_successful")
         except Exception as e:
-            logger.warning(
-                "audio_mixer_initialization_error",
-                error=str(e)
-            )
+            logger.warning("audio_mixer_initialization_error", error=str(e))
 
     # Initialize conversation intelligence engine
     if enable_conversation_intelligence:
@@ -162,8 +142,7 @@ async def lifespan(app: FastAPI):
             logger.info("conversation_intelligence_engine_initialization_successful")
         except Exception as e:
             logger.warning(
-                "conversation_intelligence_initialization_error",
-                error=str(e)
+                "conversation_intelligence_initialization_error", error=str(e)
             )
 
     # Initialize multi-user conversation manager (depends on other services)
@@ -180,8 +159,7 @@ async def lifespan(app: FastAPI):
                 logger.warning("multi_user_conversation_manager_initialization_failed")
         except Exception as e:
             logger.warning(
-                "multi_user_conversation_manager_initialization_error",
-                error=str(e)
+                "multi_user_conversation_manager_initialization_error", error=str(e)
             )
 
     yield

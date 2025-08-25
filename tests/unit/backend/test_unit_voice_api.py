@@ -116,7 +116,9 @@ class TestCreateVoiceSession:
         session_id = "test-session-123"
 
         with (
-            patch.object(audio_mixer_service, "create_mix_session", return_value=session_id) as mock_create,
+            patch.object(
+                audio_mixer_service, "create_mix_session", return_value=session_id
+            ) as mock_create,
         ):
             response = client.post(ROUTES.voice_session_create(session_id))
 
@@ -138,14 +140,18 @@ class TestCreateVoiceSession:
                     "source_id": "source1",
                     "user_id": "user123",
                     "volume": 0.8,
-                    "position": {"x": 1.0, "y": 2.0, "z": 3.0}
+                    "position": {"x": 1.0, "y": 2.0, "z": 3.0},
                 }
-            }
+            },
         }
 
         with (
-            patch.object(audio_mixer_service, "create_mix_session", return_value=session_id),
-            patch.object(multi_user_conversation_manager, "create_conversation") as mock_conversation,
+            patch.object(
+                audio_mixer_service, "create_mix_session", return_value=session_id
+            ),
+            patch.object(
+                multi_user_conversation_manager, "create_conversation"
+            ) as mock_conversation,
             patch.object(audio_mixer_service, "add_audio_source") as mock_add_source,
             patch.object(audio_mixer_service, "set_focus_mode") as mock_focus,
         ):
@@ -153,7 +159,9 @@ class TestCreateVoiceSession:
             mock_add_source.return_value = True
             mock_focus.return_value = True
 
-            response = client.post(f"/api/v1/voice/session/{session_id}/create", json=config)
+            response = client.post(
+                f"/api/v1/voice/session/{session_id}/create", json=config
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -164,7 +172,9 @@ class TestCreateVoiceSession:
         """Test voice session creation when mixer fails."""
         session_id = "test-session-123"
 
-        with patch.object(audio_mixer_service, "create_mix_session", return_value="different-session"):
+        with patch.object(
+            audio_mixer_service, "create_mix_session", return_value="different-session"
+        ):
             response = client.post(ROUTES.voice_session_create(session_id))
 
             assert response.status_code == 500
@@ -184,11 +194,15 @@ class TestAddAudioSource:
             "volume": 0.8,
             "muted": False,
             "position": {"x": 1.0, "y": 2.0, "z": 3.0},
-            "priority": 5
+            "priority": 5,
         }
 
-        with patch.object(audio_mixer_service, "add_audio_source", return_value=True) as mock_add:
-            response = client.post(f"/api/v1/voice/session/{session_id}/source", json=source_config)
+        with patch.object(
+            audio_mixer_service, "add_audio_source", return_value=True
+        ) as mock_add:
+            response = client.post(
+                f"/api/v1/voice/session/{session_id}/source", json=source_config
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -199,13 +213,12 @@ class TestAddAudioSource:
     def test_add_audio_source_no_mixer_service(self, client):
         """Test audio source addition when mixer service is not available."""
         session_id = "test-session-123"
-        source_config = {
-            "source_id": "source1",
-            "user_id": "user123"
-        }
+        source_config = {"source_id": "source1", "user_id": "user123"}
 
-        with patch('packages.backend.api.voice_api.audio_mixer_service', None):
-            response = client.post(ROUTES.voice_session_source(session_id), json=source_config)
+        with patch("packages.backend.api.voice_api.audio_mixer_service", None):
+            response = client.post(
+                ROUTES.voice_session_source(session_id), json=source_config
+            )
 
             assert response.status_code == 400
             data = response.json()
@@ -214,13 +227,12 @@ class TestAddAudioSource:
     def test_add_audio_source_failure(self, client):
         """Test audio source addition failure."""
         session_id = "test-session-123"
-        source_config = {
-            "source_id": "source1",
-            "user_id": "user123"
-        }
+        source_config = {"source_id": "source1", "user_id": "user123"}
 
         with patch.object(audio_mixer_service, "add_audio_source", return_value=False):
-            response = client.post(ROUTES.voice_session_source(session_id), json=source_config)
+            response = client.post(
+                ROUTES.voice_session_source(session_id), json=source_config
+            )
 
             assert response.status_code == 500
             data = response.json()
@@ -236,8 +248,13 @@ class TestUpdateSourcePosition:
         source_id = "source1"
         position = {"x": 1.0, "y": 2.0, "z": 3.0}
 
-        with patch.object(audio_mixer_service, "update_source_position", return_value=True) as mock_update:
-            response = client.put(ROUTES.voice_session_source_position(session_id, source_id), json=position)
+        with patch.object(
+            audio_mixer_service, "update_source_position", return_value=True
+        ) as mock_update:
+            response = client.put(
+                ROUTES.voice_session_source_position(session_id, source_id),
+                json=position,
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -250,8 +267,13 @@ class TestUpdateSourcePosition:
         source_id = "source1"
         position = {"x": 1.0, "y": 2.0, "z": 3.0}
 
-        with patch.object(audio_mixer_service, "update_source_position", return_value=False):
-            response = client.put(ROUTES.voice_session_source_position(session_id, source_id), json=position)
+        with patch.object(
+            audio_mixer_service, "update_source_position", return_value=False
+        ):
+            response = client.put(
+                ROUTES.voice_session_source_position(session_id, source_id),
+                json=position,
+            )
 
             assert response.status_code == 404
             data = response.json()
@@ -265,8 +287,12 @@ class TestSetFocusMode:
         """Test successful focus mode enable."""
         session_id = "test-session-123"
 
-        with patch.object(audio_mixer_service, "set_focus_mode", return_value=True) as mock_focus:
-            response = client.put(f"{ROUTES.voice_session_focus(session_id)}?focus_speaker=user123&enable=true")
+        with patch.object(
+            audio_mixer_service, "set_focus_mode", return_value=True
+        ) as mock_focus:
+            response = client.put(
+                f"{ROUTES.voice_session_focus(session_id)}?focus_speaker=user123&enable=true"
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -278,8 +304,12 @@ class TestSetFocusMode:
         """Test successful focus mode disable."""
         session_id = "test-session-123"
 
-        with patch.object(audio_mixer_service, "set_focus_mode", return_value=True) as mock_focus:
-            response = client.put(f"{ROUTES.voice_session_focus(session_id)}?enable=false")
+        with patch.object(
+            audio_mixer_service, "set_focus_mode", return_value=True
+        ) as mock_focus:
+            response = client.put(
+                f"{ROUTES.voice_session_focus(session_id)}?enable=false"
+            )
 
             assert response.status_code == 200
             data = response.json()
@@ -312,8 +342,14 @@ class TestGetSessionStats:
         mock_state.focus_speaker = "user123"
 
         with (
-            patch.object(audio_mixer_service, "get_mixing_state", return_value=mock_state),
-            patch.object(conversation_intelligence_engine, "get_conversation_stats", return_value={"messages": 10}),
+            patch.object(
+                audio_mixer_service, "get_mixing_state", return_value=mock_state
+            ),
+            patch.object(
+                conversation_intelligence_engine,
+                "get_conversation_stats",
+                return_value={"messages": 10},
+            ),
         ):
             response = client.get(ROUTES.voice_session_stats(session_id))
 
@@ -331,7 +367,11 @@ class TestGetSessionStats:
 
         with (
             patch.object(audio_mixer_service, "get_mixing_state", return_value=None),
-            patch.object(conversation_intelligence_engine, "get_conversation_stats", return_value=None),
+            patch.object(
+                conversation_intelligence_engine,
+                "get_conversation_stats",
+                return_value=None,
+            ),
         ):
             response = client.get(ROUTES.voice_session_stats(session_id))
 
@@ -349,8 +389,12 @@ class TestCleanupVoiceSession:
 
         with (
             patch.object(audio_mixer_service, "cleanup_session") as mock_mixer,
-            patch.object(multi_user_conversation_manager, "end_conversation") as mock_conversation,
-            patch.object(conversation_intelligence_engine, "cleanup_conversation") as mock_ci,
+            patch.object(
+                multi_user_conversation_manager, "end_conversation"
+            ) as mock_conversation,
+            patch.object(
+                conversation_intelligence_engine, "cleanup_conversation"
+            ) as mock_ci,
         ):
             response = client.delete(ROUTES.voice_session_cleanup(session_id))
 
@@ -368,9 +412,16 @@ class TestCleanupVoiceSession:
         session_id = "test-session-123"
 
         with (
-            patch('packages.backend.api.voice_api.audio_mixer_service', audio_mixer_service),
-            patch('packages.backend.api.voice_api.multi_user_conversation_manager', None),
-            patch('packages.backend.api.voice_api.conversation_intelligence_engine', None),
+            patch(
+                "packages.backend.api.voice_api.audio_mixer_service",
+                audio_mixer_service,
+            ),
+            patch(
+                "packages.backend.api.voice_api.multi_user_conversation_manager", None
+            ),
+            patch(
+                "packages.backend.api.voice_api.conversation_intelligence_engine", None
+            ),
             patch.object(audio_mixer_service, "cleanup_session") as mock_mixer,
         ):
             response = client.delete(f"/api/v1/voice/session/{session_id}")
@@ -391,10 +442,14 @@ class TestConversationSummary:
             "conversation_id": conversation_id,
             "summary": "Test conversation summary",
             "participants": ["user1", "user2"],
-            "duration": 300
+            "duration": 300,
         }
 
-        with patch.object(conversation_intelligence_engine, "generate_conversation_summary", return_value=summary_data):
+        with patch.object(
+            conversation_intelligence_engine,
+            "generate_conversation_summary",
+            return_value=summary_data,
+        ):
             response = client.get(ROUTES.voice_conversation_summary(conversation_id))
 
             assert response.status_code == 200
@@ -406,7 +461,9 @@ class TestConversationSummary:
         """Test conversation summary when service is not available."""
         conversation_id = "conv-123"
 
-        with patch('packages.backend.api.voice_api.conversation_intelligence_engine', None):
+        with patch(
+            "packages.backend.api.voice_api.conversation_intelligence_engine", None
+        ):
             response = client.get(ROUTES.voice_conversation_summary(conversation_id))
 
             assert response.status_code == 400
@@ -417,8 +474,14 @@ class TestConversationSummary:
         """Test conversation summary when conversation is not found."""
         conversation_id = "conv-123"
 
-        with patch.object(conversation_intelligence_engine, "generate_conversation_summary", return_value={"error": "Conversation not found"}):
-            response = client.get(f"/api/v1/voice/conversation/{conversation_id}/summary")
+        with patch.object(
+            conversation_intelligence_engine,
+            "generate_conversation_summary",
+            return_value={"error": "Conversation not found"},
+        ):
+            response = client.get(
+                f"/api/v1/voice/conversation/{conversation_id}/summary"
+            )
 
             assert response.status_code == 404
             data = response.json()
@@ -431,10 +494,22 @@ class TestVoiceSystemHealth:
     def test_get_voice_health_all_services_healthy(self, client):
         """Test voice system health when all services are available."""
         with (
-            patch('packages.backend.api.voice_api.speaker_identification_service', speaker_identification_service),
-            patch('packages.backend.api.voice_api.audio_mixer_service', audio_mixer_service),
-            patch('packages.backend.api.voice_api.conversation_intelligence_engine', conversation_intelligence_engine),
-            patch('packages.backend.api.voice_api.multi_user_conversation_manager', multi_user_conversation_manager),
+            patch(
+                "packages.backend.api.voice_api.speaker_identification_service",
+                speaker_identification_service,
+            ),
+            patch(
+                "packages.backend.api.voice_api.audio_mixer_service",
+                audio_mixer_service,
+            ),
+            patch(
+                "packages.backend.api.voice_api.conversation_intelligence_engine",
+                conversation_intelligence_engine,
+            ),
+            patch(
+                "packages.backend.api.voice_api.multi_user_conversation_manager",
+                multi_user_conversation_manager,
+            ),
         ):
             response = client.get(ROUTES.voice_health())
 
@@ -473,7 +548,11 @@ class TestVoiceApiErrorHandling:
         """Test that 500 errors return proper JSON format."""
         session_id = "test-session-123"
 
-        with patch.object(audio_mixer_service, "create_mix_session", side_effect=Exception("Service error")):
+        with patch.object(
+            audio_mixer_service,
+            "create_mix_session",
+            side_effect=Exception("Service error"),
+        ):
             response = client.post(f"/api/v1/voice/session/{session_id}/create")
 
             assert response.status_code == 500
@@ -485,8 +564,11 @@ class TestVoiceApiErrorHandling:
         """Test that 400 errors return proper JSON format."""
         session_id = "test-session-123"
 
-        with patch('packages.backend.api.voice_api.audio_mixer_service', None):
-            response = client.post(f"/api/v1/voice/session/{session_id}/source", json={"source_id": "test", "user_id": "user"})
+        with patch("packages.backend.api.voice_api.audio_mixer_service", None):
+            response = client.post(
+                f"/api/v1/voice/session/{session_id}/source",
+                json={"source_id": "test", "user_id": "user"},
+            )
 
             assert response.status_code == 400
             data = response.json()

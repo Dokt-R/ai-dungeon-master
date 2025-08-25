@@ -12,6 +12,7 @@ This module provides comprehensive system prompt management including:
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache
+import threading
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ logger = get_logger(__name__)
 # Try to import tiktoken for accurate tokenization
 try:
     import tiktoken
+
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
@@ -54,6 +56,58 @@ class PromptVersion(BaseModel):
         if self.label:
             version_str += f"-{self.label}"
         return version_str
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality with another PromptVersion."""
+        if not isinstance(other, PromptVersion):
+            return NotImplemented
+        return (
+            self.major == other.major
+            and self.minor == other.minor
+            and self.patch == other.patch
+            and self.label == other.label
+        )
+
+    def __lt__(self, other: object) -> bool:
+        """Check if this version is less than another."""
+        if not isinstance(other, PromptVersion):
+            return NotImplemented
+
+        # Compare major, minor, patch in order
+        if self.major != other.major:
+            return self.major < other.major
+        if self.minor != other.minor:
+            return self.minor < other.minor
+        if self.patch != other.patch:
+            return self.patch < other.patch
+
+        # If numeric parts are equal, compare labels
+        # None label is considered greater than any string label
+        if self.label is None and other.label is None:
+            return False
+        if self.label is None:
+            return False  # None is greater than any string
+        if other.label is None:
+            return True  # Any string is less than None
+        return self.label < other.label
+
+    def __gt__(self, other: object) -> bool:
+        """Check if this version is greater than another."""
+        if not isinstance(other, PromptVersion):
+            return NotImplemented
+        return not (self < other or self == other)
+
+    def __le__(self, other: object) -> bool:
+        """Check if this version is less than or equal to another."""
+        if not isinstance(other, PromptVersion):
+            return NotImplemented
+        return self < other or self == other
+
+    def __ge__(self, other: object) -> bool:
+        """Check if this version is greater than or equal to another."""
+        if not isinstance(other, PromptVersion):
+            return NotImplemented
+        return not (self < other)
 
 
 class PromptTemplate(BaseModel):
@@ -111,7 +165,7 @@ class PromptTemplate(BaseModel):
                 logger.warning(
                     "tiktoken_estimation_failed",
                     error=str(e),
-                    fallback="character_based"
+                    fallback="character_based",
                 )
 
         # Fallback to character-based estimation
@@ -189,6 +243,19 @@ class PromptManager:
             return self._templates.get(default_id)
         return None
 
+    @classmethod
+    def reset_instance(cls) -> None:
+        """Reset the global prompt manager instance for testing.
+
+        This method clears the global instance's templates and default versions,
+        allowing for clean test isolation between test runs.
+        """
+        global prompt_manager
+        if "prompt_manager" in globals() and prompt_manager is not None:
+            prompt_manager._templates.clear()
+            prompt_manager._default_versions.clear()
+            logger.debug("prompt_manager_instance_reset", templates_cleared=True)
+
     @lru_cache(maxsize=128)
     def _fill_template_cached(
         self, template_id: str, template_version: str, variables_tuple: tuple
@@ -232,7 +299,7 @@ class PromptManager:
             self.logger.debug(
                 "template_cache_hit",
                 template_id=template.template_id,
-                cache_size=self._fill_template_cached.cache_info().currsize
+                cache_size=self._fill_template_cached.cache_info().currsize,
             )
 
         except Exception as cache_error:
@@ -240,7 +307,7 @@ class PromptManager:
             self.logger.debug(
                 "template_cache_miss",
                 template_id=template.template_id,
-                error=str(cache_error)
+                error=str(cache_error),
             )
 
             try:
@@ -495,7 +562,7 @@ def create_prompt_manager() -> PromptManager:
     logger.info(
         "prompt_manager_initialized",
         template_count=len(manager._templates),
-        default_versions=list(manager._default_versions.keys())
+        default_versions=list(manager._default_versions.keys()),
     )
 
     return manager
@@ -503,4 +570,9 @@ def create_prompt_manager() -> PromptManager:
 
 # Global instance for backward compatibility (will be removed in future versions)
 # WARNING: This global state should be replaced with dependency injection
-prompt_manager = create_prompt_manager()
+def _create_global_service() -> PromptManager:
+    """Create the global prompt manager instance."""
+    return create_prompt_manager()
+
+
+prompt_manager = _create_global_service()

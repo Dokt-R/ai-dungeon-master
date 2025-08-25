@@ -33,8 +33,8 @@ logger = get_logger(__name__)
 class CircuitBreakerState(Enum):
     """States for the circuit breaker pattern."""
 
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Circuit is open, failing fast
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Circuit is open, failing fast
     HALF_OPEN = "half_open"  # Testing if service has recovered
 
 
@@ -42,9 +42,9 @@ class CircuitBreakerState(Enum):
 class CircuitBreakerConfig:
     """Configuration for circuit breaker behavior."""
 
-    failure_threshold: int = 5          # Number of failures before opening
-    recovery_timeout: float = 60.0      # Seconds to wait before trying to recover
-    success_threshold: int = 3          # Number of successes needed in half-open state
+    failure_threshold: int = 5  # Number of failures before opening
+    recovery_timeout: float = 60.0  # Seconds to wait before trying to recover
+    success_threshold: int = 3  # Number of successes needed in half-open state
     expected_exception: type = Exception  # Exception type to catch
 
 
@@ -110,15 +110,17 @@ class CircuitBreaker:
             self.state = CircuitBreakerState.OPEN
             logger.warning(
                 "circuit_breaker_opened_from_half_open",
-                failure_count=self.failure_count
+                failure_count=self.failure_count,
             )
-        elif (self.state == CircuitBreakerState.CLOSED and
-              self.failure_count >= self.config.failure_threshold):
+        elif (
+            self.state == CircuitBreakerState.CLOSED
+            and self.failure_count >= self.config.failure_threshold
+        ):
             self.state = CircuitBreakerState.OPEN
             logger.error(
                 "circuit_breaker_opened",
                 failure_count=self.failure_count,
-                threshold=self.config.failure_threshold
+                threshold=self.config.failure_threshold,
             )
 
     def _should_attempt_reset(self) -> bool:
@@ -137,7 +139,7 @@ class CircuitBreaker:
             "last_failure_time": self.last_failure_time,
             "failure_threshold": self.config.failure_threshold,
             "recovery_timeout": self.config.recovery_timeout,
-            "can_attempt_reset": self._should_attempt_reset()
+            "can_attempt_reset": self._should_attempt_reset(),
         }
 
     def reset(self):
@@ -181,21 +183,34 @@ class ObservabilityServiceInterface(Protocol):
         ...
 
     @contextmanager
-    def trace_ai_workflow(self, workflow_name: str, workflow_type: str = "ai_workflow", **metadata):
+    def trace_ai_workflow(
+        self, workflow_name: str, workflow_type: str = "ai_workflow", **metadata
+    ):
         """Context manager for tracing AI workflows."""
         ...
 
-    def trace_ai_operation(self, operation_name: str = None, operation_type: str = "ai_operation",
-                          include_args: bool = True, include_result: bool = False):
+    def trace_ai_operation(
+        self,
+        operation_name: str = None,
+        operation_type: str = "ai_operation",
+        include_args: bool = True,
+        include_result: bool = False,
+    ):
         """Decorator for AI operation tracing."""
         ...
 
-    def trace_llm_call_decorator(self, model_name: str = None, include_prompt: bool = False,
-                                include_response: bool = False):
+    def trace_llm_call_decorator(
+        self,
+        model_name: str = None,
+        include_prompt: bool = False,
+        include_response: bool = False,
+    ):
         """Decorator for LLM call tracing."""
         ...
 
-    def trace_ai_workflow_decorator(self, workflow_name: str = None, workflow_type: str = "ai_workflow"):
+    def trace_ai_workflow_decorator(
+        self, workflow_name: str = None, workflow_type: str = "ai_workflow"
+    ):
         """Decorator for AI workflow tracing."""
         ...
 
@@ -228,7 +243,9 @@ class ConfigurationValidator:
         self.validation_warnings: list[str] = []
         self.validation_recommendations: list[str] = []
 
-    def validate_config(self, config: ObservabilityConfig) -> ConfigurationValidationResult:
+    def validate_config(
+        self, config: ObservabilityConfig
+    ) -> ConfigurationValidationResult:
         """
         Perform comprehensive validation of observability configuration.
 
@@ -259,13 +276,15 @@ class ConfigurationValidator:
             is_valid=is_valid,
             errors=self.validation_errors.copy(),
             warnings=self.validation_warnings.copy(),
-            recommendations=self.validation_recommendations.copy()
+            recommendations=self.validation_recommendations.copy(),
         )
 
     def _validate_api_key(self, api_key: str):
         """Validate LangSmith API key."""
         if not api_key:
-            self.validation_errors.append("LANGSMITH_API_KEY is required but not provided")
+            self.validation_errors.append(
+                "LANGSMITH_API_KEY is required but not provided"
+            )
             return
 
         if not isinstance(api_key, str):
@@ -274,7 +293,9 @@ class ConfigurationValidator:
 
         api_key = api_key.strip()
         if not api_key:
-            self.validation_errors.append("LANGSMITH_API_KEY cannot be empty or whitespace")
+            self.validation_errors.append(
+                "LANGSMITH_API_KEY cannot be empty or whitespace"
+            )
             return
 
         # Basic format validation (LangSmith keys typically start with ls__)
@@ -307,17 +328,20 @@ class ConfigurationValidator:
 
         # Check length constraints
         if len(project) > 100:
-            self.validation_warnings.append("Project name is quite long (>100 chars) - consider shortening")
+            self.validation_warnings.append(
+                "Project name is quite long (>100 chars) - consider shortening"
+            )
 
         # Check for valid characters (alphanumeric, hyphens, underscores)
         import re
-        if not re.match(r'^[a-zA-Z0-9_-]+$', project):
+
+        if not re.match(r"^[a-zA-Z0-9_-]+$", project):
             self.validation_errors.append(
                 "Project name contains invalid characters - use only letters, numbers, hyphens, and underscores"
             )
 
         # Recommend project naming convention
-        if not project.startswith(('ai-dungeon-master', 'dungeon-master', 'dm-ai')):
+        if not project.startswith(("ai-dungeon-master", "dungeon-master", "dm-ai")):
             self.validation_recommendations.append(
                 "Consider prefixing project name with 'ai-dungeon-master' for better organization"
             )
@@ -333,11 +357,14 @@ class ConfigurationValidator:
 
         endpoint = endpoint.strip()
         if not endpoint:
-            self.validation_warnings.append("LANGSMITH_ENDPOINT is empty - using default endpoint")
+            self.validation_warnings.append(
+                "LANGSMITH_ENDPOINT is empty - using default endpoint"
+            )
             return
 
         # Validate URL format
         from urllib.parse import urlparse
+
         try:
             parsed = urlparse(endpoint)
             if not parsed.scheme or not parsed.netloc:
@@ -345,10 +372,12 @@ class ConfigurationValidator:
                     "LANGSMITH_ENDPOINT must be a valid URL with scheme and host"
                 )
         except Exception as e:
-            self.validation_errors.append(f"LANGSMITH_ENDPOINT is not a valid URL: {str(e)}")
+            self.validation_errors.append(
+                f"LANGSMITH_ENDPOINT is not a valid URL: {str(e)}"
+            )
 
         # Check for HTTPS
-        if endpoint and not endpoint.startswith('https://'):
+        if endpoint and not endpoint.startswith("https://"):
             self.validation_warnings.append(
                 "LANGSMITH_ENDPOINT should use HTTPS for security"
             )
@@ -390,7 +419,11 @@ class ConfigurationValidator:
                 self.validation_warnings.append(
                     "LANGSMITH_ENDPOINT environment variable set but config has no endpoint"
                 )
-            elif env_endpoint is not None and config.endpoint is not None and env_endpoint != config.endpoint:
+            elif (
+                env_endpoint is not None
+                and config.endpoint is not None
+                and env_endpoint != config.endpoint
+            ):
                 self.validation_warnings.append(
                     "LANGSMITH_ENDPOINT environment variable differs from loaded configuration"
                 )
@@ -470,8 +503,8 @@ class ObservabilityService:
         # Only initialize if this is the first time __init__ is called on this instance
         if hasattr(self, "_initialized_attributes "):
             return
-        
-        self._initialized_attributes : bool = True
+
+        self._initialized_attributes: bool = True
         self._config: Optional[ObservabilityConfig] = None
         self._langsmith_client: Optional[Any] = None
         self._initialization_error: Optional[str] = None
@@ -575,8 +608,10 @@ class ObservabilityService:
 
             # Initialize LangSmith client (protected by circuit breaker)
             # Performance optimization: skip client initialization for integration tests to speed them up
-            if os.getenv('PYTEST_CURRENT_TEST') == 'integration_test_for_performance':
-                logger.debug("skipping_langsmith_initialization_for_integration_test_performance")
+            if os.getenv("PYTEST_CURRENT_TEST") == "integration_test_for_performance":
+                logger.debug(
+                    "skipping_langsmith_initialization_for_integration_test_performance"
+                )
                 self._langsmith_client = None  # Will be handled by tracing methods
             else:
                 try:
@@ -584,7 +619,9 @@ class ObservabilityService:
                 except CircuitBreakerOpenException:
                     logger.warning("langsmith_initialization_skipped_circuit_open")
                 except Exception as e:
-                    logger.warning("langsmith_initialization_failed_but_continuing", error=str(e))
+                    logger.warning(
+                        "langsmith_initialization_failed_but_continuing", error=str(e)
+                    )
 
             self._is_initialized = True
             ObservabilityService._is_initialized = True
@@ -594,7 +631,7 @@ class ObservabilityService:
                 "observability_initialized",
                 project=self._config.project,
                 provider="langsmith",
-                circuit_breaker_state=self._circuit_breaker.get_state()["state"]
+                circuit_breaker_state=self._circuit_breaker.get_state()["state"],
             )
 
             return True
@@ -632,12 +669,14 @@ class ObservabilityService:
         # Log recommendations if any
         if self._validation_result.recommendations:
             for recommendation in self._validation_result.recommendations:
-                logger.info("observability_config_recommendation", recommendation=recommendation)
+                logger.info(
+                    "observability_config_recommendation", recommendation=recommendation
+                )
 
         logger.info(
             "observability_config_validated",
             warnings_count=len(self._validation_result.warnings),
-            recommendations_count=len(self._validation_result.recommendations)
+            recommendations_count=len(self._validation_result.recommendations),
         )
 
     def get_validation_result(self) -> Optional[ConfigurationValidationResult]:
@@ -664,7 +703,7 @@ class ObservabilityService:
                 is_valid=False,
                 errors=[f"Failed to load configuration: {str(e)}"],
                 warnings=[],
-                recommendations=[]
+                recommendations=[],
             )
 
     def get_circuit_breaker_state(self) -> Optional[Dict[str, Any]]:
@@ -724,7 +763,7 @@ class ObservabilityService:
             "operation": operation_name,
             "trace_id": trace_id,
             "has_correlation_id": correlation_id is not None,
-            **tags
+            **tags,
         }
 
         logger.info("trace_created_with_correlation", **log_context)
@@ -766,13 +805,13 @@ class ObservabilityService:
         """Initialize the circuit breaker for observability failures."""
         # Configure circuit breaker for observability service
         # Use shorter timeout in test environments to speed up test execution
-        recovery_timeout = 1.0 if os.getenv('PYTEST_CURRENT_TEST') else 30.0
+        recovery_timeout = 1.0 if os.getenv("PYTEST_CURRENT_TEST") else 30.0
 
         circuit_breaker_config = CircuitBreakerConfig(
-            failure_threshold=3,        # Open after 3 consecutive failures
+            failure_threshold=3,  # Open after 3 consecutive failures
             recovery_timeout=recovery_timeout,  # Shorter timeout for tests
-            success_threshold=2,        # Need 2 successes to fully recover
-            expected_exception=(ObservabilityError, CircuitBreakerOpenException)
+            success_threshold=2,  # Need 2 successes to fully recover
+            expected_exception=(ObservabilityError, CircuitBreakerOpenException),
         )
 
         self._circuit_breaker = CircuitBreaker(circuit_breaker_config)
@@ -790,8 +829,11 @@ class ObservabilityService:
             return {
                 "status": "unhealthy",
                 "provider": "langsmith",
-                "project": getattr(self._config, 'project', 'unknown') if self._config else "unknown",
-                "error": getattr(self, '_initialization_error', None) or "not_initialized",
+                "project": getattr(self._config, "project", "unknown")
+                if self._config
+                else "unknown",
+                "error": getattr(self, "_initialization_error", None)
+                or "not_initialized",
                 "correlation_id_support": "enabled",
                 "current_correlation_id": get_correlation_id(),
             }
@@ -848,13 +890,17 @@ class ObservabilityService:
             **tags: Additional tags for the trace (operation_type, model_name, etc.)
         """
         if not self._is_initialized:
-            logger.debug("tracing_disabled_service_not_initialized", operation=operation_name)
+            logger.debug(
+                "tracing_disabled_service_not_initialized", operation=operation_name
+            )
             yield None
             return
 
         # Check circuit breaker
         if self.is_circuit_breaker_open():
-            logger.debug("tracing_disabled_circuit_breaker_open", operation=operation_name)
+            logger.debug(
+                "tracing_disabled_circuit_breaker_open", operation=operation_name
+            )
             yield None
             return
 
@@ -882,7 +928,7 @@ class ObservabilityService:
                 name=operation_name,
                 project_name=self._config.project,
                 tags=list(tags.keys()),
-                metadata=tags
+                metadata=tags,
             )
             def execute_traced_operation():
                 return trace_id
@@ -895,7 +941,7 @@ class ObservabilityService:
                 "operation": operation_name,
                 "trace_id": trace_id,
                 "provider": "langsmith",
-                **tags
+                **tags,
             }
 
             # Add correlation ID if available
@@ -911,7 +957,7 @@ class ObservabilityService:
                     "operation": operation_name,
                     "trace_id": trace_id,
                     "provider": "langsmith",
-                    **tags
+                    **tags,
                 }
                 if correlation_id:
                     log_context["correlation_id"] = correlation_id
@@ -923,7 +969,7 @@ class ObservabilityService:
                     "trace_id": trace_id,
                     "error": str(e),
                     "provider": "langsmith",
-                    **tags
+                    **tags,
                 }
                 if correlation_id:
                     log_context["correlation_id"] = correlation_id
@@ -934,7 +980,7 @@ class ObservabilityService:
                     "operation": operation_name,
                     "trace_id": trace_id,
                     "provider": "langsmith",
-                    **tags
+                    **tags,
                 }
                 if correlation_id:
                     log_context["correlation_id"] = correlation_id
@@ -945,13 +991,13 @@ class ObservabilityService:
             logger.warning(
                 "langsmith_tracing_unavailable",
                 operation=operation_name,
-                fallback="logging_only"
+                fallback="logging_only",
             )
             yield trace_id
 
     def is_initialized(self) -> bool:
         """Check if the observability service is initialized."""
-        return getattr(self, '_is_initialized', False)
+        return getattr(self, "_is_initialized", False)
 
     def get_config(self) -> Optional[ObservabilityConfig]:
         """Get the current observability configuration."""
@@ -985,8 +1031,8 @@ class ObservabilityService:
                     "model_name": model_name,
                     "prompt_length": len(prompt),
                     "operation_type": "llm_call",
-                    **metadata
-                }
+                    **metadata,
+                },
             )
             def execute_llm_trace():
                 return trace_id
@@ -999,7 +1045,7 @@ class ObservabilityService:
                 trace_id=trace_id,
                 prompt_length=len(prompt),
                 provider="langsmith",
-                **metadata
+                **metadata,
             )
 
             try:
@@ -1011,7 +1057,7 @@ class ObservabilityService:
                     trace_id=trace_id,
                     error=str(e),
                     provider="langsmith",
-                    **metadata
+                    **metadata,
                 )
                 raise
             finally:
@@ -1020,19 +1066,21 @@ class ObservabilityService:
                     model=model_name,
                     trace_id=trace_id,
                     provider="langsmith",
-                    **metadata
+                    **metadata,
                 )
 
         except ImportError:
             logger.warning(
                 "langsmith_tracing_unavailable_for_llm",
                 model=model_name,
-                fallback="logging_only"
+                fallback="logging_only",
             )
             yield trace_id
 
     @contextmanager
-    def trace_ai_workflow(self, workflow_name: str, workflow_type: str = "ai_workflow", **metadata):
+    def trace_ai_workflow(
+        self, workflow_name: str, workflow_type: str = "ai_workflow", **metadata
+    ):
         """
         Context manager for tracing complete AI workflows.
 
@@ -1059,8 +1107,8 @@ class ObservabilityService:
                     "workflow_name": workflow_name,
                     "workflow_type": workflow_type,
                     "operation_type": "ai_workflow",
-                    **metadata
-                }
+                    **metadata,
+                },
             )
             def execute_workflow_trace():
                 return trace_id
@@ -1073,7 +1121,7 @@ class ObservabilityService:
                 workflow_type=workflow_type,
                 trace_id=trace_id,
                 provider="langsmith",
-                **metadata
+                **metadata,
             )
 
             try:
@@ -1086,7 +1134,7 @@ class ObservabilityService:
                     trace_id=trace_id,
                     error=str(e),
                     provider="langsmith",
-                    **metadata
+                    **metadata,
                 )
                 raise
             finally:
@@ -1096,18 +1144,20 @@ class ObservabilityService:
                     workflow_type=workflow_type,
                     trace_id=trace_id,
                     provider="langsmith",
-                    **metadata
+                    **metadata,
                 )
 
         except ImportError:
             logger.warning(
                 "langsmith_tracing_unavailable_for_workflow",
                 workflow=workflow_name,
-                fallback="logging_only"
+                fallback="logging_only",
             )
             yield trace_id
 
-    def trace_llm_response(self, trace_id: str, response: str, model_name: str, **metadata):
+    def trace_llm_response(
+        self, trace_id: str, response: str, model_name: str, **metadata
+    ):
         """
         Add LLM response data to an existing trace.
 
@@ -1118,7 +1168,9 @@ class ObservabilityService:
             **metadata: Additional metadata to include
         """
         if not self._is_initialized or not self._langsmith_client:
-            logger.debug("llm_response_tracing_disabled", model=model_name, trace_id=trace_id)
+            logger.debug(
+                "llm_response_tracing_disabled", model=model_name, trace_id=trace_id
+            )
             return
 
         try:
@@ -1129,7 +1181,7 @@ class ObservabilityService:
                 model=model_name,
                 response_length=len(response),
                 provider="langsmith",
-                **metadata
+                **metadata,
             )
 
             # In a full implementation, you would send this to LangSmith
@@ -1140,10 +1192,18 @@ class ObservabilityService:
                 "llm_response_tracing_failed",
                 trace_id=trace_id,
                 model=model_name,
-                error=str(e)
+                error=str(e),
             )
 
-    def trace_decision_point(self, trace_id: str, decision_type: str, options: list, chosen_option: str, reasoning: str = None, **metadata):
+    def trace_decision_point(
+        self,
+        trace_id: str,
+        decision_type: str,
+        options: list,
+        chosen_option: str,
+        reasoning: str = None,
+        **metadata,
+    ):
         """
         Trace AI decision-making points for transparency.
 
@@ -1156,7 +1216,11 @@ class ObservabilityService:
             **metadata: Additional metadata
         """
         if not self._is_initialized or not self._langsmith_client:
-            logger.debug("decision_tracing_disabled", decision_type=decision_type, trace_id=trace_id)
+            logger.debug(
+                "decision_tracing_disabled",
+                decision_type=decision_type,
+                trace_id=trace_id,
+            )
             return
 
         try:
@@ -1168,7 +1232,7 @@ class ObservabilityService:
                 chosen_option=chosen_option,
                 has_reasoning=bool(reasoning),
                 provider="langsmith",
-                **metadata
+                **metadata,
             )
 
             # In a full implementation, this would be sent to LangSmith
@@ -1179,13 +1243,18 @@ class ObservabilityService:
                 "decision_tracing_failed",
                 trace_id=trace_id,
                 decision_type=decision_type,
-                error=str(e)
+                error=str(e),
             )
 
     # Tracing Decorators for Automatic AI Operation Wrapping
 
-    def trace_ai_operation(self, operation_name: str = None, operation_type: str = "ai_operation",
-                          include_args: bool = True, include_result: bool = False):
+    def trace_ai_operation(
+        self,
+        operation_name: str = None,
+        operation_type: str = "ai_operation",
+        include_args: bool = True,
+        include_result: bool = False,
+    ):
         """
         Decorator for automatic tracing of AI operations.
 
@@ -1195,6 +1264,7 @@ class ObservabilityService:
             include_args: Whether to include function arguments in trace metadata
             include_result: Whether to include function result in trace metadata
         """
+
         def decorator(func: Callable) -> Callable:
             service_ref = weakref.ref(self)
 
@@ -1203,7 +1273,7 @@ class ObservabilityService:
                 service = service_ref()
                 if service is None:
                     return func(*args, **kwargs)  # Service was garbage collected
-                
+
                 # Use provided operation name or function name
                 trace_name = operation_name or func.__name__
 
@@ -1216,11 +1286,15 @@ class ObservabilityService:
 
                 # Include arguments if requested (exclude self)
                 if include_args:
-                    func_args = args[1:] if args and hasattr(args[0], '__dict__') else args
-                    metadata.update({
-                        "args_count": len(func_args),
-                        "kwargs_keys": list(kwargs.keys()),
-                    })
+                    func_args = (
+                        args[1:] if args and hasattr(args[0], "__dict__") else args
+                    )
+                    metadata.update(
+                        {
+                            "args_count": len(func_args),
+                            "kwargs_keys": list(kwargs.keys()),
+                        }
+                    )
 
                 # Add performance monitoring
                 start_time = time.perf_counter()
@@ -1235,7 +1309,9 @@ class ObservabilityService:
 
                         # Add performance data to trace
                         if trace_id:
-                            self._add_performance_metrics(trace_id, duration, operation_type)
+                            self._add_performance_metrics(
+                                trace_id, duration, operation_type
+                            )
 
                         # Include result in metadata if requested
                         if include_result and result is not None:
@@ -1246,7 +1322,7 @@ class ObservabilityService:
                             operation=trace_name,
                             trace_id=trace_id,
                             duration_ms=round(duration * 1000, 2),
-                            operation_type=operation_type
+                            operation_type=operation_type,
                         )
 
                         return result
@@ -1259,15 +1335,20 @@ class ObservabilityService:
                             trace_id=trace_id,
                             duration_ms=round(duration * 1000, 2),
                             error=str(e),
-                            operation_type=operation_type
+                            operation_type=operation_type,
                         )
                         raise
 
             return wrapper
+
         return decorator
 
-    def trace_llm_call_decorator(self, model_name: str = None, include_prompt: bool = False,
-                                include_response: bool = False):
+    def trace_llm_call_decorator(
+        self,
+        model_name: str = None,
+        include_prompt: bool = False,
+        include_response: bool = False,
+    ):
         """
         Decorator specifically for tracing LLM API calls.
 
@@ -1276,6 +1357,7 @@ class ObservabilityService:
             include_prompt: Whether to include the prompt in trace metadata
             include_response: Whether to include the response in trace metadata
         """
+
         def decorator(func: Callable) -> Callable:
             service_ref = weakref.ref(self)
 
@@ -1283,29 +1365,37 @@ class ObservabilityService:
             def wrapper(*args, **kwargs):
                 service = service_ref()
                 if service is None:
-                    return func(*args, **kwargs) 
+                    return func(*args, **kwargs)
                 # Try to extract model name from arguments
                 model = model_name
                 if not model:
                     # Look for common parameter names
-                    for arg_name in ['model', 'model_name', 'model_id']:
+                    for arg_name in ["model", "model_name", "model_id"]:
                         if arg_name in kwargs:
                             model = kwargs[arg_name]
                             break
                     # If still not found, check positional args (limited)
                     if not model and len(args) > 1:
-                        model = getattr(args[1], 'model', None) if hasattr(args[1], 'model') else None
+                        model = (
+                            getattr(args[1], "model", None)
+                            if hasattr(args[1], "model")
+                            else None
+                        )
 
                 model = model or "unknown_model"
 
                 # Extract prompt and response if requested
                 prompt = None
                 if include_prompt:
-                    prompt = kwargs.get('prompt', kwargs.get('messages', kwargs.get('input', None)))
+                    prompt = kwargs.get(
+                        "prompt", kwargs.get("messages", kwargs.get("input", None))
+                    )
 
                 start_time = time.perf_counter()
 
-                with self.trace_llm_call(model, prompt or "prompt_not_included") as trace_id:
+                with self.trace_llm_call(
+                    model, prompt or "prompt_not_included"
+                ) as trace_id:
                     try:
                         result = func(*args, **kwargs)
                         duration = time.perf_counter() - start_time
@@ -1316,7 +1406,7 @@ class ObservabilityService:
                                 trace_id or "unknown",
                                 str(result),
                                 model,
-                                duration_ms=round(duration * 1000, 2)
+                                duration_ms=round(duration * 1000, 2),
                             )
 
                         logger.info(
@@ -1324,7 +1414,7 @@ class ObservabilityService:
                             function=func.__name__,
                             model=model,
                             trace_id=trace_id,
-                            duration_ms=round(duration * 1000, 2)
+                            duration_ms=round(duration * 1000, 2),
                         )
 
                         return result
@@ -1337,14 +1427,17 @@ class ObservabilityService:
                             model=model,
                             trace_id=trace_id,
                             duration_ms=round(duration * 1000, 2),
-                            error=str(e)
+                            error=str(e),
                         )
                         raise
 
             return wrapper
+
         return decorator
 
-    def trace_ai_workflow_decorator(self, workflow_name: str = None, workflow_type: str = "ai_workflow"):
+    def trace_ai_workflow_decorator(
+        self, workflow_name: str = None, workflow_type: str = "ai_workflow"
+    ):
         """
         Decorator for tracing complete AI workflows.
 
@@ -1352,6 +1445,7 @@ class ObservabilityService:
             workflow_name: Custom name for the workflow (defaults to function name)
             workflow_type: Type of workflow for categorization
         """
+
         def decorator(func: Callable) -> Callable:
             service_ref = weakref.ref(self)
 
@@ -1359,8 +1453,8 @@ class ObservabilityService:
             def wrapper(*args, **kwargs):
                 service = service_ref()
                 if service is None:
-                    return func(*args, **kwargs) 
-                
+                    return func(*args, **kwargs)
+
                 trace_name = workflow_name or func.__name__
 
                 start_time = time.perf_counter()
@@ -1375,7 +1469,7 @@ class ObservabilityService:
                             workflow=trace_name,
                             workflow_type=workflow_type,
                             trace_id=trace_id,
-                            duration_ms=round(duration * 1000, 2)
+                            duration_ms=round(duration * 1000, 2),
                         )
 
                         return result
@@ -1388,16 +1482,19 @@ class ObservabilityService:
                             workflow_type=workflow_type,
                             trace_id=trace_id,
                             duration_ms=round(duration * 1000, 2),
-                            error=str(e)
+                            error=str(e),
                         )
                         raise
 
             return wrapper
+
         return decorator
 
     # Performance Monitoring and Metrics Collection
 
-    def _add_performance_metrics(self, trace_id: str, duration: float, operation_type: str):
+    def _add_performance_metrics(
+        self, trace_id: str, duration: float, operation_type: str
+    ):
         """Add performance metrics to a trace."""
         if not self._is_initialized:
             return
@@ -1408,7 +1505,7 @@ class ObservabilityService:
                 trace_id=trace_id,
                 duration_seconds=duration,
                 duration_ms=round(duration * 1000, 2),
-                operation_type=operation_type
+                operation_type=operation_type,
             )
         except Exception as e:
             logger.error("performance_metrics_failed", trace_id=trace_id, error=str(e))
@@ -1421,7 +1518,7 @@ class ObservabilityService:
         try:
             # Extract basic metadata from result
             metadata = {}
-            if hasattr(result, '__dict__'):
+            if hasattr(result, "__dict__"):
                 metadata["result_type"] = type(result).__name__
             elif isinstance(result, dict):
                 metadata["result_keys"] = list(result.keys())
@@ -1439,12 +1536,14 @@ class ObservabilityService:
                 "result_metadata_added",
                 trace_id=trace_id,
                 operation_type=operation_type,
-                **metadata
+                **metadata,
             )
         except Exception as e:
             logger.error("result_metadata_failed", trace_id=trace_id, error=str(e))
 
-    def get_performance_metrics(self, operation_type: str = None, time_window_seconds: int = 3600) -> Dict[str, Any]:
+    def get_performance_metrics(
+        self, operation_type: str = None, time_window_seconds: int = 3600
+    ) -> Dict[str, Any]:
         """
         Get performance metrics for operations.
 
@@ -1461,12 +1560,14 @@ class ObservabilityService:
             "operation_type": operation_type,
             "time_window_seconds": time_window_seconds,
             "metrics_available": False,
-            "note": "Performance metrics collection requires LangSmith integration"
+            "note": "Performance metrics collection requires LangSmith integration",
         }
 
     # Custom Trace Tags for AI-specific Operations
 
-    def add_custom_trace_tags(self, trace_id: str, tags: Dict[str, Union[str, int, float, bool]]):
+    def add_custom_trace_tags(
+        self, trace_id: str, tags: Dict[str, Union[str, int, float, bool]]
+    ):
         """
         Add custom tags to an existing trace.
 
@@ -1482,12 +1583,14 @@ class ObservabilityService:
                 "custom_trace_tags_added",
                 trace_id=trace_id,
                 tags=list(tags.keys()),
-                tag_count=len(tags)
+                tag_count=len(tags),
             )
         except Exception as e:
             logger.error("custom_trace_tags_failed", trace_id=trace_id, error=str(e))
 
-    def create_ai_trace_tags(self, operation_type: str, **kwargs) -> Dict[str, Union[str, int, float, bool]]:
+    def create_ai_trace_tags(
+        self, operation_type: str, **kwargs
+    ) -> Dict[str, Union[str, int, float, bool]]:
         """
         Create standardized AI-specific trace tags.
 
@@ -1537,8 +1640,9 @@ class ObservabilityServiceFactory:
     """Factory for creating ObservabilityService instances with dependency injection support."""
 
     @staticmethod
-    def create_service(config: Optional[ObservabilityConfig] = None,
-                       initialize_on_create: bool = True) -> ObservabilityService:
+    def create_service(
+        config: Optional[ObservabilityConfig] = None, initialize_on_create: bool = True
+    ) -> ObservabilityService:
         """
         Create a new ObservabilityService instance with optional configuration.
 
@@ -1555,7 +1659,7 @@ class ObservabilityServiceFactory:
             # Set the config directly on the service instance
             service._config = config
             # Use provided configuration instead of loading from environment
-            with patch.object(service, 'load_config', return_value=config):
+            with patch.object(service, "load_config", return_value=config):
                 if initialize_on_create:
                     service.initialize()
         elif initialize_on_create:
@@ -1578,14 +1682,14 @@ class ObservabilityServiceFactory:
             api_key="test_api_key",
             project="test_project",
             endpoint=None,
-            tracing_enabled=True
+            tracing_enabled=True,
         )
 
         service = ObservabilityService()
 
-        with patch.object(service, 'load_config', return_value=config):
+        with patch.object(service, "load_config", return_value=config):
             if mock_langsmith:
-                with patch.object(service, '_initialize_langsmith_client'):
+                with patch.object(service, "_initialize_langsmith_client"):
                     service.initialize()
             else:
                 service.initialize()
@@ -1601,15 +1705,12 @@ class ObservabilityServiceFactory:
             ObservabilityService with tracing disabled
         """
         config = ObservabilityConfig(
-            api_key="disabled",
-            project="disabled",
-            endpoint=None,
-            tracing_enabled=False
+            api_key="disabled", project="disabled", endpoint=None, tracing_enabled=False
         )
 
         service = ObservabilityService()
 
-        with patch.object(service, 'load_config', return_value=config):
+        with patch.object(service, "load_config", return_value=config):
             service.initialize()
 
         return service
@@ -1647,23 +1748,26 @@ class DependencyContainer:
         self._services.clear()
         self._factories.clear()
 
+
 # Global service instance - use lazy initialization only in test environments
 def _create_global_service():
     """Create the global observability service instance."""
     return ObservabilityService()
 
+
 # Use immediate initialization for backward compatibility
 observability_service = _create_global_service()
+
 
 def get_global_service():
     """Get the global observability service instance."""
     return observability_service
+
 
 # Global dependency container
 dependency_container = DependencyContainer()
 
 # Register default observability service factory
 dependency_container.register_factory(
-    "observability_service",
-    lambda: ObservabilityServiceFactory.create_service()
+    "observability_service", lambda: ObservabilityServiceFactory.create_service()
 )

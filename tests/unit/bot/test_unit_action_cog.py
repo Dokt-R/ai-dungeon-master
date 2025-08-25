@@ -7,13 +7,16 @@ async def test_action_submit_success(mock_interaction, mock_action_cog):
     """Test successful action submission."""
     cog = mock_action_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("submit_action", {
-        "narrative": "You swing your sword and connect with the enemy!",
-        "session_id": "test_session_123",
-        "status": "success",
-        "processing_time": 1.5,
-        "correlation_id": "test-cid-123"
-    })
+    cog.api_client.set_response_override(
+        "submit_action",
+        {
+            "narrative": "You swing your sword and connect with the enemy!",
+            "session_id": "test_session_123",
+            "status": "success",
+            "processing_time": 1.5,
+            "correlation_id": "test-cid-123",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -24,7 +27,7 @@ async def test_action_submit_success(mock_interaction, mock_action_cog):
 
     # Check that embed was created with correct data
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🎭 AI Dungeon Master Response"
     assert "You swing your sword" in embed.description
@@ -56,12 +59,15 @@ async def test_action_test_success(mock_interaction, mock_action_cog):
     """Test successful action API test."""
     cog = mock_action_cog
     # Replace API client with mock
-    cog.api_client.set_response_override("test_action_endpoint", {
-        "status": "success",
-        "message": "Action API is operational",
-        "endpoint": "/api/action",
-        "test_endpoint": "/api/action/test"
-    })
+    cog.api_client.set_response_override(
+        "test_action_endpoint",
+        {
+            "status": "success",
+            "message": "Action API is operational",
+            "endpoint": "/api/action",
+            "test_endpoint": "/api/action/test",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -71,7 +77,7 @@ async def test_action_test_success(mock_interaction, mock_action_cog):
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🧪 Action API Test"
     assert "Status" in embed.fields[0].name
@@ -92,7 +98,7 @@ async def test_action_session_info_with_session(mock_interaction, mock_action_co
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "📊 Action Session Info"
     assert "test_session_123" in embed.description
@@ -127,7 +133,7 @@ async def test_action_help_success(mock_interaction, mock_action_cog):
     interaction.followup.send.assert_awaited_once()
 
     call_args = interaction.followup.send.call_args
-    embed = call_args.kwargs['embed']
+    embed = call_args.kwargs["embed"]
 
     assert embed.title == "🎭 AI Dungeon Master - Action Commands"
     assert "Submit Action" in embed.fields[0].name
@@ -137,21 +143,21 @@ async def test_action_help_success(mock_interaction, mock_action_cog):
 async def test_action_submit_with_custom_session(mock_interaction, mock_action_cog):
     """Test action submission with custom session ID."""
     cog = mock_action_cog
-    cog.api_client.set_response_override("submit_action", {
-        "narrative": "You cast a powerful spell!",
-        "session_id": "custom_session_456",
-        "status": "success",
-        "processing_time": 2.0,
-        "correlation_id": "test-cid-456"
-    })
+    cog.api_client.set_response_override(
+        "submit_action",
+        {
+            "narrative": "You cast a powerful spell!",
+            "session_id": "custom_session_456",
+            "status": "success",
+            "processing_time": 2.0,
+            "correlation_id": "test-cid-456",
+        },
+    )
 
     interaction = mock_interaction
 
     await cog.submit.callback(
-        cog,
-        interaction,
-        action="I cast fireball",
-        session_id="custom_session_456"
+        cog, interaction, action="I cast fireball", session_id="custom_session_456"
     )
 
     # Verify the session was stored
@@ -161,13 +167,16 @@ async def test_action_submit_with_custom_session(mock_interaction, mock_action_c
 async def test_action_submit_with_campaign_context(mock_interaction, mock_action_cog):
     """Test action submission with campaign context."""
     cog = mock_action_cog
-    cog.api_client.set_response_override("submit_action", {
-        "narrative": "You explore the ancient dungeon...",
-        "session_id": "context_session_789",
-        "status": "success",
-        "processing_time": 1.8,
-        "correlation_id": "test-cid-789"
-    })
+    cog.api_client.set_response_override(
+        "submit_action",
+        {
+            "narrative": "You explore the ancient dungeon...",
+            "session_id": "context_session_789",
+            "status": "success",
+            "processing_time": 1.8,
+            "correlation_id": "test-cid-789",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -175,7 +184,7 @@ async def test_action_submit_with_campaign_context(mock_interaction, mock_action
         cog,
         interaction,
         action="I explore the dungeon",
-        campaign_context="Forgotten Realms Campaign - Level 5"
+        campaign_context="Forgotten Realms Campaign - Level 5",
     )
 
     interaction.response.defer.assert_awaited_once_with(ephemeral=True)
@@ -203,13 +212,16 @@ async def test_cog_unload(mock_action_cog):
 async def test_session_tracking(mock_interaction, mock_action_cog):
     """Test that sessions are properly tracked."""
     cog = mock_action_cog
-    cog.api_client.set_response_override("submit_action", {
-        "narrative": "You defeat the enemy!",
-        "session_id": "tracked_session_001",
-        "status": "success",
-        "processing_time": 1.2,
-        "correlation_id": "test-cid-001"
-    })
+    cog.api_client.set_response_override(
+        "submit_action",
+        {
+            "narrative": "You defeat the enemy!",
+            "session_id": "tracked_session_001",
+            "status": "success",
+            "processing_time": 1.2,
+            "correlation_id": "test-cid-001",
+        },
+    )
 
     interaction = mock_interaction
 
@@ -218,10 +230,7 @@ async def test_session_tracking(mock_interaction, mock_action_cog):
 
     # Submit action with custom session ID
     await cog.submit.callback(
-        cog,
-        interaction,
-        action="I defeat the enemy",
-        session_id="tracked_session_001"
+        cog, interaction, action="I defeat the enemy", session_id="tracked_session_001"
     )
 
     # Session should now be tracked
@@ -231,13 +240,16 @@ async def test_session_tracking(mock_interaction, mock_action_cog):
 async def test_session_auto_generation(mock_interaction, mock_action_cog):
     """Test that sessions are auto-generated when not provided."""
     cog = mock_action_cog
-    cog.api_client.set_response_override("submit_action", {
-        "narrative": "You explore the cave!",
-        "session_id": "auto_generated_session",
-        "status": "success",
-        "processing_time": 1.0,
-        "correlation_id": "test-cid-002"
-    })
+    cog.api_client.set_response_override(
+        "submit_action",
+        {
+            "narrative": "You explore the cave!",
+            "session_id": "auto_generated_session",
+            "status": "success",
+            "processing_time": 1.0,
+            "correlation_id": "test-cid-002",
+        },
+    )
 
     interaction = mock_interaction
 

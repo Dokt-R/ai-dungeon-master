@@ -38,7 +38,9 @@ class HealthCog(commands.Cog):
         """Called when the cog is unloaded. Clean up resources."""
         await self.api_client.close()
 
-    @health.command(name="ai", description="Check the comprehensive health status of the AI system.")
+    @health.command(
+        name="ai", description="Check the comprehensive health status of the AI system."
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def ai(self, interaction: discord.Interaction):
@@ -61,17 +63,27 @@ class HealthCog(commands.Cog):
             traced = health_data.get("traced", False)
 
             # Create status emoji
-            status_emoji = "🟢" if status == "healthy" else "🟡" if status == "degraded" else "🔴"
+            status_emoji = (
+                "🟢" if status == "healthy" else "🟡" if status == "degraded" else "🔴"
+            )
 
             embed = discord.Embed(
                 title=f"{status_emoji} AI System Health",
-                color=discord.Color.green() if status == "healthy" else discord.Color.yellow() if status == "degraded" else discord.Color.red()
+                color=discord.Color.green()
+                if status == "healthy"
+                else discord.Color.yellow()
+                if status == "degraded"
+                else discord.Color.red(),
             )
 
             embed.add_field(name="Status", value=status.title(), inline=True)
             embed.add_field(name="Provider", value=provider.title(), inline=True)
             embed.add_field(name="Model", value=model, inline=True)
-            embed.add_field(name="Tracing", value="✅ Active" if traced else "❌ Inactive", inline=True)
+            embed.add_field(
+                name="Tracing",
+                value="✅ Active" if traced else "❌ Inactive",
+                inline=True,
+            )
 
             # Add prompt system info if available
             if "prompt_system" in health_data:
@@ -80,22 +92,22 @@ class HealthCog(commands.Cog):
                 embed.add_field(
                     name="Prompt System",
                     value=f"{prompt_status.title()} ({template_count} templates)",
-                    inline=True
+                    inline=True,
                 )
 
             # Add connection test info if available
             if "connection_test" in health_data:
                 connection = health_data["connection_test"]
                 embed.add_field(
-                    name="Connection Test",
-                    value=connection.title(),
-                    inline=True
+                    name="Connection Test", value=connection.title(), inline=True
                 )
 
             # Add circuit breaker state if available
             if "circuit_breaker_state" in health_data:
                 cb_state = health_data["circuit_breaker_state"]
-                embed.add_field(name="Circuit Breaker", value=cb_state.title(), inline=True)
+                embed.add_field(
+                    name="Circuit Breaker", value=cb_state.title(), inline=True
+                )
 
             # Add timestamp
             if "timestamp" in health_data:
@@ -105,23 +117,26 @@ class HealthCog(commands.Cog):
 
         except CustomException as e:
             await interaction.followup.send(
-                f"❌ Failed to check AI health: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to check AI health: {str(e)}", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
-                f"❌ Unexpected error checking AI health: {str(e)}",
-                ephemeral=True
+                f"❌ Unexpected error checking AI health: {str(e)}", ephemeral=True
             )
 
-    @health.command(name="observability", description="Check the health status of the observability service.")
+    @health.command(
+        name="observability",
+        description="Check the health status of the observability service.",
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def observability(self, interaction: discord.Interaction):
         """Check observability service health including tracing configuration."""
         await self._handle_observability_health_check(interaction)
 
-    async def _handle_observability_health_check(self, interaction: discord.Interaction):
+    async def _handle_observability_health_check(
+        self, interaction: discord.Interaction
+    ):
         """Handle observability health check request."""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -134,11 +149,12 @@ class HealthCog(commands.Cog):
             project = health_data.get("project", "unknown")
 
             status_emoji = "🟢" if status == "healthy" else "🔴"
-            color = discord.Color.green() if status == "healthy" else discord.Color.red()
+            color = (
+                discord.Color.green() if status == "healthy" else discord.Color.red()
+            )
 
             embed = discord.Embed(
-                title=f"{status_emoji} Observability Health",
-                color=color
+                title=f"{status_emoji} Observability Health", color=color
             )
 
             embed.add_field(name="Status", value=status.title(), inline=True)
@@ -146,26 +162,24 @@ class HealthCog(commands.Cog):
             embed.add_field(name="Project", value=project, inline=True)
 
             if "error" in health_data and health_data["error"]:
-                embed.add_field(
-                    name="Error",
-                    value=health_data["error"],
-                    inline=False
-                )
+                embed.add_field(name="Error", value=health_data["error"], inline=False)
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except CustomException as e:
             await interaction.followup.send(
-                f"❌ Failed to check observability health: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to check observability health: {str(e)}", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
                 f"❌ Unexpected error checking observability health: {str(e)}",
-                ephemeral=True
+                ephemeral=True,
             )
 
-    @health.command(name="general", description="Check the overall health status of the application.")
+    @health.command(
+        name="general",
+        description="Check the overall health status of the application.",
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def general(self, interaction: discord.Interaction):
@@ -184,12 +198,19 @@ class HealthCog(commands.Cog):
             service = health_data.get("service", "unknown")
             version = health_data.get("version", "unknown")
 
-            status_emoji = "🟢" if status == "healthy" else "🟡" if status == "degraded" else "🔴"
-            color = discord.Color.green() if status == "healthy" else discord.Color.yellow() if status == "degraded" else discord.Color.red()
+            status_emoji = (
+                "🟢" if status == "healthy" else "🟡" if status == "degraded" else "🔴"
+            )
+            color = (
+                discord.Color.green()
+                if status == "healthy"
+                else discord.Color.yellow()
+                if status == "degraded"
+                else discord.Color.red()
+            )
 
             embed = discord.Embed(
-                title=f"{status_emoji} General System Health",
-                color=color
+                title=f"{status_emoji} General System Health", color=color
             )
 
             embed.add_field(name="Status", value=status.title(), inline=True)
@@ -205,7 +226,7 @@ class HealthCog(commands.Cog):
                     embed.add_field(
                         name=f"{component_name.title()}",
                         value=f"{comp_emoji} {comp_status.title()}",
-                        inline=True
+                        inline=True,
                     )
 
             if "timestamp" in health_data:
@@ -215,16 +236,16 @@ class HealthCog(commands.Cog):
 
         except CustomException as e:
             await interaction.followup.send(
-                f"❌ Failed to check general health: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to check general health: {str(e)}", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
-                f"❌ Unexpected error checking general health: {str(e)}",
-                ephemeral=True
+                f"❌ Unexpected error checking general health: {str(e)}", ephemeral=True
             )
 
-    @health.command(name="test-trace", description="Test the observability tracing functionality.")
+    @health.command(
+        name="test-trace", description="Test the observability tracing functionality."
+    )
     @app_commands.describe()
     @discord_error_handler()
     async def test_trace(self, interaction: discord.Interaction):
@@ -247,7 +268,7 @@ class HealthCog(commands.Cog):
                 embed = discord.Embed(
                     title="🟢 Observability Trace Test",
                     description="✅ Trace test completed successfully",
-                    color=discord.Color.green()
+                    color=discord.Color.green(),
                 )
 
                 embed.add_field(name="Status", value=status.title(), inline=True)
@@ -260,16 +281,14 @@ class HealthCog(commands.Cog):
                     if "operations" in test_data:
                         operations = ", ".join(test_data["operations"])
                         embed.add_field(
-                            name="Test Operations",
-                            value=operations,
-                            inline=False
+                            name="Test Operations", value=operations, inline=False
                         )
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
                 embed = discord.Embed(
                     title="🔴 Observability Trace Test Failed",
-                    color=discord.Color.red()
+                    color=discord.Color.red(),
                 )
 
                 embed.add_field(name="Status", value=status.title(), inline=True)
@@ -277,22 +296,19 @@ class HealthCog(commands.Cog):
 
                 if "error" in test_result:
                     embed.add_field(
-                        name="Error",
-                        value=test_result["error"],
-                        inline=False
+                        name="Error", value=test_result["error"], inline=False
                     )
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
         except CustomException as e:
             await interaction.followup.send(
-                f"❌ Failed to test observability trace: {str(e)}",
-                ephemeral=True
+                f"❌ Failed to test observability trace: {str(e)}", ephemeral=True
             )
         except Exception as e:
             await interaction.followup.send(
                 f"❌ Unexpected error testing observability trace: {str(e)}",
-                ephemeral=True
+                ephemeral=True,
             )
 
 

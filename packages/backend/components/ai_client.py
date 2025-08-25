@@ -32,7 +32,10 @@ try:
 except ImportError:
     # Handle case where openai package is not installed
     AsyncOpenAI = None
-    logger.warning("openai_package_not_available", message="OpenAI package is not installed. OpenAI provider will not be available.")
+    logger.warning(
+        "openai_package_not_available",
+        message="OpenAI package is not installed. OpenAI provider will not be available.",
+    )
 
 
 class AIProvider(Enum):

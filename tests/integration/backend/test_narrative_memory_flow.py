@@ -39,9 +39,15 @@ class TestNarrativeMemoryFlow:
 
         # Add user messages
         memory_state.add_message("user", "I want to explore the nearby cave")
-        memory_state.add_message("assistant", "You approach the dark cave entrance, hearing water dripping from within.")
+        memory_state.add_message(
+            "assistant",
+            "You approach the dark cave entrance, hearing water dripping from within.",
+        )
         memory_state.add_message("user", "I light my torch and go inside")
-        memory_state.add_message("assistant", "The torch illuminates the cave, revealing beautiful crystal formations along the walls.")
+        memory_state.add_message(
+            "assistant",
+            "The torch illuminates the cave, revealing beautiful crystal formations along the walls.",
+        )
 
         # Prepare memory context
         user_prompt = "I search for any treasure or valuable items"
@@ -49,7 +55,7 @@ class TestNarrativeMemoryFlow:
         context = await memory_service.prepare_memory_context(
             session_id=self.session_id,
             user_prompt=user_prompt,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Verify context structure
@@ -82,7 +88,7 @@ class TestNarrativeMemoryFlow:
             session_id=self.session_id,
             user_prompt=user_prompt,
             ai_response=ai_response,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Verify memory was updated
@@ -103,11 +109,19 @@ class TestNarrativeMemoryFlow:
         memory_state = await memory_service._load_memory_state(self.session_id)
 
         memory_state.add_message("user", "I want to buy some potions from the merchant")
-        memory_state.add_message("assistant", "The merchant offers healing potions for 50 gold each.")
+        memory_state.add_message(
+            "assistant", "The merchant offers healing potions for 50 gold each."
+        )
         memory_state.add_message("user", "I ask about the nearby dungeon")
-        memory_state.add_message("assistant", "The merchant warns you about the dangerous dungeon to the north.")
+        memory_state.add_message(
+            "assistant",
+            "The merchant warns you about the dangerous dungeon to the north.",
+        )
         memory_state.add_message("user", "Tell me about the local tavern")
-        memory_state.add_message("assistant", "The tavern is called The Rusty Dragon and serves excellent ale.")
+        memory_state.add_message(
+            "assistant",
+            "The tavern is called The Rusty Dragon and serves excellent ale.",
+        )
 
         # Test relevance with dungeon-related prompt
         dungeon_prompt = "I'm preparing to explore the northern dungeon"
@@ -115,7 +129,7 @@ class TestNarrativeMemoryFlow:
         context = await memory_service.prepare_memory_context(
             session_id=self.session_id,
             user_prompt=dungeon_prompt,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Should find relevant memories about the dungeon
@@ -134,7 +148,9 @@ class TestNarrativeMemoryFlow:
         # Add many messages to exceed normal context size
         for i in range(15):
             memory_state.add_message("user", f"User action number {i}")
-            memory_state.add_message("assistant", f"DM response to action {i} with detailed description")
+            memory_state.add_message(
+                "assistant", f"DM response to action {i} with detailed description"
+            )
 
         # Prepare context with small token limit
         memory_service.config.max_context_tokens = 500
@@ -142,7 +158,7 @@ class TestNarrativeMemoryFlow:
         context = await memory_service.prepare_memory_context(
             session_id=self.session_id,
             user_prompt="What happens next?",
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Verify context was optimized to fit within token limits
@@ -158,18 +174,24 @@ class TestNarrativeMemoryFlow:
 
         # Add conversation with character information
         memory_state.add_message("user", "I am a level 5 fighter with a magic sword")
-        memory_state.add_message("assistant", "Noted. You're a skilled fighter with an enchanted blade.")
+        memory_state.add_message(
+            "assistant", "Noted. You're a skilled fighter with an enchanted blade."
+        )
         memory_state.add_message("user", "My sword can cast fireball once per day")
-        memory_state.add_message("assistant", "Your magic sword has powerful abilities.")
+        memory_state.add_message(
+            "assistant", "Your magic sword has powerful abilities."
+        )
         memory_state.add_message("user", "I need to find the thieves' guild")
-        memory_state.add_message("assistant", "You search for information about the guild.")
+        memory_state.add_message(
+            "assistant", "You search for information about the guild."
+        )
 
         user_prompt = "I want to use my fireball ability"
 
         context = await memory_service.prepare_memory_context(
             session_id=self.session_id,
             user_prompt=user_prompt,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Should extract character knowledge about the sword/fireball
@@ -185,18 +207,25 @@ class TestNarrativeMemoryFlow:
 
         # Add conversation with world-building information
         memory_state.add_message("user", "I look around the village")
-        memory_state.add_message("assistant", "You are in the village of Oakwood. It's midday and the sun is shining.")
+        memory_state.add_message(
+            "assistant",
+            "You are in the village of Oakwood. It's midday and the sun is shining.",
+        )
         memory_state.add_message("user", "I check the weather")
-        memory_state.add_message("assistant", "It's a beautiful spring day with clear skies.")
+        memory_state.add_message(
+            "assistant", "It's a beautiful spring day with clear skies."
+        )
         memory_state.add_message("user", "Where is the nearest inn?")
-        memory_state.add_message("assistant", "The nearest inn is the Oakwood Tavern on the main street.")
+        memory_state.add_message(
+            "assistant", "The nearest inn is the Oakwood Tavern on the main street."
+        )
 
         user_prompt = "What's the current situation here?"
 
         context = await memory_service.prepare_memory_context(
             session_id=self.session_id,
             user_prompt=user_prompt,
-            correlation_id=self.correlation_id
+            correlation_id=self.correlation_id,
         )
 
         # Should extract world state information
@@ -204,11 +233,13 @@ class TestNarrativeMemoryFlow:
         assert "current_location" in world_state or "current_time" in world_state
 
     @pytest.mark.asyncio
-    @patch('packages.backend.agents.dm_graph.ai_client')
+    @patch("packages.backend.agents.dm_graph.ai_client")
     async def test_dm_graph_memory_integration(self, mock_ai_client, dm_graph_service):
         """Test DM graph integration with memory service."""
         # Mock AI client
-        mock_ai_client.generate_chat = AsyncMock(return_value="The dragon breathes fire! You dodge and counterattack.")
+        mock_ai_client.generate_chat = AsyncMock(
+            return_value="The dragon breathes fire! You dodge and counterattack."
+        )
         mock_ai_client.is_initialized.return_value = True
 
         # Initialize DM graph
@@ -218,7 +249,9 @@ class TestNarrativeMemoryFlow:
         # Create test memory state
         memory_state = MemoryState(session_id=self.session_id)
         memory_state.add_message("user", "I approach the dragon")
-        memory_state.add_message("assistant", "The dragon notices you and spreads its wings.")
+        memory_state.add_message(
+            "assistant", "The dragon notices you and spreads its wings."
+        )
 
         user_prompt = "I prepare to attack the dragon"
 
@@ -227,7 +260,7 @@ class TestNarrativeMemoryFlow:
             user_prompt=user_prompt,
             session_id=self.session_id,
             correlation_id=self.correlation_id,
-            campaign_context={"campaign_name": "Dragon's Bane"}
+            campaign_context={"campaign_name": "Dragon's Bane"},
         )
 
         # Verify interaction completed
@@ -284,7 +317,7 @@ class TestNarrativeMemoryFlow:
             context = await memory_service.prepare_memory_context(
                 session_id=session_id,
                 user_prompt="Hello from session",
-                correlation_id=f"corr_{session_id}"
+                correlation_id=f"corr_{session_id}",
             )
             assert context is not None
 

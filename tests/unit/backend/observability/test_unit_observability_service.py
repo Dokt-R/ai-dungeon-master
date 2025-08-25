@@ -22,7 +22,8 @@ from packages.backend.components.observability_service import (
 )
 
 
-os.environ['PYTEST_CURRENT_TEST'] = 'integration_test_for_performance'
+os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
+
 
 class TestObservabilityConfig:
     """Test the ObservabilityConfig dataclass."""
@@ -137,7 +138,9 @@ class TestObservabilityService:
         assert config.endpoint is None or isinstance(config.endpoint, str)
         assert config.tracing_enabled is True
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(
         os.environ,
         {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": "test-project"},
@@ -158,7 +161,9 @@ class TestObservabilityService:
         # Verify client initialization was called
         mock_init_client.assert_called_once()
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(os.environ, {"LANGSMITH_API_KEY": "test-key"})
     def test_initialize_with_import_error(self, mock_init_client):
         """Test initialization with import error (service continues but logs warning)."""
@@ -174,7 +179,9 @@ class TestObservabilityService:
         # Verify the import error was handled gracefully
         mock_init_client.assert_called_once()
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(os.environ, {"LANGSMITH_API_KEY": "test-key"})
     def test_initialize_with_client_error(self, mock_init_client):
         """Test initialization with client error (service continues but logs warning)."""
@@ -210,13 +217,15 @@ class TestObservabilityService:
             "provider": "langsmith",
             "project": "unknown",
             "error": "not_initialized",
-            "correlation_id_support": 'enabled',
-            "current_correlation_id": None
+            "correlation_id_support": "enabled",
+            "current_correlation_id": None,
         }
 
         assert status == expected_status
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(
         os.environ,
         {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": "test-project"},
@@ -235,7 +244,9 @@ class TestObservabilityService:
         assert status["project"] == "test-project"
         assert status["tracing_enabled"] is True
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(os.environ, {"LANGSMITH_API_KEY": "test-key"})
     def test_trace_operation_not_initialized(self, mock_init_client):
         """Test trace operation when service is not initialized."""
@@ -249,7 +260,9 @@ class TestObservabilityService:
         assert len(trace_calls) == 1
         assert trace_calls[0] is None
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(
         os.environ,
         {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": "test-project"},
@@ -279,7 +292,9 @@ class TestObservabilityService:
         config = self.service.get_config()
         assert config is None
 
-    @patch("packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client")
+    @patch(
+        "packages.backend.components.observability_service.ObservabilityService._initialize_langsmith_client"
+    )
     @patch.dict(
         os.environ,
         {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": "test-project"},

@@ -383,7 +383,9 @@ class TestErrorHandling:
             )
 
         assert result is False
-        mock_disconnect.assert_called_once_with("test_conn", reason="too_many_errors", user_id="system")
+        mock_disconnect.assert_called_once_with(
+            "test_conn", reason="too_many_errors", user_id="system"
+        )
 
     @pytest.mark.asyncio
     async def test_handle_connection_error_connection_not_found(self):

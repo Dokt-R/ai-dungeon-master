@@ -85,7 +85,7 @@ class TestVoiceChannelPermissions:
 
         with (
             patch.object(cog, "_get_permission_cache_key", return_value=cache_key),
-            patch("packages.bot.cogs.voice_cog.datetime", mock_datetime)
+            patch("packages.bot.cogs.voice_cog.datetime", mock_datetime),
         ):
             result = cog._get_cached_permissions(cache_key)
             assert result == cached_perms
@@ -189,7 +189,9 @@ class TestVoiceChannelInfo:
         assert result.bot_can_join is True
 
     @pytest.mark.asyncio
-    async def test_get_channel_info_no_bot_member(self, mock_voice_cog, mock_voice_channel):
+    async def test_get_channel_info_no_bot_member(
+        self, mock_voice_cog, mock_voice_channel
+    ):
         """Test getting channel info when bot is not a guild member."""
         cog = mock_voice_cog
         channel = mock_voice_channel
@@ -205,7 +207,9 @@ class TestVoiceJoinLogic:
     """Test the voice join business logic."""
 
     @pytest.mark.asyncio
-    async def test_join_voice_success(self, mock_voice_cog, mock_interaction_member, mock_voice_channel):
+    async def test_join_voice_success(
+        self, mock_voice_cog, mock_interaction_member, mock_voice_channel
+    ):
         """Test successful voice channel join logic."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -289,12 +293,14 @@ class TestVoiceJoinLogic:
 
                 # Mark connection as complete
                 await voice_manager_service.complete_connection(
-                    connection_id=connection.connection_id, user_id=str(interaction.user.id)
+                    connection_id=connection.connection_id,
+                    user_id=str(interaction.user.id),
                 )
 
                 # Add the user as participant
                 await voice_manager_service.add_participant(
-                    connection_id=connection.connection_id, user_id=str(interaction.user.id)
+                    connection_id=connection.connection_id,
+                    user_id=str(interaction.user.id),
                 )
 
                 await interaction.followup.send(
@@ -317,7 +323,9 @@ class TestVoiceJoinLogic:
             )
 
     @pytest.mark.asyncio
-    async def test_join_voice_already_connected(self, mock_voice_cog, mock_interaction_member):
+    async def test_join_voice_already_connected(
+        self, mock_voice_cog, mock_interaction_member
+    ):
         """Test joining when already connected to a voice channel."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -344,7 +352,9 @@ class TestVoiceJoinLogic:
         )
 
     @pytest.mark.asyncio
-    async def test_join_voice_no_bot_permission(self, mock_voice_cog, mock_interaction_member, mock_voice_channel):
+    async def test_join_voice_no_bot_permission(
+        self, mock_voice_cog, mock_interaction_member, mock_voice_channel
+    ):
         """Test joining when bot lacks permission."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -366,7 +376,9 @@ class TestVoiceJoinLogic:
             )
 
     @pytest.mark.asyncio
-    async def test_join_voice_no_user_permission(self, mock_voice_cog, mock_interaction_member, mock_voice_channel):
+    async def test_join_voice_no_user_permission(
+        self, mock_voice_cog, mock_interaction_member, mock_voice_channel
+    ):
         """Test joining when user lacks permission."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -475,7 +487,9 @@ class TestVoiceLeaveLogic:
             )
 
     @pytest.mark.asyncio
-    async def test_leave_voice_not_connected(self, mock_voice_cog, mock_interaction_member):
+    async def test_leave_voice_not_connected(
+        self, mock_voice_cog, mock_interaction_member
+    ):
         """Test leaving when not connected to voice."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -497,7 +511,9 @@ class TestVoiceStatusLogic:
     """Test the voice status business logic."""
 
     @pytest.mark.asyncio
-    async def test_voice_status_connected(self, mock_voice_cog, mock_interaction_member, mock_voice_channel):
+    async def test_voice_status_connected(
+        self, mock_voice_cog, mock_interaction_member, mock_voice_channel
+    ):
         """Test voice status when connected."""
         cog = mock_voice_cog
         interaction = mock_interaction_member
@@ -523,7 +539,7 @@ class TestVoiceStatusLogic:
 
         interaction.guild.get_member.side_effect = lambda id: {
             123: mock_member1,
-            456: mock_member2
+            456: mock_member2,
         }.get(id)
 
         with patch.object(
@@ -563,7 +579,9 @@ class TestVoiceStatusLogic:
 
             if status_response.connected_at:
                 # Convert float timestamp to datetime for subtraction
-                connected_datetime = datetime.utcfromtimestamp(status_response.connected_at)
+                connected_datetime = datetime.utcfromtimestamp(
+                    status_response.connected_at
+                )
                 duration = datetime.utcnow() - connected_datetime
                 embed.add_field(
                     name="Connected For",
@@ -594,7 +612,9 @@ class TestVoiceStatusLogic:
             assert embed.title == "Voice Connection Status"
 
     @pytest.mark.asyncio
-    async def test_voice_status_not_connected(self, mock_voice_cog, mock_interaction_member):
+    async def test_voice_status_not_connected(
+        self, mock_voice_cog, mock_interaction_member
+    ):
         """Test voice status when not connected."""
         cog = mock_voice_cog
         interaction = mock_interaction_member

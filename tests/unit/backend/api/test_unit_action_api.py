@@ -191,9 +191,16 @@ class TestActionEndpoint:
             # Handle different types of validation errors:
             # - pattern validation for invalid characters (spaces, @, .)
             # - length validation for empty strings
-            has_pattern_error = "pattern" in error_details.lower() or "match" in error_details.lower()
-            has_length_error = "character" in error_details.lower() or "short" in error_details.lower()
-            assert has_pattern_error or has_length_error, f"Expected pattern or length error, got: {error_details}"
+            has_pattern_error = (
+                "pattern" in error_details.lower() or "match" in error_details.lower()
+            )
+            has_length_error = (
+                "character" in error_details.lower() or "short" in error_details.lower()
+            )
+            assert has_pattern_error or has_length_error, (
+                f"Expected pattern or length error, got: {error_details}"
+            )
+
     def test_request_with_correlation_id_header(self, client):
         """Test POST /action with custom correlation ID header."""
         custom_correlation_id = "550e8400-e29b-41d4-a716-446655440000"

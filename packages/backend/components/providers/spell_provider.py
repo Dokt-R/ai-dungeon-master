@@ -404,7 +404,25 @@ class SpellRuleProvider(BaseRuleProvider):
         """Categorize spell by its primary function."""
         description_lower = spell.description.lower()
 
-        if any(word in description_lower for word in ["damage", "hit", "attack"]):
+        # Check for damage first (highest priority for combat spells)
+        if any(
+            word in description_lower
+            for word in [
+                "damage",
+                "hit",
+                "attack",
+                "fire",
+                "cold",
+                "lightning",
+                "acid",
+                "poison",
+                "necrotic",
+                "psychic",
+                "radiant",
+                "thunder",
+                "force",
+            ]
+        ):
             return "Damage"
         elif any(word in description_lower for word in ["heal", "cure", "restore"]):
             return "Healing"

@@ -25,6 +25,7 @@ import json
 # Try to import tiktoken for accurate token counting
 try:
     import tiktoken
+
     TIKTOKEN_AVAILABLE = True
 except ImportError:
     TIKTOKEN_AVAILABLE = False
@@ -108,7 +109,7 @@ class MemoryService:
                 self.logger.warning(
                     "tiktoken_initialization_failed",
                     error=str(e),
-                    encoding=self._encoding_name
+                    encoding=self._encoding_name,
                 )
                 self._tokenizer = None
         else:
@@ -150,7 +151,9 @@ class MemoryService:
         adjustments += word_count // 3
 
         # Add tokens for punctuation and special characters
-        punctuation_count = sum(1 for char in text if char in "!@#$%^&*()_+-=[]{}|;:,.<>?")
+        punctuation_count = sum(
+            1 for char in text if char in "!@#$%^&*()_+-=[]{}|;:,.<>?"
+        )
         adjustments += punctuation_count // 2
 
         # Add tokens for numbers (numbers often take more tokens)
@@ -158,7 +161,9 @@ class MemoryService:
         adjustments += number_count // 2
 
         # Add tokens for uppercase words (proper nouns, etc.)
-        uppercase_word_count = sum(1 for word in text.split() if word and word[0].isupper())
+        uppercase_word_count = sum(
+            1 for word in text.split() if word and word[0].isupper()
+        )
         adjustments += uppercase_word_count // 4
 
         # Add tokens for whitespace (each whitespace sequence takes tokens)
@@ -584,13 +589,17 @@ class MemoryService:
             if session_id in self._memory_cache:
                 cached_memory = self._memory_cache[session_id]
                 # Check if cache is still valid (within max age)
-                if (datetime.utcnow() - cached_memory.last_activity).total_seconds() < self._cache_max_age:
+                if (
+                    datetime.utcnow() - cached_memory.last_activity
+                ).total_seconds() < self._cache_max_age:
                     return cached_memory
 
             # Load from database
             async with get_async_session() as session:
                 result = await session.execute(
-                    select(MemoryStateModel).where(MemoryStateModel.session_id == session_id)
+                    select(MemoryStateModel).where(
+                        MemoryStateModel.session_id == session_id
+                    )
                 )
                 memory_record = result.scalar_one_or_none()
 
@@ -613,11 +622,15 @@ class MemoryService:
                 return memory_state
 
         except SQLAlchemyError as e:
-            self.logger.error("database_error_loading_memory", session_id=session_id, error=str(e))
+            self.logger.error(
+                "database_error_loading_memory", session_id=session_id, error=str(e)
+            )
             # Fallback to new memory state on database error
             return MemoryState(session_id=session_id)
         except Exception as e:
-            self.logger.error("error_loading_memory", session_id=session_id, error=str(e))
+            self.logger.error(
+                "error_loading_memory", session_id=session_id, error=str(e)
+            )
             # Fallback to new memory state
             return MemoryState(session_id=session_id)
 
@@ -627,7 +640,9 @@ class MemoryService:
             async with get_async_session() as session:
                 # Check if record exists
                 result = await session.execute(
-                    select(MemoryStateModel).where(MemoryStateModel.session_id == memory_state.session_id)
+                    select(MemoryStateModel).where(
+                        MemoryStateModel.session_id == memory_state.session_id
+                    )
                 )
                 existing_record = result.scalar_one_or_none()
 
@@ -652,8 +667,7 @@ class MemoryService:
                 else:
                     # Create new record
                     new_record = MemoryStateModel(
-                        session_id=memory_state.session_id,
-                        **serialized_data
+                        session_id=memory_state.session_id, **serialized_data
                     )
                     session.add(new_record)
 
@@ -672,14 +686,14 @@ class MemoryService:
             self.logger.error(
                 "database_error_persisting_memory",
                 session_id=memory_state.session_id,
-                error=str(e)
+                error=str(e),
             )
             # Continue without failing - memory will be lost on restart but service continues
         except Exception as e:
             self.logger.error(
                 "error_persisting_memory",
                 session_id=memory_state.session_id,
-                error=str(e)
+                error=str(e),
             )
 
     async def _cleanup_old_memories(
@@ -748,23 +762,20 @@ class MemoryService:
             cleared_db = False
             try:
                 import asyncio
+
                 # Run database operation in background to avoid blocking
                 asyncio.create_task(self._delete_memory_from_db(session_id))
                 cleared_db = True
             except Exception as e:
                 self.logger.warning(
-                    "failed_to_queue_db_cleanup",
-                    session_id=session_id,
-                    error=str(e)
+                    "failed_to_queue_db_cleanup", session_id=session_id, error=str(e)
                 )
 
             return cleared_cache or cleared_db
 
         except Exception as e:
             self.logger.error(
-                "error_clearing_session_memory",
-                session_id=session_id,
-                error=str(e)
+                "error_clearing_session_memory", session_id=session_id, error=str(e)
             )
             return False
 
@@ -773,26 +784,21 @@ class MemoryService:
         try:
             async with get_async_session() as session:
                 await session.execute(
-                    delete(MemoryStateModel).where(MemoryStateModel.session_id == session_id)
+                    delete(MemoryStateModel).where(
+                        MemoryStateModel.session_id == session_id
+                    )
                 )
                 await session.commit()
 
-                self.logger.debug(
-                    "memory_deleted_from_db",
-                    session_id=session_id
-                )
+                self.logger.debug("memory_deleted_from_db", session_id=session_id)
 
         except SQLAlchemyError as e:
             self.logger.error(
-                "database_error_deleting_memory",
-                session_id=session_id,
-                error=str(e)
+                "database_error_deleting_memory", session_id=session_id, error=str(e)
             )
         except Exception as e:
             self.logger.error(
-                "error_deleting_memory_from_db",
-                session_id=session_id,
-                error=str(e)
+                "error_deleting_memory_from_db", session_id=session_id, error=str(e)
             )
 
 

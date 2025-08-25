@@ -55,7 +55,7 @@ class TestActionRequest:
 
         error = exc_info.value.errors()[0]
         assert error["loc"] == ("prompt",)
-        assert "min_length" in error["ctx"]["constraint"]
+        assert "min_length" in error["ctx"]
 
     def test_prompt_validation_max_length(self):
         """Test prompt maximum length validation."""
@@ -66,7 +66,7 @@ class TestActionRequest:
 
         error = exc_info.value.errors()[0]
         assert error["loc"] == ("prompt",)
-        assert "max_length" in error["ctx"]["constraint"]
+        assert "max_length" in error["ctx"]
 
     def test_session_id_validation_pattern(self):
         """Test session_id pattern validation."""

@@ -13,10 +13,11 @@ from packages.backend.components.observability_service import (
     ObservabilityService,
     ObservabilityConfig,
     ObservabilityError,
-    ConfigurationError
+    ConfigurationError,
 )
 
-os.environ['PYTEST_CURRENT_TEST'] = 'integration_test_for_performance'
+os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
+
 
 class TestObservabilityServiceIntegration:
     """Integration tests for ObservabilityService with external dependencies."""
@@ -32,10 +33,11 @@ class TestObservabilityServiceIntegration:
 
         # Clean up any environment variables that might persist
         import os
+
         env_vars_to_clean = [
-            'LANGSMITH_API_KEY',
-            'LANGSMITH_PROJECT',
-            'LANGSMITH_ENDPOINT'
+            "LANGSMITH_API_KEY",
+            "LANGSMITH_PROJECT",
+            "LANGSMITH_ENDPOINT",
         ]
         for var in env_vars_to_clean:
             if var in os.environ:
@@ -43,11 +45,14 @@ class TestObservabilityServiceIntegration:
 
     def test_successful_initialization_with_valid_config(self):
         """Test successful initialization with valid environment variables."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project',
-            'LANGSMITH_ENDPOINT': 'https://api.smith.langchain.com'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com",
+            },
+        ):
             service = ObservabilityService()
 
             # Should initialize successfully
@@ -58,9 +63,9 @@ class TestObservabilityServiceIntegration:
             # Check configuration
             config = service.get_config()
             assert config is not None
-            assert config.api_key == 'test-api-key-12345'
-            assert config.project == 'test-project'
-            assert config.endpoint == 'https://api.smith.langchain.com'
+            assert config.api_key == "test-api-key-12345"
+            assert config.project == "test-project"
+            assert config.endpoint == "https://api.smith.langchain.com"
 
     def test_initialization_failure_with_invalid_config(self):
         """Test initialization failure with missing API key."""
@@ -74,19 +79,22 @@ class TestObservabilityServiceIntegration:
 
     def test_health_status_when_initialized(self):
         """Test health status when service is properly initialized."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
             service = ObservabilityService()
             service.initialize()
 
             health_status = service.get_health_status()
 
-            assert health_status['status'] == 'healthy'
-            assert health_status['provider'] == 'langsmith'
-            assert health_status['project'] == 'test-project'
-            assert health_status['tracing_enabled'] is True
+            assert health_status["status"] == "healthy"
+            assert health_status["provider"] == "langsmith"
+            assert health_status["project"] == "test-project"
+            assert health_status["tracing_enabled"] is True
 
     def test_health_status_when_not_initialized(self):
         """Test health status when service is not initialized."""
@@ -94,20 +102,23 @@ class TestObservabilityServiceIntegration:
 
         health_status = service.get_health_status()
 
-        assert health_status['status'] == 'unhealthy'
-        assert health_status['provider'] == 'langsmith'
-        assert health_status['error'] == 'not_initialized'
+        assert health_status["status"] == "unhealthy"
+        assert health_status["provider"] == "langsmith"
+        assert health_status["error"] == "not_initialized"
 
-    @patch('langsmith.Client')
+    @patch("langsmith.Client")
     def test_langsmith_client_creation(self, mock_client_class):
         """Test that LangSmith client is created correctly."""
         mock_client = Mock()
         mock_client_class.return_value = mock_client
 
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
             service = ObservabilityService()
             service.initialize()
 
@@ -115,23 +126,28 @@ class TestObservabilityServiceIntegration:
             mock_client_class.assert_called_once()
 
             # Verify environment variables were set
-            assert os.environ.get('LANGSMITH_API_KEY') == 'test-api-key-12345'
-            assert os.environ.get('LANGSMITH_PROJECT') == 'test-project'
+            assert os.environ.get("LANGSMITH_API_KEY") == "test-api-key-12345"
+            assert os.environ.get("LANGSMITH_PROJECT") == "test-project"
 
     def test_trace_operation_integration(self):
         """Test trace operation with LangSmith integration."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
-            with patch('langsmith.traceable') as mock_traceable:
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
+            with patch("langsmith.traceable") as mock_traceable:
                 # Setup mock traceable decorator to properly wrap functions
                 def mock_decorator(*args, **kwargs):
                     def wrapper(func):
                         # Return a function that when called, executes the original function
                         def wrapped_func():
                             return func()
+
                         return wrapped_func
+
                     return wrapper
 
                 mock_traceable.side_effect = mock_decorator
@@ -141,36 +157,43 @@ class TestObservabilityServiceIntegration:
 
                 # Test tracing operation
                 with service.trace_operation(
-                    operation_name='test_operation',
-                    operation_type='integration_test',
-                    test_param='test_value'
+                    operation_name="test_operation",
+                    operation_type="integration_test",
+                    test_param="test_value",
                 ) as trace_id:
                     assert trace_id is not None
                     assert isinstance(trace_id, str)
-                    assert 'test_operation' in trace_id
+                    assert "test_operation" in trace_id
 
                 # Verify traceable was called with correct parameters
                 mock_traceable.assert_called_once()
                 call_args = mock_traceable.call_args
-                assert call_args[1]['name'] == 'test_operation'
-                assert call_args[1]['project_name'] == 'test-project'
-                assert 'operation_type' in call_args[1]['tags']  # tags contain parameter keys, not values
-                assert 'test_param' in call_args[1]['tags']
+                assert call_args[1]["name"] == "test_operation"
+                assert call_args[1]["project_name"] == "test-project"
+                assert (
+                    "operation_type" in call_args[1]["tags"]
+                )  # tags contain parameter keys, not values
+                assert "test_param" in call_args[1]["tags"]
 
     def test_llm_call_tracing_integration(self):
         """Test LLM call tracing with proper metadata."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
-            with patch('langsmith.traceable') as mock_traceable:
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
+            with patch("langsmith.traceable") as mock_traceable:
                 # Setup mock traceable decorator to properly wrap functions
                 def mock_decorator(*args, **kwargs):
                     def wrapper(func):
                         # Return a function that when called, executes the original function
                         def wrapped_func():
                             return func()
+
                         return wrapped_func
+
                     return wrapper
 
                 mock_traceable.side_effect = mock_decorator
@@ -180,35 +203,40 @@ class TestObservabilityServiceIntegration:
 
                 # Test LLM call tracing
                 with service.trace_llm_call(
-                    model_name='gpt-4',
-                    prompt='Test prompt for LLM',
+                    model_name="gpt-4",
+                    prompt="Test prompt for LLM",
                     temperature=0.7,
-                    max_tokens=100
+                    max_tokens=100,
                 ) as trace_id:
                     assert trace_id is not None
-                    assert 'llm_call_gpt-4' in trace_id
+                    assert "llm_call_gpt-4" in trace_id
 
                 # Verify traceable was called for LLM call
                 mock_traceable.assert_called_once()
                 call_args = mock_traceable.call_args
-                assert 'llm_call_gpt-4' in call_args[1]['name']
-                assert 'llm_call' in call_args[1]['tags']
-                assert 'gpt-4' in call_args[1]['tags']
+                assert "llm_call_gpt-4" in call_args[1]["name"]
+                assert "llm_call" in call_args[1]["tags"]
+                assert "gpt-4" in call_args[1]["tags"]
 
     def test_ai_workflow_tracing_integration(self):
         """Test AI workflow tracing with workflow-specific metadata."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
-            with patch('langsmith.traceable') as mock_traceable:
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
+            with patch("langsmith.traceable") as mock_traceable:
                 # Setup mock traceable decorator to properly wrap functions
                 def mock_decorator(*args, **kwargs):
                     def wrapper(func):
                         # Return a function that when called, executes the original function
                         def wrapped_func():
                             return func()
+
                         return wrapped_func
+
                     return wrapper
 
                 mock_traceable.side_effect = mock_decorator
@@ -218,34 +246,37 @@ class TestObservabilityServiceIntegration:
 
                 # Test AI workflow tracing
                 with service.trace_ai_workflow(
-                    workflow_name='narrative_generation',
-                    workflow_type='story_creation',
-                    user_id='user123',
-                    session_id='session456'
+                    workflow_name="narrative_generation",
+                    workflow_type="story_creation",
+                    user_id="user123",
+                    session_id="session456",
                 ) as trace_id:
                     assert trace_id is not None
-                    assert 'ai_workflow_narrative_generation' in trace_id
+                    assert "ai_workflow_narrative_generation" in trace_id
 
                 # Verify traceable was called for AI workflow
                 mock_traceable.assert_called_once()
                 call_args = mock_traceable.call_args
-                assert 'ai_workflow_narrative_generation' in call_args[1]['name']
-                assert 'ai_workflow' in call_args[1]['tags']
-                assert 'story_creation' in call_args[1]['tags']
+                assert "ai_workflow_narrative_generation" in call_args[1]["name"]
+                assert "ai_workflow" in call_args[1]["tags"]
+                assert "story_creation" in call_args[1]["tags"]
 
     def test_llm_response_tracing(self):
         """Test adding LLM response data to traces."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
             service = ObservabilityService()
             service.initialize()
 
             # Test tracing LLM response
-            trace_id = 'test-response-trace'
+            trace_id = "test-response-trace"
             response = "This is a test response from the LLM"
-            model_name = 'gpt-4'
+            model_name = "gpt-4"
 
             # Should not raise exception
             service.trace_llm_response(
@@ -253,88 +284,103 @@ class TestObservabilityServiceIntegration:
                 response=response,
                 model_name=model_name,
                 response_length=len(response),
-                tokens_used=150
+                tokens_used=150,
             )
 
     def test_decision_point_tracing(self):
         """Test tracing AI decision points."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
             service = ObservabilityService()
             service.initialize()
 
             # Test tracing decision point
-            trace_id = 'test-decision-trace'
-            options = ['option1', 'option2', 'option3']
-            chosen_option = 'option2'
-            reasoning = 'Option2 provides the best balance of quality and performance'
+            trace_id = "test-decision-trace"
+            options = ["option1", "option2", "option3"]
+            chosen_option = "option2"
+            reasoning = "Option2 provides the best balance of quality and performance"
 
             # Should not raise exception
             service.trace_decision_point(
                 trace_id=trace_id,
-                decision_type='model_selection',
+                decision_type="model_selection",
                 options=options,
                 chosen_option=chosen_option,
                 reasoning=reasoning,
-                confidence_score=0.85
+                confidence_score=0.85,
             )
 
     def test_tracing_fallback_when_langsmith_unavailable(self):
         """Test that tracing falls back gracefully when LangSmith is unavailable."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-api-key-12345',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_PROJECT": "test-project",
+            },
+        ):
             # Mock LangSmith import failure
-            with patch('langsmith.traceable', side_effect=ImportError("LangSmith not available")):
+            with patch(
+                "langsmith.traceable",
+                side_effect=ImportError("LangSmith not available"),
+            ):
                 service = ObservabilityService()
                 service.initialize()
 
                 # Test that operations still work with fallback
-                with service.trace_operation('fallback_test_operation') as trace_id:
+                with service.trace_operation("fallback_test_operation") as trace_id:
                     assert trace_id is not None
                     # Should return a basic trace ID even without LangSmith
 
-                with service.trace_llm_call('gpt-4', 'test prompt') as trace_id:
+                with service.trace_llm_call("gpt-4", "test prompt") as trace_id:
                     assert trace_id is not None
 
     def test_configuration_validation(self):
         """Test configuration validation with various inputs."""
         # Test with empty API key
-        with patch.dict(os.environ, {'LANGSMITH_API_KEY': ''}):
+        with patch.dict(os.environ, {"LANGSMITH_API_KEY": ""}):
             service = ObservabilityService()
-            with pytest.raises(ConfigurationError, match="LANGSMITH_API_KEY cannot be empty"):
+            with pytest.raises(
+                ConfigurationError, match="LANGSMITH_API_KEY cannot be empty"
+            ):
                 service.load_config()
 
         # Test with empty project name
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-key',
-            'LANGSMITH_PROJECT': ''
-        }):
+        with patch.dict(
+            os.environ, {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": ""}
+        ):
             service = ObservabilityService()
-            with pytest.raises(ConfigurationError, match="LANGSMITH_PROJECT cannot be empty"):
+            with pytest.raises(
+                ConfigurationError, match="LANGSMITH_PROJECT cannot be empty"
+            ):
                 service.load_config()
 
         # Test successful configuration
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'valid-key',
-            'LANGSMITH_PROJECT': 'valid-project',
-            'LANGSMITH_ENDPOINT': ''  # Explicitly set to empty to override any defaults
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "valid-key",
+                "LANGSMITH_PROJECT": "valid-project",
+                "LANGSMITH_ENDPOINT": "",  # Explicitly set to empty to override any defaults
+            },
+        ):
             service = ObservabilityService()
             config = service.load_config()
-            assert config.api_key == 'valid-key'
-            assert config.project == 'valid-project'
+            assert config.api_key == "valid-key"
+            assert config.project == "valid-project"
             assert config.endpoint is None  # Not set
 
     def test_singleton_pattern(self):
         """Test that ObservabilityService follows singleton pattern."""
-        with patch.dict(os.environ, {
-            'LANGSMITH_API_KEY': 'test-key',
-            'LANGSMITH_PROJECT': 'test-project'
-        }):
+        with patch.dict(
+            os.environ,
+            {"LANGSMITH_API_KEY": "test-key", "LANGSMITH_PROJECT": "test-project"},
+        ):
             service1 = ObservabilityService()
             service2 = ObservabilityService()
 
