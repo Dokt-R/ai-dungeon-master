@@ -139,6 +139,10 @@ class MockMember:
             "Perms", (), {"administrator": is_admin, "manage_guild": is_admin}
         )()
 
+    @property
+    def __class__(self):
+        return discord.Member
+
 
 def patch_isinstance_for_testing():
     """Patch isinstance to make MockMember pass as discord.Member for testing."""

@@ -16,16 +16,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from packages.backend.api.voice_api import (
-    AudioSourceConfig,
-    SessionConfig,
-    SpatialPosition,
-)
-from packages.backend.components.advanced_vad_processor import (
-    AdvancedVADProcessor,
-)
 from packages.backend.components.audio_mixer_service import (
-    AudioSource,
     audio_mixer_service,
 )
 from packages.backend.components.conversation_intelligence import (

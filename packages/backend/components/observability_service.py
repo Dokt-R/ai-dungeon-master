@@ -17,7 +17,6 @@ import os
 import threading
 import time
 import weakref
-from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
 from enum import Enum
@@ -97,7 +96,7 @@ class CircuitBreaker:
 
             return result
 
-        except self.config.expected_exception as e:
+        except self.config.expected_exception:
             self._record_failure()
             raise
 
@@ -952,7 +951,7 @@ class ObservabilityService:
 
             try:
                 yield result
-            except CircuitBreakerOpenException as e:
+            except CircuitBreakerOpenException:
                 log_context = {
                     "operation": operation_name,
                     "trace_id": trace_id,

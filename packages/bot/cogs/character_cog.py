@@ -145,7 +145,10 @@ class CharacterCog(commands.Cog):
 
         msg = "**Your Characters:**\n"
         for char in characters:
-            msg += f"- ID: {char['character_id']}, Name: {char['name']}, D&D Beyond: {char.get('character_url', 'N/A')}\n"
+            char_url = char.get("character_url", "N/A")
+            if char_url is None:
+                char_url = "N/A"
+            msg += f"- ID: {char['character_id']}, Name: {char['name']}, D&D Beyond: {char_url}\n"
 
         await interaction.response.send_message(msg, ephemeral=True)
 

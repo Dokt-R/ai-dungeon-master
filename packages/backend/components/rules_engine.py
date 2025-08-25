@@ -142,7 +142,7 @@ class BaseRuleProvider:
     ) -> None:
         """Record performance metrics."""
         # Initialize counters if not exist
-        if not hasattr(self, '_total_queries'):
+        if not hasattr(self, "_total_queries"):
             self._total_queries = 0
             self._cache_hits = 0
             self._cache_misses = 0
@@ -197,9 +197,9 @@ class BaseRuleProvider:
 
     def get_provider_stats(self) -> Dict[str, Any]:
         """Get provider statistics."""
-        total_queries = getattr(self, '_total_queries', 0)
-        cache_hits = getattr(self, '_cache_hits', 0)
-        cache_misses = getattr(self, '_cache_misses', 0)
+        total_queries = getattr(self, "_total_queries", 0)
+        cache_hits = getattr(self, "_cache_hits", 0)
+        cache_misses = getattr(self, "_cache_misses", 0)
 
         return {
             "cache_entries": len(self.cache),

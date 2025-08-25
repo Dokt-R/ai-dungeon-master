@@ -205,9 +205,11 @@ class TestMemoryService:
         for i in range(25):
             memory_state.add_message("user", f"Action {i}")
             memory_state.add_message(
-                "assistant", f"You find a treasure chest in the corner of the room."
+                "assistant", "You find a treasure chest in the corner of the room."
             )
-            memory_state.add_message("assistant", "The goblin guard is blocking the exit.")
+            memory_state.add_message(
+                "assistant", "The goblin guard is blocking the exit."
+            )
             memory_state.add_message(
                 "assistant", "You discover an ancient sword on the pedestal."
             )
@@ -239,8 +241,12 @@ class TestMemoryService:
     def test_extract_character_knowledge(self):
         """Test extraction of character knowledge."""
         memory_state = MemoryState(session_id="test_session")
-        memory_state.add_message("assistant", "The character Eldrin the fighter has a magical sword.")
-        memory_state.add_message("assistant", "The player Thalor the wizard knows fire magic.")
+        memory_state.add_message(
+            "assistant", "The character Eldrin the fighter has a magical sword."
+        )
+        memory_state.add_message(
+            "assistant", "The player Thalor the wizard knows fire magic."
+        )
 
         knowledge = self.service._extract_character_knowledge(memory_state)
 
@@ -254,7 +260,9 @@ class TestMemoryService:
         found_thalor = any("Thalor" in msg for msg in knowledge["general"])
 
         # At least one character should be found in the knowledge
-        assert found_eldrin or found_thalor, f"Expected Eldrin or Thalor in knowledge, got: {knowledge}"
+        assert found_eldrin or found_thalor, (
+            f"Expected Eldrin or Thalor in knowledge, got: {knowledge}"
+        )
 
     def test_extract_world_state(self):
         """Test extraction of world state."""
@@ -351,7 +359,9 @@ class TestMemoryService:
         assert optimized.token_count < 2500  # Should be reduced
         # The reduction logic reduces to 3 if there are more than 3
         # But the token count might not be recalculated correctly in the test
-        assert len(optimized.relevant_memories) <= 10  # May or may not be reduced depending on implementation
+        assert (
+            len(optimized.relevant_memories) <= 10
+        )  # May or may not be reduced depending on implementation
         assert len(optimized.summary) <= 1000  # May or may not be truncated
 
     @patch("packages.backend.components.memory_service.observability_service")
@@ -364,13 +374,17 @@ class TestMemoryService:
         mock_obs.trace_operation.return_value = mock_trace
 
         # Mock the database operations
-        with patch.object(
-            self.service, "_load_memory_state", new_callable=AsyncMock
-        ) as mock_load, patch.object(
-            self.service, "_persist_memory_state", new_callable=AsyncMock
-        ) as mock_persist, patch.object(
-            self.service, "_cleanup_old_memories", new_callable=AsyncMock
-        ) as mock_cleanup:
+        with (
+            patch.object(
+                self.service, "_load_memory_state", new_callable=AsyncMock
+            ) as mock_load,
+            patch.object(
+                self.service, "_persist_memory_state", new_callable=AsyncMock
+            ) as mock_persist,
+            patch.object(
+                self.service, "_cleanup_old_memories", new_callable=AsyncMock
+            ) as mock_cleanup,
+        ):
             # Setup initial memory state
             initial_memory = MemoryState(session_id="test_session")
             mock_load.return_value = initial_memory
@@ -394,7 +408,10 @@ class TestMemoryService:
             assert persisted_memory.messages[0]["role"] == "user"
             assert persisted_memory.messages[0]["content"] == "I attack the goblin"
             assert persisted_memory.messages[1]["role"] == "assistant"
-            assert persisted_memory.messages[1]["content"] == "You strike the goblin with your sword!"
+            assert (
+                persisted_memory.messages[1]["content"]
+                == "You strike the goblin with your sword!"
+            )
             assert persisted_memory.turn_count == 1
 
     def test_get_health_status(self):
@@ -489,13 +506,17 @@ class TestMemoryServiceErrorHandling:
     def test_memory_update_error_handling(self):
         """Test error handling in memory updates."""
         # Mock the database operations to test error handling
-        with patch.object(
-            self.service, "_load_memory_state", new_callable=AsyncMock
-        ) as mock_load, patch.object(
-            self.service, "_persist_memory_state", new_callable=AsyncMock
-        ) as mock_persist, patch.object(
-            self.service, "_cleanup_old_memories", new_callable=AsyncMock
-        ) as mock_cleanup:
+        with (
+            patch.object(
+                self.service, "_load_memory_state", new_callable=AsyncMock
+            ) as mock_load,
+            patch.object(
+                self.service, "_persist_memory_state", new_callable=AsyncMock
+            ) as mock_persist,
+            patch.object(
+                self.service, "_cleanup_old_memories", new_callable=AsyncMock
+            ) as mock_cleanup,
+        ):
             # Setup initial memory state
             initial_memory = MemoryState(session_id="test_session")
             mock_load.return_value = initial_memory

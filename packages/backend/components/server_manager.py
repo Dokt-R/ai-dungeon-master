@@ -34,7 +34,7 @@ class ServerSettingsManager:
         db_config.dm_roll_visibility = config.dm_roll_visibility
         db_config.player_roll_mode = config.player_roll_mode
         db_config.character_sheet_mode = config.character_sheet_mode
-        db_config.api_key = SecretStr(encrypted_key)
+        db_config.api_key = encrypted_key
 
         self.session.add(db_config)
         await self.session.commit()
@@ -44,14 +44,14 @@ class ServerSettingsManager:
         """Retrieve and decrypt the API key for the given server ID."""
         config = await self.session.get(Server, server_id)
         if config and config.api_key:
-            return self._decrypt(config.api_key.get_secret_value())
+            return self._decrypt(config.api_key)
         return None
 
     async def get_server_config(self, server_id: str) -> Optional[Server]:
         """Retrieve the full server configuration for the given server ID."""
         config = await self.session.get(Server, server_id)
         if config and config.api_key:
-            decrypted_key = self._decrypt(config.api_key.get_secret_value())
+            decrypted_key = self._decrypt(config.api_key)
             config.api_key = SecretStr(decrypted_key)
         return config
 

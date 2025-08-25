@@ -8,7 +8,7 @@ spatial audio, and conversation intelligence working together.
 
 import asyncio
 from datetime import datetime
-from unittest.mock import patch, Mock, AsyncMock, MagicMock
+from unittest.mock import AsyncMock, patch
 
 import numpy as np
 import pytest
@@ -41,20 +41,36 @@ class TestAdvancedVoiceIntegration:
         """Create all advanced voice components for integration testing."""
         # Create proper async mocks for AudioUtils methods
         # Use a more comprehensive approach to avoid RuntimeWarnings
-        mock_audio_utils = AsyncMock(spec=[
-            'detect_audio_format', 'validate_audio_format', 'extract_wav_info',
-            'convert_sample_rate', 'convert_channels', 'calculate_audio_quality_score',
-            'calculate_frame_energy', 'calculate_rms_energy', 'calculate_pitch',
-            'extract_mfcc_features', 'calculate_spectral_centroid', 'calculate_spectral_flatness',
-            'get_supported_formats', 'is_format_supported', 'get_format_info'
-        ])
+        mock_audio_utils = AsyncMock(
+            spec=[
+                "detect_audio_format",
+                "validate_audio_format",
+                "extract_wav_info",
+                "convert_sample_rate",
+                "convert_channels",
+                "calculate_audio_quality_score",
+                "calculate_frame_energy",
+                "calculate_rms_energy",
+                "calculate_pitch",
+                "extract_mfcc_features",
+                "calculate_spectral_centroid",
+                "calculate_spectral_flatness",
+                "get_supported_formats",
+                "is_format_supported",
+                "get_format_info",
+            ]
+        )
 
         # Configure return values for all methods
         mock_audio_utils.detect_audio_format.return_value = "wav"
         mock_audio_utils.validate_audio_format.return_value = (True, "wav", None)
         mock_audio_utils.extract_wav_info.return_value = {
-            "format": "wav", "channels": 1, "sample_rate": 16000,
-            "bits_per_sample": 16, "data_size": 1024, "duration": 0.064
+            "format": "wav",
+            "channels": 1,
+            "sample_rate": 16000,
+            "bits_per_sample": 16,
+            "data_size": 1024,
+            "duration": 0.064,
         }
         mock_audio_utils.convert_sample_rate.return_value = b"converted_audio"
         mock_audio_utils.convert_channels.return_value = b"converted_audio"
@@ -68,9 +84,14 @@ class TestAdvancedVoiceIntegration:
         mock_audio_utils.get_supported_formats.return_value = ["wav", "mp3", "ogg"]
         mock_audio_utils.is_format_supported.return_value = True
         mock_audio_utils.get_format_info.return_value = {
-            "format_name": "WAV", "mime_type": "audio/wav", "extensions": [".wav"],
-            "supports_compression": False, "max_sample_rate": 192000, "min_sample_rate": 8000,
-            "supported_channels": [1, 2], "description": "Uncompressed PCM audio format"
+            "format_name": "WAV",
+            "mime_type": "audio/wav",
+            "extensions": [".wav"],
+            "supports_compression": False,
+            "max_sample_rate": 192000,
+            "min_sample_rate": 8000,
+            "supported_channels": [1, 2],
+            "description": "Uncompressed PCM audio format",
         }
 
         # Selectively patch AudioUtils only in modules that actually use it
@@ -242,8 +263,11 @@ class TestAdvancedVoiceIntegration:
         # Step 7: Test conversation management - skip get_conversation as it doesn't exist
         # The conversation was already created successfully in step 1
         # Verify the conversation still exists by checking if we can create another one (should fail or return existing)
-        conversation_check = await components["conversation_manager"].create_conversation(
-            session_id, ["user_123"]  # Try to create with subset
+        conversation_check = await components[
+            "conversation_manager"
+        ].create_conversation(
+            session_id,
+            ["user_123"],  # Try to create with subset
         )
         # This should either return the existing conversation or handle the duplicate gracefully
         assert conversation_check is not None
@@ -476,18 +500,12 @@ class TestAdvancedVoiceIntegration:
         components = integration_components
         session_id = "speaker_id_integration_test"
 
-        # Register speaker profiles
+        # Register speaker profiles - use the actual audio data for consistency
         for user_id in sample_audio_streams.keys():
-            profile = SpeakerProfile(
-                profile_id=f"profile_{user_id}",
-                user_id=user_id,
-                voice_print=b"sample_voice_print",
-                voice_characteristics={"unique_feature": hash(user_id) % 100},
-            )
-            # Use create_speaker_profile instead of register_speaker_profile
+            audio_data = sample_audio_streams[user_id]
             await components["speaker_id"].create_speaker_profile(
                 user_id=user_id,
-                audio_samples=[b"sample_audio_data"],
+                audio_samples=[audio_data.tobytes()],
                 profile_name=f"profile_{user_id}",
             )
 
@@ -506,7 +524,7 @@ class TestAdvancedVoiceIntegration:
 
         # Test confidence scoring
         for user_id, result in identification_results.items():
-            assert result is not None
+            assert result is not None, f"Speaker identification failed for {user_id}"
             # In real implementation, this would check confidence thresholds
 
     @pytest.mark.asyncio

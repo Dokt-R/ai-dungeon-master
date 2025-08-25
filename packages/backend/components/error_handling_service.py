@@ -430,6 +430,12 @@ class ErrorHandlingService:
         if "timeout" in error_str or error_type == "TimeoutError":
             return ErrorCategory.TIMEOUT, ErrorSeverity.MEDIUM
 
+        # Provider errors (check before voice service to avoid misclassification)
+        if "provider" in error_str or any(
+            keyword in operation_name for keyword in ["openai", "elevenlabs"]
+        ):
+            return ErrorCategory.PROVIDER_ERROR, ErrorSeverity.HIGH
+
         # Audio processing errors
         if any(keyword in operation_name for keyword in ["audio", "stt", "tts"]):
             if any(
@@ -438,12 +444,6 @@ class ErrorHandlingService:
             ):
                 return ErrorCategory.AUDIO_PROCESSING, ErrorSeverity.HIGH
             return ErrorCategory.VOICE_SERVICE, ErrorSeverity.MEDIUM
-
-        # Provider errors
-        if "provider" in error_str or any(
-            keyword in operation_name for keyword in ["openai", "elevenlabs"]
-        ):
-            return ErrorCategory.PROVIDER_ERROR, ErrorSeverity.HIGH
 
         # Resource limit errors
         if any(
@@ -664,7 +664,8 @@ class ErrorHandlingService:
     ) -> Awaitable[Any]:
         """Retry operation with exponential backoff."""
         if not error_info.is_retryable:
-            raise Exception(f"Error is not retryable: {error_info.message}")
+            # If not retryable, execute the operation anyway to let it fail with original exception
+            return operation(*args, **kwargs)
 
         error_info.retry_count += 1
 

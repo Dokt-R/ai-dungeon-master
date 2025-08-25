@@ -51,6 +51,7 @@ class TestAdminCog:
         member = AsyncMock(spec=discord.Member)
         member.id = 12345
         member.name = "TestUser"
+        member.display_name = "TestUser"  # This is what the API actually uses
         member.bot = False
         return member
 

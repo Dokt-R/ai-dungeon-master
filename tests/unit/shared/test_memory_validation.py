@@ -115,7 +115,9 @@ class TestMemoryEventValidation:
         result = memory_validator.validate_memory_event(event)
 
         assert result.is_valid is False
-        assert any("at least one participant" in error.lower() for error in result.errors)
+        assert any(
+            "at least one participant" in error.lower() for error in result.errors
+        )
 
     def test_combat_event_with_single_participant(self):
         """Test business rule: combat events should have multiple participants."""
@@ -125,7 +127,9 @@ class TestMemoryEventValidation:
             timestamp=datetime.utcnow(),
             event_type="combat",
             description="A solo fight against a powerful dragon that the hero must defeat and overcome with great difficulty",  # Make description longer
-            participants=["SoloHero"],  # Start with invalid participants to trigger the rule
+            participants=[
+                "SoloHero"
+            ],  # Start with invalid participants to trigger the rule
         )
 
         result = memory_validator.validate_memory_event(event)
@@ -415,7 +419,9 @@ class TestQueryRequestValidation:
         # that should catch this case. The Pydantic validation happens at model creation.
 
         # Create a valid request first, then test the validation logic
-        request = MemoryQueryRequest(query_type="events")  # Valid type for model creation
+        request = MemoryQueryRequest(
+            query_type="events"
+        )  # Valid type for model creation
 
         # Manually set invalid type to test validation logic
         request.query_type = "invalid_type"  # type: ignore
@@ -428,14 +434,18 @@ class TestQueryRequestValidation:
     def test_invalid_limit_values(self):
         """Test validation with invalid limit values."""
         # Test negative limit - create valid request first, then test validation logic
-        request = MemoryQueryRequest(query_type="events", limit=50)  # Valid for model creation
+        request = MemoryQueryRequest(
+            query_type="events", limit=50
+        )  # Valid for model creation
         request.limit = -1  # type: ignore
 
         result = memory_validator.validate_query_request(request)
         assert result.is_valid is False
 
         # Test limit too high - create valid request first, then test validation logic
-        request = MemoryQueryRequest(query_type="events", limit=50)  # Valid for model creation
+        request = MemoryQueryRequest(
+            query_type="events", limit=50
+        )  # Valid for model creation
         request.limit = 2000  # Above maximum  # type: ignore
 
         result = memory_validator.validate_query_request(request)
@@ -534,7 +544,10 @@ class TestParticipantValidation:
 
     def test_long_participant_names(self):
         """Test validation with excessively long participant names."""
-        participants = [f"VeryLongNameThatExceedsTheOneHundredCharacterLimitAndShouldFailValidationBecauseItIsMuchLongerThanExpected_{i}" for i in range(3)]
+        participants = [
+            f"VeryLongNameThatExceedsTheOneHundredCharacterLimitAndShouldFailValidationBecauseItIsMuchLongerThanExpected_{i}"
+            for i in range(3)
+        ]
         errors = memory_validator._validate_participants(participants)
 
         assert len(errors) > 0

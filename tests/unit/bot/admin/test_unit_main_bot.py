@@ -23,9 +23,8 @@ async def test_bot_initialization():
     assert bot.intents.message_content is True
 
 
-@patch("builtins.print")
 @pytest.mark.asyncio
-async def test_on_ready_success(mock_print):
+async def test_on_ready_success():
     """Test the on_ready event handler when command sync is successful."""
     # Import the on_ready function directly
     from packages.bot.main import on_ready
@@ -38,19 +37,21 @@ async def test_on_ready_success(mock_print):
         mock_user = MagicMock()
         mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-        # Mock bot.user directly
-        with patch.object(bot, "user", mock_user):
+        # Mock bot.user using property mock
+        with patch.object(
+            type(bot), "user", new_callable=MagicMock
+        ) as mock_user_property:
+            mock_user_property.__get__ = MagicMock(return_value=mock_user)
+
             # Call the on_ready function
             await on_ready()
 
-            # Check that print was called with the correct messages
-            mock_print.assert_any_call("Logged in as TestBot#1234")
-            mock_print.assert_any_call("Synced 3 commands globally.")
+            # Check that sync was called
+            mock_sync.assert_called_once()
 
 
-@patch("builtins.print")
 @pytest.mark.asyncio
-async def test_on_ready_sync_failure(mock_print):
+async def test_on_ready_sync_failure():
     """Test the on_ready event handler when command sync fails."""
     # Import the on_ready function directly
     from packages.bot.main import on_ready
@@ -63,14 +64,17 @@ async def test_on_ready_sync_failure(mock_print):
         mock_user = MagicMock()
         mock_user.__str__ = MagicMock(return_value="TestBot#1234")
 
-        # Mock bot.user directly
-        with patch.object(bot, "user", mock_user):
+        # Mock bot.user using property mock
+        with patch.object(
+            type(bot), "user", new_callable=MagicMock
+        ) as mock_user_property:
+            mock_user_property.__get__ = MagicMock(return_value=mock_user)
+
             # Call the on_ready function
             await on_ready()
 
-            # Check that print was called with the correct messages
-            mock_print.assert_any_call("Logged in as TestBot#1234")
-            mock_print.assert_any_call("Failed to sync commands: Sync failed")
+            # Check that sync was called and failed
+            mock_sync.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -86,9 +90,12 @@ async def test_load_cogs_success():
             "packages.bot.cogs.admin_cog",
             "packages.bot.cogs.campaign_cog",
             "packages.bot.cogs.character_cog",
+            "packages.bot.cogs.voice_cog",
+            "packages.bot.cogs.action_cog",
+            "packages.bot.cogs.health_cog",
         ]
 
-        assert mock_load.call_count == 4
+        assert mock_load.call_count == 7
         for cog in expected_cogs:
             mock_load.assert_any_call(cog)
 

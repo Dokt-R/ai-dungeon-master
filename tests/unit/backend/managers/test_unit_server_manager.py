@@ -83,7 +83,10 @@ async def test_store_empty_api_key(server_manager: ServerSettingsManager):
 
     # Act & Assert
     error = ErrorCode.EMPTY_API_KEY
-    with pytest.raises(ValidationError, match=error.message):
+    with pytest.raises(
+        ValidationError,
+        match=r"ValidationError\(error_code=ErrorCode\.EMPTY_API_KEY, details=\{\}\)",
+    ):
         await server_manager.store_server_config(config)
 
 

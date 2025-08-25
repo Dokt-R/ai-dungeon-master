@@ -93,8 +93,7 @@ class AdvancedVADProcessor:
         )
 
         self.logger.info(
-            "AdvancedVADProcessor initialized",
-            config=self.config.model_dump()
+            "AdvancedVADProcessor initialized", config=self.config.model_dump()
         )
 
     async def process_audio_frame(
@@ -135,7 +134,8 @@ class AdvancedVADProcessor:
         except Exception as e:
             self.logger.error(
                 "Error processing audio frame for session",
-                session_id=session_id, error=str(e)
+                session_id=session_id,
+                error=str(e),
             )
             return []
 
@@ -163,7 +163,8 @@ class AdvancedVADProcessor:
         except Exception as e:
             self.logger.warning(
                 "Noise filtering failed for session",
-                session_id=session_id, error=str(e)
+                session_id=session_id,
+                error=str(e),
             )
             return audio_array
 
@@ -444,6 +445,5 @@ class AdvancedVADProcessor:
 
         if inactive_sessions:
             self.logger.info(
-                "Cleaned up inactive VAD sessions",
-                count=len(inactive_sessions)
+                "Cleaned up inactive VAD sessions", count=len(inactive_sessions)
             )

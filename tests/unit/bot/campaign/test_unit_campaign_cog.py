@@ -3,7 +3,6 @@ from unittest import mock
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import discord
-import httpx
 import pytest
 
 from packages.shared.errors import ErrorCode
@@ -347,16 +346,28 @@ async def test_campaign_delete_with_active_characters(mock_campaign_cog):
     campaign_name = "active_char_campaign"
     expected_message = "Campaign has active characters and cannot be deleted."
 
+    # Mock the API client to raise ValidationError directly (simulating what the real API client would do)
+    mock_campaign_cog.api_client.set_exception_override(
+        "delete_campaign", ValidationError(ErrorCode.ACTIVE_CHARACTERS)
+    )
+
+    # Create a mock callback that will call the API and handle the error
     async def mock_callback(interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        mock_response = MagicMock()
-        mock_response.status_code = 400
-        mock_response.json = AsyncMock(
-            return_value={"error": {"message": expected_message}}
-        )
-        raise httpx.HTTPStatusError(
-            "Bad Request", request=MagicMock(), response=mock_response
-        )
+        try:
+            # This should raise the HTTPStatusError which gets converted to ValidationError
+            await mock_campaign_cog.api_client.delete_campaign(
+                {
+                    "server_id": str(interaction.guild.id)
+                    if interaction.guild
+                    else "unknown",
+                    "campaign_name": campaign_name,
+                    "requester_id": str(interaction.user.id),
+                    "is_admin": True,
+                }
+            )
+        except Exception as e:
+            await mock_campaign_cog._handle_delete_error(interaction, e)
 
     with patch.object(
         mock_campaign_cog,
@@ -368,11 +379,7 @@ async def test_campaign_delete_with_active_characters(mock_campaign_cog):
 
         button_interaction = InteractionFactory.admin_interaction()
         with pytest.raises(ValidationError) as exc_info:
-            # We need to manually call the error handler that the callback would trigger
-            try:
-                await mock_callback(button_interaction)
-            except httpx.HTTPStatusError as e:
-                await mock_campaign_cog._handle_delete_error(button_interaction, e)
+            await mock_callback(button_interaction)
 
         exc = exc_info.value
         assert expected_message in exc.player_message

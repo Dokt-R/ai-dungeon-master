@@ -6,7 +6,6 @@ including AI services, observability, and general system health.
 """
 
 import os
-from typing import Optional
 
 import discord
 from discord import app_commands

@@ -18,7 +18,7 @@ from packages.backend.components.srd_tool_service import (
     SRDToolService,
     ToolPerformanceMetrics,
 )
-from packages.shared.models import RulesQuery, RulesResponse
+from packages.shared.models import RulesResponse
 
 
 class TestSRDToolService:
@@ -86,17 +86,20 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_monster_tool_success(self, tool_service, sample_monster_query):
         """Test successful monster query tool execution."""
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock successful query
             mock_result = RulesResponse(
                 query_type="monster",
                 found=True,
                 result={"id": 1, "name": "Goblin", "armor_class": 15},
-                query_time=0.05
+                query_time=0.05,
             )
             mock_engine.query = AsyncMock(return_value=mock_result)
             mock_audit.log_data_access = Mock()
@@ -111,17 +114,20 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_monster_tool_not_found(self, tool_service):
         """Test monster query tool when monster is not found."""
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock failed query
             mock_result = RulesResponse(
                 query_type="monster",
                 found=False,
                 error="Monster not found",
-                query_time=0.03
+                query_time=0.03,
             )
             mock_engine.query = AsyncMock(return_value=mock_result)
             mock_audit.log_data_access = Mock()
@@ -135,11 +141,14 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_spell_tool_success(self, tool_service, sample_spell_query):
         """Test successful spell query tool execution."""
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock successful query
             mock_result = RulesResponse(
                 query_type="spell",
@@ -150,7 +159,7 @@ class TestSRDToolService:
                     "level": 0,
                     "school": "Evocation",
                 },
-                query_time=0.04
+                query_time=0.04,
             )
             mock_engine.query = AsyncMock(return_value=mock_result)
             mock_audit.log_data_access = Mock()
@@ -164,17 +173,20 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_query_weapon_tool_success(self, tool_service, sample_weapon_query):
         """Test successful weapon query tool execution."""
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock successful query
             mock_result = RulesResponse(
                 query_type="weapon",
                 found=True,
                 result={"id": 1, "name": "Longsword", "damage": "1d8 slashing"},
-                query_time=0.02
+                query_time=0.02,
             )
             mock_engine.query = AsyncMock(return_value=mock_result)
             mock_audit.log_data_access = Mock()
@@ -194,11 +206,14 @@ class TestSRDToolService:
             "comparison_focus": "combat",
         }
 
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock monster queries
             goblin_result = RulesResponse(
                 query_type="monster",
@@ -208,7 +223,7 @@ class TestSRDToolService:
                     "armor_class": 15,
                     "challenge_rating": "1/4",
                 },
-                query_time=0.01
+                query_time=0.01,
             )
 
             orc_result = RulesResponse(
@@ -219,12 +234,10 @@ class TestSRDToolService:
                     "armor_class": 13,
                     "challenge_rating": "1/2",
                 },
-                query_time=0.01
+                query_time=0.01,
             )
 
-            mock_engine.query = AsyncMock(
-                side_effect=[goblin_result, orc_result]
-            )
+            mock_engine.query = AsyncMock(side_effect=[goblin_result, orc_result])
             mock_audit.log_data_access = Mock()
 
             result = await tool_service.compare_entities_tool(**comparison_query)
@@ -295,11 +308,14 @@ class TestSRDToolService:
     @pytest.mark.asyncio
     async def test_tool_execution_error_handling(self, tool_service):
         """Test error handling in tool execution."""
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock engine to raise exception
             mock_engine.query = AsyncMock(
                 side_effect=Exception("Database connection failed")
@@ -323,17 +339,20 @@ class TestSRDToolService:
         """Test concurrent tool execution handling."""
         import asyncio
 
-        with patch(
-            "packages.backend.components.srd_tool_service.rules_engine"
-        ) as mock_engine, patch(
-            "packages.backend.components.srd_tool_service.srd_audit_service"
-        ) as mock_audit:
+        with (
+            patch(
+                "packages.backend.components.srd_tool_service.rules_engine"
+            ) as mock_engine,
+            patch(
+                "packages.backend.components.srd_tool_service.srd_audit_service"
+            ) as mock_audit,
+        ):
             # Mock fast responses
             mock_result = RulesResponse(
                 query_type="monster",
                 found=True,
                 result={"name": "Test"},
-                query_time=0.01
+                query_time=0.01,
             )
             mock_engine.query = AsyncMock(return_value=mock_result)
             mock_audit.log_data_access = Mock()

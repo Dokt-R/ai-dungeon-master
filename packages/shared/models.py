@@ -475,12 +475,12 @@ class MemoryState(BaseModel):
         exclude=True,  # Don't include in serialization
     )
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def detect_explicit_turn_count(self):
         """Detect if turn_count was explicitly set."""
         # Check if turn_count was set to a non-default value
-        if hasattr(self, '__pydantic_fields_set__'):
-            if 'turn_count' in self.__pydantic_fields_set__ and self.turn_count != 0:
+        if hasattr(self, "__pydantic_fields_set__"):
+            if "turn_count" in self.__pydantic_fields_set__ and self.turn_count != 0:
                 self.turn_count_explicitly_set = True
         return self
 
@@ -489,7 +489,9 @@ class MemoryState(BaseModel):
         self.messages.append({"role": role, "content": content})
         # Only auto-update turn_count if it wasn't explicitly set
         if not self.turn_count_explicitly_set:
-            self.turn_count = len([msg for msg in self.messages if msg["role"] == "user"])
+            self.turn_count = len(
+                [msg for msg in self.messages if msg["role"] == "user"]
+            )
         self.last_activity = datetime.utcnow()
 
     def add_to_scratchpad(self, note: str) -> None:
@@ -2487,7 +2489,9 @@ class RulesResponse(BaseModel):
         examples=["monster", "spell", "weapon"],
     )
 
-    found: Optional[bool] = PydanticField(None, description="Whether the requested data was found")
+    found: Optional[bool] = PydanticField(
+        None, description="Whether the requested data was found"
+    )
 
     result: Optional[Any] = PydanticField(None, description="The query result data")
 

@@ -671,7 +671,10 @@ class TTSService:
                     provider_health = provider.get_health_status()
 
                     # Skip unhealthy providers (but allow first attempt)
-                    if provider_health.status == "unhealthy" and provider_health.consecutive_failures > 0:
+                    if (
+                        provider_health.status == "unhealthy"
+                        and provider_health.consecutive_failures > 0
+                    ):
                         continue
 
                     try:
@@ -864,7 +867,13 @@ class TTSService:
         """Get overall TTS service status."""
         # Note: This is a simplified sync version that doesn't check real health
         # For full health checking, use get_health_status() instead
-        healthy_providers = len([p for p in self.providers.values() if p.get_health_status().status == "healthy"])
+        healthy_providers = len(
+            [
+                p
+                for p in self.providers.values()
+                if p.get_health_status().status == "healthy"
+            ]
+        )
 
         cache_stats = self.cache.stats()
 
@@ -882,7 +891,10 @@ class TTSService:
     def get_health_status(self) -> Dict[str, Any]:
         """Get comprehensive health status of the TTS service."""
         # Get current health status from providers (sync version)
-        provider_health = {name: provider.get_health_status() for name, provider in self.providers.items()}
+        provider_health = {
+            name: provider.get_health_status()
+            for name, provider in self.providers.items()
+        }
         cache_stats = self.cache.stats()
 
         return {

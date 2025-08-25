@@ -60,7 +60,7 @@ class TestSRDComplianceService:
                 {
                     "timestamp": datetime.utcnow().isoformat(),
                     "action": "initial_import",
-                    "details": "Initial import"
+                    "details": "Initial import",
                 }
             ],
         )
@@ -82,7 +82,7 @@ class TestSRDComplianceService:
                 {
                     "timestamp": datetime.utcnow().isoformat(),
                     "action": "initial_import",
-                    "details": "Initial import"
+                    "details": "Initial import",
                 }
             ],
         )
@@ -104,7 +104,7 @@ class TestSRDComplianceService:
                 {
                     "timestamp": datetime.utcnow().isoformat(),
                     "action": "initial_import",
-                    "details": "Initial import"
+                    "details": "Initial import",
                 }
             ],
         )
@@ -277,13 +277,17 @@ class TestSRDComplianceService:
 
     def test_calculate_compliance_hash(self, compliance_service, sample_monster):
         """Test compliance hash calculation."""
-        hash_value = compliance_service._calculate_verification_hash(sample_monster, "monster")
+        hash_value = compliance_service._calculate_verification_hash(
+            sample_monster, "monster"
+        )
 
         assert isinstance(hash_value, str)
         assert len(hash_value) > 0
 
         # Hash should be consistent
-        hash_value2 = compliance_service._calculate_verification_hash(sample_monster, "monster")
+        hash_value2 = compliance_service._calculate_verification_hash(
+            sample_monster, "monster"
+        )
         assert hash_value == hash_value2
 
     def test_update_audit_trail(self, compliance_service, sample_compliance):

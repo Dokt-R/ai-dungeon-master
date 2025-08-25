@@ -487,7 +487,11 @@ class TestSTTService:
 
         try:
             request = AudioTranscriptionRequest(
-                audio_data=b"fallback_test_audio", audio_format="wav", language="en-US", sample_rate=16000, channels=1
+                audio_data=b"fallback_test_audio",
+                audio_format="wav",
+                language="en-US",
+                sample_rate=16000,
+                channels=1,
             )
 
             result = await self.service.transcribe_audio(request, "fallback_test")
@@ -586,7 +590,11 @@ class TestSTTServiceErrorHandling:
 
         try:
             request = AudioTranscriptionRequest(
-                audio_data=b"test_audio", audio_format="wav", language="en-US", sample_rate=16000, channels=1
+                audio_data=b"test_audio",
+                audio_format="wav",
+                language="en-US",
+                sample_rate=16000,
+                channels=1,
             )
             result = await self.service.transcribe_audio(request, "error_test")
 
@@ -604,7 +612,11 @@ class TestSTTServiceErrorHandling:
         """Test handling of invalid audio formats."""
         # Test with empty audio data
         request = AudioTranscriptionRequest(
-            audio_data=b"", audio_format="wav", language="en-US", sample_rate=16000, channels=1
+            audio_data=b"",
+            audio_format="wav",
+            language="en-US",
+            sample_rate=16000,
+            channels=1,
         )
 
         cache_key = self.service._generate_cache_key(request)
@@ -616,7 +628,11 @@ class TestSTTServiceErrorHandling:
         large_audio = b"x" * (1024 * 1024)  # 1MB of data
 
         request = AudioTranscriptionRequest(
-            audio_data=large_audio, audio_format="wav", language="en-US", sample_rate=16000, channels=1
+            audio_data=large_audio,
+            audio_format="wav",
+            language="en-US",
+            sample_rate=16000,
+            channels=1,
         )
 
         cache_key = self.service._generate_cache_key(request)

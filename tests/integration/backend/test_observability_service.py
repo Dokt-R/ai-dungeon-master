@@ -6,14 +6,13 @@ with LangSmith and provides proper tracing functionality for LLM operations.
 """
 
 import os
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 from packages.backend.components.observability_service import (
-    ObservabilityService,
-    ObservabilityConfig,
-    ObservabilityError,
     ConfigurationError,
+    ObservabilityService,
 )
 
 os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"

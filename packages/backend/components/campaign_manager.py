@@ -118,7 +118,7 @@ class CampaignManager:
         if not campaign:
             raise NotFoundError(
                 ErrorCode.CAMPAIGN_NOT_FOUND,
-                campaign=campaign_id,
+                campaign_name=str(campaign_id),
                 details={"campaign_id": campaign_id},
             )
 
@@ -132,7 +132,7 @@ class CampaignManager:
         if not campaign:
             raise NotFoundError(
                 ErrorCode.CAMPAIGN_NOT_FOUND,
-                campaign=campaign_id,
+                campaign_name=str(campaign_id),
                 details={"campaign_id": campaign_id, "state": state},
             )
 

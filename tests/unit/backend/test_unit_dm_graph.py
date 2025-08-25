@@ -203,11 +203,14 @@ class TestDMGraphErrorHandling:
         )
 
         # Mock both prompt manager and memory service to raise errors
-        with patch(
-            "packages.backend.agents.dm_graph.prompt_manager"
-        ) as mock_prompt_manager, patch(
-            "packages.backend.agents.dm_graph.memory_service"
-        ) as mock_memory_service:
+        with (
+            patch(
+                "packages.backend.agents.dm_graph.prompt_manager"
+            ) as mock_prompt_manager,
+            patch(
+                "packages.backend.agents.dm_graph.memory_service"
+            ) as mock_memory_service,
+        ):
             mock_prompt_manager.create_core_dm_prompt.side_effect = Exception(
                 "Prompt creation failed"
             )

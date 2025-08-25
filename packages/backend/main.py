@@ -23,7 +23,6 @@ from packages.backend.components.observability_service import observability_serv
 from packages.backend.components.speaker_identification_service import (
     speaker_identification_service,
 )
-from packages.backend.components.stt_service import stt_service
 from packages.shared.correlation import (
     clear_correlation_id,
     set_correlation_id,

@@ -219,7 +219,9 @@ class AudioMixerService:
             return session_id
 
         except Exception as e:
-            self.logger.error("Failed to create mix session", session_id=session_id, error=str(e))
+            self.logger.error(
+                "Failed to create mix session", session_id=session_id, error=str(e)
+            )
             raise
 
     async def add_audio_source(self, session_id: str, source: AudioSource) -> bool:
@@ -248,7 +250,9 @@ class AudioMixerService:
             return True
 
         except Exception as e:
-            self.logger.error("Failed to add audio source", source_id=source.source_id, error=str(e))
+            self.logger.error(
+                "Failed to add audio source", source_id=source.source_id, error=str(e)
+            )
             return False
 
     async def mix_audio_streams(
@@ -303,7 +307,9 @@ class AudioMixerService:
             return mixed_audio
 
         except Exception as e:
-            self.logger.error("Audio mixing failed for session", session_id=session_id, error=str(e))
+            self.logger.error(
+                "Audio mixing failed for session", session_id=session_id, error=str(e)
+            )
             return np.zeros((self.buffer_size, 2))
 
     async def _process_audio_source(

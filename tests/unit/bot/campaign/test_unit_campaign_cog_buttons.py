@@ -53,7 +53,7 @@ async def test_campaign_delete_button_confirm_success(cog):
 @pytest.mark.asyncio
 async def test_campaign_delete_button_confirm_error(cog):
     """Test the confirm button callback when campaign deletion fails."""
-    interaction = AsyncMock()
+    interaction = MockInteraction(is_admin=True)
     interaction.data = {"custom_id": "confirm"}
     interaction.guild.id = "123"
     interaction.user.id = "456"

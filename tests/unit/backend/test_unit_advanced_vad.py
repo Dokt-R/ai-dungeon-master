@@ -58,7 +58,9 @@ class TestAdvancedVADProcessor:
     @pytest.fixture
     def vad_processor(self, vad_config):
         """Create VAD processor instance."""
-        with patch("packages.backend.components.advanced_vad_processor.AudioUtils") as mock_audio_utils_class:
+        with patch(
+            "packages.backend.components.advanced_vad_processor.AudioUtils"
+        ) as mock_audio_utils_class:
             # Create a mock instance
             mock_audio_utils = AsyncMock()
             mock_audio_utils_class.return_value = mock_audio_utils
@@ -210,8 +212,12 @@ class TestAdvancedVADProcessor:
         audio_array = np.random.normal(0, 0.1, 1600)  # 100ms at 16kHz
 
         # Mock the estimate_noise_profile method to avoid complex frame indexing
-        mock_noise_profile = np.abs(np.fft.rfft(audio_array[:vad_processor.frame_length_samples]))
-        vad_processor._estimate_noise_profile = AsyncMock(return_value=mock_noise_profile)
+        mock_noise_profile = np.abs(
+            np.fft.rfft(audio_array[: vad_processor.frame_length_samples])
+        )
+        vad_processor._estimate_noise_profile = AsyncMock(
+            return_value=mock_noise_profile
+        )
 
         noise_profile = await vad_processor._estimate_noise_profile(audio_array)
 

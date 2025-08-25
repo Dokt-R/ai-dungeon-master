@@ -36,9 +36,11 @@ class TestSRDDatabaseManager:
         yield temp_path
         # Force garbage collection to close any lingering connections
         import gc
+
         gc.collect()
         # Small delay to ensure file handles are released
         import time
+
         time.sleep(0.1)
         # Cleanup
         Path(temp_path).unlink(missing_ok=True)
@@ -50,6 +52,7 @@ class TestSRDDatabaseManager:
         yield manager
         # Ensure proper cleanup
         import gc
+
         gc.collect()
 
     @pytest.fixture
@@ -83,7 +86,7 @@ class TestSRDDatabaseManager:
                     "timestamp": datetime.utcnow().isoformat(),
                     "action": "initial_import",
                     "user": "Test Officer",
-                    "details": "Initial import for testing"
+                    "details": "Initial import for testing",
                 }
             ],
         )
@@ -304,14 +307,15 @@ class TestSRDDatabaseManager:
 
     def test_database_connection_error(self, temp_db_path):
         """Test database connection error handling."""
-        import tempfile
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import patch
 
         # Create a temporary database manager
         manager = SRDDatabaseManager(temp_db_path)
 
         # Mock sqlite3.connect to raise an exception
-        with patch('packages.backend.components.srd_database_manager.sqlite3.connect') as mock_connect:
+        with patch(
+            "packages.backend.components.srd_database_manager.sqlite3.connect"
+        ) as mock_connect:
             mock_connect.side_effect = sqlite3.Error("Connection failed")
 
             # Test that get_health_status handles connection errors gracefully

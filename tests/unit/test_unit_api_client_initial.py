@@ -145,7 +145,7 @@ class TestApiClient:
             "player_id": "12345",
         }
 
-        with patch.object(api_client.client, "post", return_value=mock_response):
+        with patch.object(api_client.client, "request", return_value=mock_response):
             req = AddCharacterRequest(
                 player_id="12345", name="Test Character", character_url=None
             )
@@ -165,7 +165,7 @@ class TestApiClient:
             ]
         }
 
-        with patch.object(api_client.client, "post", return_value=mock_response):
+        with patch.object(api_client.client, "request", return_value=mock_response):
             req = ListCharactersRequest(player_id="12345")
             result = await api_client.list_characters(req)
 

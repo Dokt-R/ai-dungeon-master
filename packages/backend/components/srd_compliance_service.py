@@ -19,12 +19,12 @@ import json
 import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource, SRDCompliance
-from enum import Enum
 
 logger = get_logger(__name__)
 
@@ -83,6 +83,7 @@ class SRDComplianceService:
         if database_path is None:
             # Use a default path, but allow tests to override
             import tempfile
+
             temp_dir = Path(tempfile.gettempdir())
             self.database_path = str(temp_dir / "srd_compliance.db")
         else:
@@ -247,7 +248,9 @@ class SRDComplianceService:
             issues.append("Missing verification hash")
 
         # Check if verification is expired
-        if compliance.last_verified and self._is_verification_expired(compliance.last_verified):
+        if compliance.last_verified and self._is_verification_expired(
+            compliance.last_verified
+        ):
             issues.append("Verification has expired")
 
         # Check if data is within acceptable usage limits
@@ -309,7 +312,9 @@ class SRDComplianceService:
 
         # Check if it's an official source
         # First try exact match with normalized key
-        normalized_key = data_source.source_name.lower().replace(" ", "_").replace("&", "and")
+        normalized_key = (
+            data_source.source_name.lower().replace(" ", "_").replace("&", "and")
+        )
         official_source = self._official_sources.get(normalized_key)
 
         # If not found, try to match by source name
@@ -379,7 +384,7 @@ class SRDComplianceService:
             "timestamp": datetime.utcnow().isoformat(),
             "action": action,
             "user": user,
-            "details": f"Action performed by {user}"
+            "details": f"Action performed by {user}",
         }
 
         # Add to audit trail

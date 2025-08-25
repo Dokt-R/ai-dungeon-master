@@ -10,21 +10,20 @@ This module tests the new observability features including:
 
 import os
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from packages.backend.components.observability_service import (
-    ObservabilityService,
-    ObservabilityConfig,
-    ConfigurationValidator,
-    ConfigurationValidationResult,
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerState,
-    CircuitBreakerOpenException,
-    ObservabilityServiceFactory,
+    ConfigurationValidationResult,
+    ConfigurationValidator,
     DependencyContainer,
+    ObservabilityConfig,
+    ObservabilityService,
+    ObservabilityServiceFactory,
 )
 
 os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
@@ -376,9 +375,6 @@ class TestDependencyInjection:
 
     def test_service_interface_compatibility(self):
         """Test that service implements the expected interface."""
-        from packages.backend.components.observability_service import (
-            ObservabilityServiceInterface,
-        )
 
         service = ObservabilityService()
 

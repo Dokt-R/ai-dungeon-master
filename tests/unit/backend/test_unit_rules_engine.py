@@ -16,11 +16,11 @@ import pytest
 
 from packages.backend.components.rules_engine import (
     MonsterRuleProvider,
-    SpellRuleProvider,
-    WeaponRuleProvider,
     QueryMetrics,
     RuleProviderType,
     RulesEngine,
+    SpellRuleProvider,
+    WeaponRuleProvider,
 )
 from packages.shared.models import RulesQuery, RulesResponse
 

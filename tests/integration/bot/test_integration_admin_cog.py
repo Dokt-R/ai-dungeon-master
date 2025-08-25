@@ -8,6 +8,7 @@ from tests.utils.factories import make_discord_interaction, make_discord_member
 
 pytestmark = pytest.mark.asyncio
 
+
 @pytest.mark.skip(reason="needs fixing and takes too long")
 class TestSyncIntegration:
     """Integration tests for sync functionality."""

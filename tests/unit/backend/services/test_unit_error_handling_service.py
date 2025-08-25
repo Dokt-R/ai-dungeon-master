@@ -150,7 +150,8 @@ class TestCircuitBreaker:
         assert self.circuit_breaker.state.consecutive_successes == 1
 
         self.circuit_breaker.record_success()
-        assert self.circuit_breaker.state.consecutive_successes == 2
+        # After reaching success_threshold, circuit closes and consecutive_successes resets to 0
+        assert self.circuit_breaker.state.consecutive_successes == 0
         assert self.circuit_breaker.state.is_open is False  # Should be closed now
 
     def test_circuit_breaker_recovery_timeout(self):
@@ -224,11 +225,11 @@ class TestErrorHandlingService:
             return x + y
 
         result = await self.service.execute_with_fallback(
-            operation_name="test_operation",
-            operation=successful_operation,
-            fallback_scenarios=[],
+            "test_operation",
+            successful_operation,
+            [],
             correlation_id="test_success",
-            args=(5, 3),
+            *(5, 3),  # Pass args as positional arguments
         )
 
         assert result == 8
@@ -320,7 +321,7 @@ class TestErrorHandlingService:
             self.service._store_error(error_info)
 
         assert len(self.service.recent_errors) == 5
-        assert self.service.error_counts["NETWORK:test_op"] == 5
+        assert self.service.error_counts["network:test_op"] == 5
 
     def test_error_history_limit(self):
         """Test error history size limit."""

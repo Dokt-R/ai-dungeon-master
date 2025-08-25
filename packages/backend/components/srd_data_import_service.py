@@ -100,7 +100,9 @@ class SRDDataImportService:
             # Create a unique database path for this service instance to avoid conflicts
             if self._database_path is None:
                 unique_id = f"srd_import_{id(self)}_{hash(tempfile.mktemp())}"
-                self._database_path = str(Path(tempfile.gettempdir()) / f"{unique_id}.sqlite")
+                self._database_path = str(
+                    Path(tempfile.gettempdir()) / f"{unique_id}.sqlite"
+                )
             self._db_manager = SRDDatabaseManager(self._database_path)
         return self._db_manager
 
@@ -435,7 +437,7 @@ class SRDDataImportService:
                         "timestamp": datetime.utcnow().isoformat(),
                         "action": "imported",
                         "user": "SRD Import Service",
-                        "details": f"Record imported from {data_type} data"
+                        "details": f"Record imported from {data_type} data",
                     }
                 ],
             )
@@ -517,9 +519,7 @@ class SRDDataImportService:
                     len(
                         [
                             s
-                            for s in db_manager.get_spells_by_level(
-                                entity.level
-                            )
+                            for s in db_manager.get_spells_by_level(entity.level)
                             if s.spell_name == entity.spell_name
                         ]
                     )
@@ -530,9 +530,7 @@ class SRDDataImportService:
                     len(
                         [
                             w
-                            for w in db_manager.get_weapons_by_category(
-                                entity.category
-                            )
+                            for w in db_manager.get_weapons_by_category(entity.category)
                             if w.weapon_name == entity.weapon_name
                         ]
                     )

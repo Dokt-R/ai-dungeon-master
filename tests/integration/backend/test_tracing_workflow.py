@@ -8,15 +8,14 @@ This module tests the complete tracing workflow including:
 - End-to-end trace propagation and validation
 """
 
-import os
 import time
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from packages.backend.components.observability_service import (
-    ObservabilityService,
     ObservabilityConfig,
+    ObservabilityService,
 )
 
 
@@ -29,6 +28,7 @@ def mock_config():
         endpoint="https://test.langsmith.com",
         tracing_enabled=True,
     )
+
 
 @pytest.fixture
 def service(mock_config):
@@ -45,13 +45,16 @@ def service(mock_config):
 
     service.reset_instance()
 
+
 class TestTracingWorkflowIntegration:
     """Integration tests for tracing workflow functionality."""
 
     def test_trace_ai_operation_decorator(self, service):
         """Test the AI operation tracing decorator."""
 
-        @service.trace_ai_operation(operation_type="test_operation", include_result=True)
+        @service.trace_ai_operation(
+            operation_type="test_operation", include_result=True
+        )
         def sample_ai_function(param1: str, param2: int = 42):
             time.sleep(0.01)  # Simulate some processing time
             return f"processed_{param1}_{param2}"
@@ -69,7 +72,9 @@ class TestTracingWorkflowIntegration:
     def test_trace_llm_call_decorator(self, service):
         """Test the LLM call tracing decorator."""
 
-        @service.trace_llm_call_decorator(model_name="gpt-4", include_prompt=True, include_response=True)
+        @service.trace_llm_call_decorator(
+            model_name="gpt-4", include_prompt=True, include_response=True
+        )
         def mock_llm_call(prompt: str, model: str = "gpt-4"):
             time.sleep(0.01)
             return f"Response to: {prompt}"
@@ -113,7 +118,9 @@ class TestTracingWorkflowIntegration:
             trace_id_arg, duration_arg, operation_type_arg = call_args
             assert trace_id_arg is not None  # trace_id should not be None
             assert isinstance(duration_arg, float)  # duration should be a float
-            assert operation_type_arg == "performance_test"  # operation_type should match
+            assert (
+                operation_type_arg == "performance_test"
+            )  # operation_type should match
             assert 0.04 <= duration_arg <= 0.1  # Allow some variance for sleep timing
 
     def test_custom_trace_tags(self, service):

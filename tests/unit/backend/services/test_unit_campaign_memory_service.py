@@ -218,7 +218,10 @@ class TestMemoryEventCRUD:
 
         # Verify update
         updated_event = service.get_memory_event("test_event")
-        assert updated_event.description == "Updated description with more words for validation"
+        assert (
+            updated_event.description
+            == "Updated description with more words for validation"
+        )
         assert len(updated_event.participants) == 2
         assert updated_event.version == 2
 
@@ -454,7 +457,10 @@ class TestMemoryFactCRUD:
 
         # Verify update
         updated_fact = service.get_memory_fact("test_fact")
-        assert updated_fact.description == "Updated description with relationship information included"
+        assert (
+            updated_fact.description
+            == "Updated description with relationship information included"
+        )
         assert updated_fact.confidence == 0.9
         assert set(updated_fact.tags) == {"updated", "important"}
         assert updated_fact.related_events == ["event_1"]  # Unchanged
@@ -893,7 +899,10 @@ class TestMemoryServiceIntegration:
         # Read event
         event = service.get_memory_event(event_id)
         assert event is not None
-        assert event.description == "The hero enters the initial starting area of the adventure"
+        assert (
+            event.description
+            == "The hero enters the initial starting area of the adventure"
+        )
 
         # Update event
         update_request = UpdateMemoryEventRequest(
@@ -907,7 +916,10 @@ class TestMemoryServiceIntegration:
 
         # Verify update
         updated_event = service.get_memory_event(event_id)
-        assert updated_event.description == "Updated event description with more words for validation"
+        assert (
+            updated_event.description
+            == "Updated event description with more words for validation"
+        )
         assert len(updated_event.participants) == 2
 
         # Delete event
@@ -939,7 +951,10 @@ class TestMemoryServiceIntegration:
         # Read fact
         fact = service.get_memory_fact(fact_id)
         assert fact is not None
-        assert fact.description == "Initial fact description with relationship information included"
+        assert (
+            fact.description
+            == "Initial fact description with relationship information included"
+        )
         assert fact.confidence == 0.7
 
         # Update fact
@@ -955,7 +970,10 @@ class TestMemoryServiceIntegration:
 
         # Verify update
         updated_fact = service.get_memory_fact(fact_id)
-        assert updated_fact.description == "Updated fact description with relationship information included for validation"
+        assert (
+            updated_fact.description
+            == "Updated fact description with relationship information included for validation"
+        )
         assert updated_fact.confidence == 0.9
         assert len(updated_fact.tags) == 3
         assert "important" in updated_fact.tags

@@ -17,8 +17,8 @@ import discord
 import pytest
 from discord import Guild, Member, VoiceChannel, VoiceState
 
-from packages.bot.services.voice_manager import voice_manager_service
 from packages.bot.cogs.voice_cog import VoiceCog
+from packages.bot.services.voice_manager import voice_manager_service
 from packages.shared.models import VoiceChannelResponse
 
 

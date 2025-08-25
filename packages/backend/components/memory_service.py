@@ -9,18 +9,19 @@ This module provides comprehensive memory management functionality including:
 - Integration with DM graph and system prompts
 """
 
+import json
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from sqlalchemy import delete, select, update
+from sqlalchemy.exc import SQLAlchemyError
+
 from packages.backend.components.observability_service import observability_service
 from packages.shared.db import get_async_session
 from packages.shared.logging_config import get_logger
 from packages.shared.models import MemoryState, MemoryStateModel
-from sqlalchemy import select, update, delete
-from sqlalchemy.exc import SQLAlchemyError
-import json
 
 # Try to import tiktoken for accurate token counting
 try:
@@ -302,18 +303,83 @@ class MemoryService:
             # In a more sophisticated implementation, this could use embeddings
 
             # Filter out common stop words to improve relevance matching
-            stop_words = {"i", "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "this", "that", "these", "those", "i'm", "i've", "i'll", "you", "me", "my", "your", "it", "its", "they", "them", "their"}
+            stop_words = {
+                "i",
+                "the",
+                "a",
+                "an",
+                "and",
+                "or",
+                "but",
+                "in",
+                "on",
+                "at",
+                "to",
+                "for",
+                "of",
+                "with",
+                "by",
+                "is",
+                "are",
+                "was",
+                "were",
+                "be",
+                "been",
+                "being",
+                "have",
+                "has",
+                "had",
+                "do",
+                "does",
+                "did",
+                "will",
+                "would",
+                "could",
+                "should",
+                "may",
+                "might",
+                "can",
+                "this",
+                "that",
+                "these",
+                "those",
+                "i'm",
+                "i've",
+                "i'll",
+                "you",
+                "me",
+                "my",
+                "your",
+                "it",
+                "its",
+                "they",
+                "them",
+                "their",
+            }
 
-            prompt_words = [word.strip('.,!?;:"\'') for word in user_prompt.lower().split()]
-            prompt_keywords = set(word for word in prompt_words if word not in stop_words and len(word) > 2)
+            prompt_words = [
+                word.strip(".,!?;:\"'") for word in user_prompt.lower().split()
+            ]
+            prompt_keywords = set(
+                word
+                for word in prompt_words
+                if word not in stop_words and len(word) > 2
+            )
 
             relevant_memories = []
 
             # Search through message history for relevant content
             for msg in memory_state.messages[-50:]:  # Search last 50 messages
                 if msg["role"] == "assistant":  # Only consider AI responses
-                    msg_words = [word.strip('.,!?;:"\'') for word in msg["content"].lower().split()]
-                    msg_keywords = set(word for word in msg_words if word not in stop_words and len(word) > 2)
+                    msg_words = [
+                        word.strip(".,!?;:\"'")
+                        for word in msg["content"].lower().split()
+                    ]
+                    msg_keywords = set(
+                        word
+                        for word in msg_words
+                        if word not in stop_words and len(word) > 2
+                    )
                     relevance_score = len(prompt_keywords.intersection(msg_keywords))
 
                     if relevance_score > 0:
@@ -334,7 +400,9 @@ class MemoryService:
                 count=len(relevant_memories),
                 prompt_keywords=list(prompt_keywords),
                 total_messages=len(memory_state.messages),
-                assistant_messages=len([msg for msg in memory_state.messages if msg["role"] == "assistant"]),
+                assistant_messages=len(
+                    [msg for msg in memory_state.messages if msg["role"] == "assistant"]
+                ),
             )
 
             return relevant_memories

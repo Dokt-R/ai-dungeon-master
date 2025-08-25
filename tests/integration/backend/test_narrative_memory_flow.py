@@ -5,11 +5,12 @@ This module provides comprehensive integration tests for the complete memory sys
 including DM graph integration, memory context preparation, and memory updates.
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-from packages.backend.agents.dm_graph import DMGraphService, DMGraphState
-from packages.backend.components.memory_service import MemoryService, MemoryContext
+import pytest
+
+from packages.backend.agents.dm_graph import DMGraphService
+from packages.backend.components.memory_service import MemoryContext, MemoryService
 from packages.shared.models import MemoryState
 
 
@@ -21,6 +22,7 @@ class TestNarrativeMemoryFlow:
         """Create memory service for testing with mocked database operations."""
         # Use custom config with lower relevance threshold for integration tests
         from packages.backend.components.memory_service import MemoryConfig
+
         custom_config = MemoryConfig(memory_relevance_threshold=0.2)
         service = MemoryService(custom_config)
 
@@ -38,13 +40,31 @@ class TestNarrativeMemoryFlow:
 
                     # Look for character-related information patterns
                     character_indicators = [
-                        "level", "class", "fighter", "wizard", "magic", "sword", "weapon",
-                        "ability", "skill", "inventory", "equipment", "character", "player",
-                        "fireball", "spell", "power", "strength", "guild", "thieves"
+                        "level",
+                        "class",
+                        "fighter",
+                        "wizard",
+                        "magic",
+                        "sword",
+                        "weapon",
+                        "ability",
+                        "skill",
+                        "inventory",
+                        "equipment",
+                        "character",
+                        "player",
+                        "fireball",
+                        "spell",
+                        "power",
+                        "strength",
+                        "guild",
+                        "thieves",
                     ]
 
                     if any(indicator in content for indicator in character_indicators):
-                        if len(character_knowledge["general"]) < 5:  # Limit per category
+                        if (
+                            len(character_knowledge["general"]) < 5
+                        ):  # Limit per category
                             character_knowledge["general"].append(msg["content"])
 
             return character_knowledge

@@ -675,7 +675,10 @@ class STTService:
                     provider_health = provider.get_health_status()
 
                     # Skip unhealthy providers (but allow first attempt)
-                    if provider_health.status == "unhealthy" and provider_health.consecutive_failures > 0:
+                    if (
+                        provider_health.status == "unhealthy"
+                        and provider_health.consecutive_failures > 0
+                    ):
                         continue
 
                     try:

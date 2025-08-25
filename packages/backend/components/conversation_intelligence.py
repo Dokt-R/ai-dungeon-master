@@ -754,7 +754,9 @@ class ConversationIntelligenceEngine:
         """Clean up conversation context."""
         if conversation_id in self.conversation_contexts:
             del self.conversation_contexts[conversation_id]
-            self.logger.info("Cleaned up conversation context", conversation_id=conversation_id)
+            self.logger.info(
+                "Cleaned up conversation context", conversation_id=conversation_id
+            )
 
     async def get_conversation_stats(self, conversation_id: str) -> Dict[str, Any]:
         """Get conversation statistics."""

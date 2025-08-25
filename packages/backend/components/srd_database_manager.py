@@ -25,7 +25,7 @@ class SRDMonster(SQLModel, table=True):
     monster_id: Optional[int] = SQLField(primary_key=True)
     monster_name: str = SQLField(unique=True)
     # ... other fields
-    
+
 class SRDSpell(SQLModel, table=True):
     __tablename__ = "srd_spells"
     spell_id: Optional[int] = SQLField(primary_key=True)
@@ -39,7 +39,7 @@ Phase 2: Update SRD Database Manager
 class SRDDatabaseManager:
     def __init__(self, session: AsyncSession = Depends(get_async_session)):
         self.session = session
-    
+
     async def create_monster(self, monster: Monster) -> int:
         srd_monster = SRDMonster(**monster.model_dump())
         self.session.add(srd_monster)
@@ -308,7 +308,9 @@ class SRDDatabaseManager:
 
         for score_name, score_value in ability_scores:
             if not (1 <= score_value <= 30):
-                raise ValueError(f"Invalid {score_name} score: {score_value} (must be between 1 and 30)")
+                raise ValueError(
+                    f"Invalid {score_name} score: {score_value} (must be between 1 and 30)"
+                )
 
     def _deserialize_data_source(self, data: str) -> DataSource:
         """Deserialize JSON string to DataSource."""
@@ -390,7 +392,7 @@ class SRDDatabaseManager:
 
                 cursor.execute(
                     "SELECT * FROM monsters WHERE monster_id = ? AND is_active = 1",
-                    (monster_id,)
+                    (monster_id,),
                 )
                 row = cursor.fetchone()
 

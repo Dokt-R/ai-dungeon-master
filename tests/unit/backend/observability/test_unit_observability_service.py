@@ -21,7 +21,6 @@ from packages.backend.components.observability_service import (
     observability_service,
 )
 
-
 os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
 
 

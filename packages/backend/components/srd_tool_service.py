@@ -663,7 +663,7 @@ class SRDToolService:
         # Maintain metrics history limit - trim if exceeded
         if len(self._tool_metrics) > self.max_metrics_history:
             # Keep only the most recent metrics
-            self._tool_metrics = self._tool_metrics[-self.max_metrics_history:]
+            self._tool_metrics = self._tool_metrics[-self.max_metrics_history :]
 
         # Log performance
         self.logger.info(
