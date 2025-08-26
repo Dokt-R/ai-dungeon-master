@@ -193,6 +193,58 @@ If you prefer to run the services manually (not recommended for most users):
 
 # Observability
 
+## LangSmith AI Tracing (Optional)
+
+The system includes comprehensive AI operation tracing via LangSmith for detailed observability of AI decision-making processes. This feature is **disabled by default** to allow immediate development without API key setup.
+
+### Enabling AI Tracing
+
+To enable LangSmith tracing for AI operations:
+
+1. **Get a LangSmith API Key**:
+   - Visit [https://smith.langchain.com/](https://smith.langchain.com/)
+   - Create an account or log in with existing credentials
+   - Navigate to Settings → API Keys → Create API Key
+   - Copy the key (typically starts with `ls__` or `lsv2_`)
+
+2. **Configure Environment Variables**:
+   ```bash
+   # Add to your environment or .env file
+   LANGSMITH_API_KEY=your_langsmith_api_key_here  # Use exact key from LangSmith
+   LANGSMITH_TRACING=true  # Enable tracing
+   LANGSMITH_PROJECT=ai-dungeon-master  # Optional: project name
+   ```
+
+3. **Restart the Services**:
+   ```bash
+   docker compose down && docker compose up --build
+   ```
+
+### What Gets Traced
+
+When enabled, the system automatically traces:
+- **LLM API calls** with model information, prompts, and responses
+- **AI workflows** with decision points and reasoning
+- **Performance metrics** including execution time and token usage
+- **Custom trace tags** for AI-specific operations
+- **Correlation IDs** linking traces to user requests
+
+### Health Monitoring
+
+Check tracing status via Discord commands:
+- `/health observability` - Check LangSmith connection status
+- `/health ai` - Check AI services with tracing integration
+- `/health general` - Overall system health including observability
+
+### Benefits
+
+- **Step-by-step AI decision tracing** for debugging complex interactions
+- **Performance monitoring** for AI operations and LLM calls
+- **Cost optimization** insights through token usage tracking
+- **Quality assurance** for AI-generated content and responses
+
+**Note**: LangSmith offers a generous free tier suitable for development and small-scale production use.
+
 ## Campaign Transcript Logging
 
 - Every campaign has a persistent transcript log saved at `data/saves/[campaign_id]/transcript.log`.

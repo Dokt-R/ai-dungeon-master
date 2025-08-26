@@ -158,6 +158,17 @@ When making changes, update relevant docs:
 - **Logging**: Use structured logging with appropriate levels
 - **Security**: Never commit secrets or sensitive data
 
+### Observability Best Practices
+- **AI Operation Tracing**: Use `@observability_service.trace_ai_operation()` for AI-related functions
+- **LLM Call Tracing**: Use `@observability_service.trace_llm_call_decorator()` for LLM API calls
+- **Workflow Tracing**: Use `@observability_service.trace_ai_workflow_decorator()` for complex workflows
+- **Context Managers**: Use `trace_operation()`, `trace_llm_call()`, `trace_ai_workflow()` for dynamic tracing
+- **Custom Tags**: Add relevant AI-specific tags for better trace filtering and analysis
+- **Health Monitoring**: Implement health checks for new services and update existing ones
+- **Correlation IDs**: Ensure correlation ID propagation in all async operations and traces
+- **Performance Monitoring**: Add performance metrics for operations that could impact user experience
+- **Documentation**: See `docs/architecture/observability.md` for comprehensive observability guidelines and examples
+
 ### Package-Specific
 - **Backend**: Validate all API inputs with Pydantic models
 - **Bot**: Handle Discord rate limits and implement proper error responses

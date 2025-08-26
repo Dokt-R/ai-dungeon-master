@@ -222,6 +222,7 @@ class ObservabilityConfig:
     project: str = "ai-dungeon-master"
     endpoint: Optional[str] = None
     tracing_enabled: bool = True
+    langsmith_tracing: bool = False  # New: LANGSMITH_TRACING environment variable
 
 
 @dataclass
@@ -297,10 +298,10 @@ class ConfigurationValidator:
             )
             return
 
-        # Basic format validation (LangSmith keys typically start with ls__)
-        if not api_key.startswith("ls__"):
+        # Basic format validation (LangSmith keys typically start with ls__ or lsv2_)
+        if not (api_key.startswith("ls__") or api_key.startswith("lsv2_")):
             self.validation_warnings.append(
-                "LANGSMITH_API_KEY should start with 'ls__' - please verify the key format"
+                "LANGSMITH_API_KEY should start with 'ls__' or 'lsv2_' - please verify the key format"
             )
 
         # Check for common placeholder values
@@ -519,6 +520,9 @@ class ObservabilityService:
     def reset_instance(cls) -> None:
         """Reset the singleton instance (mainly for testing)."""
         with cls._lock:
+            if cls._instance is not None:
+                # Clean up the LangSmith client before resetting
+                cls._instance._cleanup_langsmith_client()
             cls._instance = None
             cls._is_initialized = False
 
@@ -556,11 +560,17 @@ class ObservabilityService:
             if not isinstance(project, str) or len(project.strip()) == 0:
                 raise ConfigurationError("LANGSMITH_PROJECT cannot be empty")
 
+            # Load LangSmith tracing flag (default to False for opt-in)
+            langsmith_tracing = (
+                os.getenv("LANGSMITH_TRACING", "false").lower() == "true"
+            )
+
             config = ObservabilityConfig(
                 api_key=api_key.strip(),
                 project=project.strip(),
                 endpoint=endpoint.strip() if endpoint else None,
                 tracing_enabled=True,
+                langsmith_tracing=langsmith_tracing,
             )
 
             # If endpoint is still None after all processing, ensure it's explicitly None
@@ -606,13 +616,8 @@ class ObservabilityService:
             self._initialize_circuit_breaker()
 
             # Initialize LangSmith client (protected by circuit breaker)
-            # Performance optimization: skip client initialization for integration tests to speed them up
-            if os.getenv("PYTEST_CURRENT_TEST") == "integration_test_for_performance":
-                logger.debug(
-                    "skipping_langsmith_initialization_for_integration_test_performance"
-                )
-                self._langsmith_client = None  # Will be handled by tracing methods
-            else:
+            # Only initialize if tracing is enabled
+            if getattr(self._config, "langsmith_tracing", False):
                 try:
                     self._circuit_breaker.call(self._initialize_langsmith_client)
                 except CircuitBreakerOpenException:
@@ -621,6 +626,11 @@ class ObservabilityService:
                     logger.warning(
                         "langsmith_initialization_failed_but_continuing", error=str(e)
                     )
+            else:
+                logger.debug(
+                    "langsmith_tracing_disabled_skipping_client_initialization"
+                )
+                self._langsmith_client = None  # Will be handled by tracing methods
 
             self._is_initialized = True
             ObservabilityService._is_initialized = True
@@ -800,15 +810,58 @@ class ObservabilityService:
                 f"Failed to initialize LangSmith client: {str(e)}"
             ) from e
 
+    def _cleanup_langsmith_client(self) -> None:
+        """
+        Clean up the LangSmith client and stop background threads.
+
+        This is especially important for tests to prevent background threads
+        from continuing to run and cause logging errors.
+        """
+        if self._langsmith_client is not None:
+            try:
+                # Attempt to gracefully shutdown the LangSmith client
+                # This prevents background threads from continuing after tests finish
+                if hasattr(self._langsmith_client, "shutdown"):
+                    # If the client has a shutdown method, use it
+                    self._langsmith_client.shutdown()
+                    logger.debug("langsmith_client_shutdown_called")
+                elif hasattr(self._langsmith_client, "_tracing_control_thread"):
+                    # Try to stop the background thread directly
+                    thread = getattr(self._langsmith_client, "_tracing_control_thread")
+                    if thread and thread.is_alive():
+                        logger.debug("attempting_to_stop_langsmith_background_thread")
+                        # Note: In practice, stopping threads safely is complex
+                        # This is a best-effort attempt
+
+                # Clear environment variables that might be set by the client
+                env_vars_to_clear = [
+                    "LANGSMITH_API_KEY",
+                    "LANGSMITH_PROJECT",
+                    "LANGSMITH_ENDPOINT",
+                ]
+                for var in env_vars_to_clear:
+                    if var in os.environ:
+                        del os.environ[var]
+
+                # Clear the client reference
+                self._langsmith_client = None
+                logger.debug("langsmith_client_cleaned_up")
+
+            except Exception as e:
+                logger.warning(f"error_during_langsmith_client_cleanup: {str(e)}")
+                # Don't raise - cleanup should be best effort
+                # Force clear the reference even if cleanup fails
+                self._langsmith_client = None
+
     def _initialize_circuit_breaker(self):
         """Initialize the circuit breaker for observability failures."""
         # Configure circuit breaker for observability service
-        # Use shorter timeout in test environments to speed up test execution
-        recovery_timeout = 1.0 if os.getenv("PYTEST_CURRENT_TEST") else 30.0
+        # Use reasonable timeout for both development and production
+        recovery_timeout = 10.0  # 10 seconds - reasonable for both dev and prod
 
         circuit_breaker_config = CircuitBreakerConfig(
             failure_threshold=3,  # Open after 3 consecutive failures
-            recovery_timeout=recovery_timeout,  # Shorter timeout for tests
+            recovery_timeout=recovery_timeout,  # Reasonable timeout for recovery
             success_threshold=2,  # Need 2 successes to fully recover
             expected_exception=(ObservabilityError, CircuitBreakerOpenException),
         )
@@ -888,6 +941,14 @@ class ObservabilityService:
             operation_name: Name of the operation being traced
             **tags: Additional tags for the trace (operation_type, model_name, etc.)
         """
+        # Check if LangSmith tracing is enabled
+        if not getattr(self._config, "langsmith_tracing", False):
+            logger.debug(
+                "tracing_disabled_langsmith_tracing_disabled", operation=operation_name
+            )
+            yield None
+            return
+
         if not self._is_initialized:
             logger.debug(
                 "tracing_disabled_service_not_initialized", operation=operation_name
@@ -1012,6 +1073,14 @@ class ObservabilityService:
             prompt: The prompt being sent to the model
             **metadata: Additional metadata for the trace
         """
+        # Check if LangSmith tracing is enabled
+        if not getattr(self._config, "langsmith_tracing", False):
+            logger.debug(
+                "llm_tracing_disabled_langsmith_tracing_disabled", model=model_name
+            )
+            yield None
+            return
+
         if not self._is_initialized or not self._langsmith_client:
             logger.debug("llm_tracing_disabled", model=model_name)
             yield None
@@ -1088,6 +1157,15 @@ class ObservabilityService:
             workflow_type: Type of workflow (e.g., "narrative_generation", "character_interaction")
             **metadata: Additional metadata for the trace
         """
+        # Check if LangSmith tracing is enabled
+        if not getattr(self._config, "langsmith_tracing", False):
+            logger.debug(
+                "ai_workflow_tracing_disabled_langsmith_tracing_disabled",
+                workflow=workflow_name,
+            )
+            yield None
+            return
+
         if not self._is_initialized or not self._langsmith_client:
             logger.debug("ai_workflow_tracing_disabled", workflow=workflow_name)
             yield None
@@ -1667,12 +1745,15 @@ class ObservabilityServiceFactory:
         return service
 
     @staticmethod
-    def create_test_service(mock_langsmith: bool = True) -> ObservabilityService:
+    def create_test_service(
+        mock_langsmith: bool = True, enable_tracing: bool = False
+    ) -> ObservabilityService:
         """
         Create a service instance configured for testing.
 
         Args:
             mock_langsmith: Whether to mock LangSmith client for testing
+            enable_tracing: Whether to enable tracing (default False for safety)
 
         Returns:
             ObservabilityService configured for testing
@@ -1682,6 +1763,7 @@ class ObservabilityServiceFactory:
             project="test_project",
             endpoint=None,
             tracing_enabled=True,
+            langsmith_tracing=enable_tracing,  # Control tracing explicitly
         )
 
         service = ObservabilityService()

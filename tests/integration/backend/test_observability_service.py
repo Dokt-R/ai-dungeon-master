@@ -15,7 +15,38 @@ from packages.backend.components.observability_service import (
     ObservabilityService,
 )
 
-os.environ["PYTEST_CURRENT_TEST"] = "integration_test_for_performance"
+
+# Comprehensive mock setup to prevent any real network calls
+@pytest.fixture(autouse=True)
+def mock_langsmith_completely():
+    """Mock all LangSmith components to prevent network calls."""
+    with (
+        patch("langsmith.Client") as mock_client_class,
+        patch("langsmith.traceable") as mock_traceable,
+        patch("langsmith.trace") as mock_trace,
+    ):
+        # Mock client instance
+        mock_client = Mock()
+        mock_client_class.return_value = mock_client
+
+        # Mock traceable decorator
+        def mock_decorator(*args, **kwargs):
+            def wrapper(func):
+                def wrapped_func(*args, **kwargs):
+                    return func(*args, **kwargs)
+
+                return wrapped_func
+
+            return wrapper
+
+        mock_traceable.side_effect = mock_decorator
+        mock_trace.side_effect = mock_decorator
+
+        yield mock_client_class, mock_traceable, mock_trace
+
+
+# Note: PYTEST_CURRENT_TEST environment variable is set by pytest automatically
+# We don't need to set it manually as it's available during test execution
 
 
 class TestObservabilityServiceIntegration:
@@ -37,6 +68,7 @@ class TestObservabilityServiceIntegration:
             "LANGSMITH_API_KEY",
             "LANGSMITH_PROJECT",
             "LANGSMITH_ENDPOINT",
+            "LANGSMITH_TRACING",
         ]
         for var in env_vars_to_clean:
             if var in os.environ:
@@ -47,7 +79,7 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
                 "LANGSMITH_ENDPOINT": "https://api.smith.langchain.com",
             },
@@ -62,7 +94,7 @@ class TestObservabilityServiceIntegration:
             # Check configuration
             config = service.get_config()
             assert config is not None
-            assert config.api_key == "test-api-key-12345"
+            assert config.api_key == "ls__test_key_12345"
             assert config.project == "test-project"
             assert config.endpoint == "https://api.smith.langchain.com"
 
@@ -81,8 +113,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             service = ObservabilityService()
@@ -114,8 +147,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             service = ObservabilityService()
@@ -125,7 +159,7 @@ class TestObservabilityServiceIntegration:
             mock_client_class.assert_called_once()
 
             # Verify environment variables were set
-            assert os.environ.get("LANGSMITH_API_KEY") == "test-api-key-12345"
+            assert os.environ.get("LANGSMITH_API_KEY") == "ls__test_key_12345"
             assert os.environ.get("LANGSMITH_PROJECT") == "test-project"
 
     def test_trace_operation_integration(self):
@@ -133,8 +167,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             with patch("langsmith.traceable") as mock_traceable:
@@ -179,8 +214,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             with patch("langsmith.traceable") as mock_traceable:
@@ -222,8 +258,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             with patch("langsmith.traceable") as mock_traceable:
@@ -265,8 +302,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",  # Enable tracing for this test
             },
         ):
             service = ObservabilityService()
@@ -291,8 +329,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",  # Enable tracing for this test
             },
         ):
             service = ObservabilityService()
@@ -319,8 +358,9 @@ class TestObservabilityServiceIntegration:
         with patch.dict(
             os.environ,
             {
-                "LANGSMITH_API_KEY": "test-api-key-12345",
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
                 "LANGSMITH_PROJECT": "test-project",
+                "LANGSMITH_TRACING": "true",
             },
         ):
             # Mock LangSmith import failure
@@ -389,3 +429,26 @@ class TestObservabilityServiceIntegration:
             # Should share initialization state
             service1.initialize()
             assert service2.is_initialized() is True
+
+    def test_tracing_disabled_by_default_integration(self):
+        """Test that tracing is disabled by default in integration tests."""
+        with patch.dict(
+            os.environ,
+            {
+                "LANGSMITH_API_KEY": "ls__test_key_12345",
+                "LANGSMITH_PROJECT": "test-project",
+                # Note: LANGSMITH_TRACING is not set, so it should default to disabled
+            },
+        ):
+            service = ObservabilityService()
+            service.initialize()
+
+            # All tracing methods should return None when disabled
+            with service.trace_operation("test_operation") as trace_id:
+                assert trace_id is None
+
+            with service.trace_llm_call("test-model", "test prompt") as trace_id:
+                assert trace_id is None
+
+            with service.trace_ai_workflow("test-workflow") as trace_id:
+                assert trace_id is None
