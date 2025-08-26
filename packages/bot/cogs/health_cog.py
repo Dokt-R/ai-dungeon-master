@@ -52,8 +52,7 @@ class HealthCog(commands.Cog):
             # Defer response since health checks might take time
             await interaction.response.defer(ephemeral=True)
 
-            async with self.api_client as client:
-                health_data = await client.get_ai_health()
+            health_data = await self.api_client.get_ai_health()
 
             # Format the response based on health status
             status = health_data.get("status", "unknown")
@@ -140,8 +139,7 @@ class HealthCog(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            async with self.api_client as client:
-                health_data = await client.get_observability_health()
+            health_data = await self.api_client.get_observability_health()
 
             status = health_data.get("status", "unknown")
             provider = health_data.get("provider", "unknown")
@@ -190,8 +188,7 @@ class HealthCog(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            async with self.api_client as client:
-                health_data = await client.get_general_health()
+            health_data = await self.api_client.get_general_health()
 
             status = health_data.get("status", "unknown")
             service = health_data.get("service", "unknown")
@@ -256,8 +253,7 @@ class HealthCog(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            async with self.api_client as client:
-                test_result = await client.test_observability_trace()
+            test_result = await self.api_client.test_observability_trace()
 
             status = test_result.get("status", "unknown")
             message = test_result.get("message", "")

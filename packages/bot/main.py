@@ -11,7 +11,6 @@ from packages.shared.correlation import (
 from packages.shared.logging_config import configure_logging, get_logger
 
 load_dotenv()
-# configure_logging(log_to_file=False, path="logs/bot.log")
 configure_logging()
 
 # Create logger instance

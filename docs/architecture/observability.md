@@ -46,7 +46,7 @@ To use the observability features, you'll need a LangSmith API key:
 1. **Visit LangSmith**: Go to [https://smith.langchain.com/](https://smith.langchain.com/)
 2. **Sign Up/Login**: Create an account or log in with your existing credentials
 3. **Create API Key**: Navigate to Settings → API Keys → Create API Key
-4. **Copy Key**: The API key will start with `ls__` prefix
+4. **Copy Key**: The API key will start with `ls__` or `lsv2_` prefix
 
 **Note**: LangSmith offers a generous free tier suitable for development and small-scale production use. Your API key format may vary (e.g., `ls__`, `lsv2_`, etc.) - use the exact key provided by LangSmith.
 
@@ -69,7 +69,7 @@ LANGSMITH_TRACING=true  # Set to "false" to disable tracing completely
 #### Validation
 
 The system performs comprehensive validation of your configuration:
-- API key format verification (must start with `ls__`)
+- API key format verification
 - Project name validation (alphanumeric, hyphens, underscores only)
 - Endpoint URL validation (must be valid HTTPS URL)
 - Security best practice recommendations
@@ -114,8 +114,6 @@ Comprehensive test coverage across multiple levels:
 - LangSmith client creation and configuration
 - Error handling and fallback scenarios
 - Performance metrics collection
-
-**Total Test Coverage:** 1,041 lines across 4 test files
 
 ### Circuit Breaker Pattern
 

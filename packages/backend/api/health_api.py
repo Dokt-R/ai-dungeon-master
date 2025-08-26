@@ -13,9 +13,10 @@ from fastapi import APIRouter, HTTPException
 from packages.backend.agents.prompts import prompt_manager
 from packages.backend.components.ai_client import ai_client
 from packages.backend.components.observability_service import observability_service
-from packages.shared.logging_config import get_logger
+from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.routes import ROUTES
 
+configure_logging()
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/health", tags=["health"])

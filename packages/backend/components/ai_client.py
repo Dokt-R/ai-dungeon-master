@@ -22,8 +22,9 @@ from enum import Enum
 from typing import Any, Dict, List, Optional
 
 from packages.backend.components.observability_service import observability_service
-from packages.shared.logging_config import get_logger
+from packages.shared.logging_config import configure_logging, get_logger
 
+configure_logging()
 logger = get_logger(__name__)
 
 # Import OpenAI with fallback for testing
@@ -87,7 +88,7 @@ class AIClientConfig:
     provider: AIProvider = AIProvider.OPENAI
     api_key: str = ""
     base_url: Optional[str] = None
-    model: str = "gpt-4"
+    model: str = "gpt-5-nano-2025-08-07"
     timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 1.0

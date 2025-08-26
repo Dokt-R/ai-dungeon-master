@@ -24,8 +24,9 @@ from typing import Any, Callable, Dict, Optional, Protocol, Union
 from unittest.mock import patch
 
 from packages.shared.correlation import get_correlation_id
-from packages.shared.logging_config import get_logger
+from packages.shared.logging_config import configure_logging, get_logger
 
+configure_logging()
 logger = get_logger(__name__)
 
 

@@ -352,7 +352,7 @@ class ActionResponse(BaseModel):
         examples=[
             {
                 "generated_at": "2024-01-01T12:00:00Z",
-                "model_used": "gpt-4",
+                "model_used": "gpt-5-nano-2025-08-07",
                 "tokens_used": 150,
             }
         ],

@@ -158,7 +158,7 @@ class PromptTemplate(BaseModel):
         if TIKTOKEN_AVAILABLE:
             try:
                 # Use tiktoken for accurate tokenization (GPT-4 encoding)
-                encoding = tiktoken.encoding_for_model("gpt-4")
+                encoding = tiktoken.encoding_for_model("gpt-5-nano-2025-08-07")
                 return len(encoding.encode(filled_content))
             except Exception as e:
                 logger.warning(
