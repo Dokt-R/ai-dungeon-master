@@ -353,13 +353,24 @@ class OpenAIProvider(AIProviderInterface):
             raise ConnectionError("OpenAI client not initialized")
 
         try:
-            response = await self.client.chat.completions.create(
-                model=self.config.model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens,
-                temperature=temperature or 0.7,
-                **kwargs,
-            )
+            # Prepare parameters for OpenAI API call
+            openai_params = {
+                "model": self.config.model,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            
+            # Only include temperature if specified and not None
+            if temperature is not None:
+                openai_params["temperature"] = temperature
+            
+            # Only include max_tokens if it's not None
+            if max_tokens is not None:
+                openai_params["max_tokens"] = max_tokens
+                
+            # Include any additional kwargs
+            openai_params.update(kwargs)
+
+            response = await self.client.chat.completions.create(**openai_params)
 
             return response.choices[0].message.content
 
@@ -379,13 +390,24 @@ class OpenAIProvider(AIProviderInterface):
             raise ConnectionError("OpenAI client not initialized")
 
         try:
-            response = await self.client.chat.completions.create(
-                model=self.config.model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature or 0.7,
-                **kwargs,
-            )
+            # Prepare parameters for OpenAI API call
+            openai_params = {
+                "model": self.config.model,
+                "messages": messages,
+            }
+            
+            # Only include temperature if specified and not None
+            if temperature is not None:
+                openai_params["temperature"] = temperature
+            
+            # Only include max_tokens if it's not None
+            if max_tokens is not None:
+                openai_params["max_tokens"] = max_tokens
+                
+            # Include any additional kwargs
+            openai_params.update(kwargs)
+
+            response = await self.client.chat.completions.create(**openai_params)
 
             return response.choices[0].message.content
 

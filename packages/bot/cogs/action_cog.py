@@ -30,7 +30,8 @@ class ActionCog(commands.Cog):
         """Initialize the Action Cog."""
         self.bot = bot
         self.logger = get_logger(f"{__name__}.ActionCog")
-        self.api_client = ApiClient(api_base_url)
+        # Use longer timeout for AI actions (they can take 15-20 seconds)
+        self.api_client = ApiClient(api_base_url, timeout=45.0)
 
         # Track active sessions per guild
         self._active_sessions: dict[int, str] = {}  # guild_id -> session_id
@@ -81,6 +82,12 @@ class ActionCog(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
+            # Send a quick acknowledgment that we're processing
+            await interaction.followup.send(
+                "🎲 Processing your action with the AI DM... This may take 10-20 seconds for complex responses.",
+                ephemeral=True,
+            )
+
             # Generate session ID if not provided
             if not session_id:
                 session_id = (
@@ -108,6 +115,15 @@ class ActionCog(commands.Cog):
             # Submit action to AI DM
             response = await self.api_client.submit_action(action_data)
 
+            # Check if the response indicates an error
+            if response.get("status") == "error":
+                error_msg = response.get("error", "Unknown error occurred")
+                await interaction.edit_original_response(
+                    content=f"❌ The AI DM encountered an issue: {error_msg}",
+                    embed=None,
+                )
+                return
+
             # Store active session
             self._active_sessions[interaction.guild_id] = session_id
 
@@ -126,7 +142,11 @@ class ActionCog(commands.Cog):
                 inline=False,
             )
 
-            embed.add_field(name="⏱️ Processing Time", value=".2f", inline=True)
+            embed.add_field(
+                name="⏱️ Processing Time",
+                value=f"{response.get('processing_time', 0):.2f}s",
+                inline=True,
+            )
 
             embed.add_field(name="🔢 Session ID", value=session_id, inline=True)
 
@@ -142,7 +162,8 @@ class ActionCog(commands.Cog):
                     text=f"Generated at: {response['metadata']['generated_at']}"
                 )
 
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            # Edit the processing message with the final response
+            await interaction.edit_original_response(content=None, embed=embed)
 
             self.logger.info(
                 "Action submitted successfully",
@@ -156,13 +177,31 @@ class ActionCog(commands.Cog):
             self.logger.error(
                 "Failed to submit action",
                 error=str(e),
+                error_type=type(e).__name__,
                 user_id=interaction.user.id,
                 action=action[:100],  # Log first 100 chars
             )
 
-            await interaction.followup.send(
-                f"❌ Failed to submit action to AI DM: {str(e)}", ephemeral=True
-            )
+            error_message = str(e) if str(e) else f"Unknown error ({type(e).__name__})"
+
+            # Provide a more user-friendly error message based on error type
+            if (
+                "ReadTimeout" in str(type(e).__name__)
+                or "timeout" in error_message.lower()
+            ):
+                user_message = "⏳ The AI DM is taking longer than usual to respond. This is normal for complex actions. Please wait a moment and try again if needed."
+            elif "connection" in error_message.lower():
+                user_message = "❌ Unable to connect to the AI DM. The service may be temporarily unavailable."
+            elif "validation" in error_message.lower():
+                user_message = "❌ Your action couldn't be processed. Please check your input and try again."
+            elif not error_message.strip():
+                user_message = (
+                    "❌ The AI DM service encountered an issue. Please try again."
+                )
+            else:
+                user_message = f"❌ Failed to submit action to AI DM: {error_message}"
+
+            await interaction.edit_original_response(content=user_message, embed=None)
 
     @action.command(
         name="test", description="Test the action API endpoint connectivity"
@@ -234,7 +273,7 @@ class ActionCog(commands.Cog):
             )
 
     @action.command(
-        name="session_info",
+        name="info",
         description="Get information about the current action session",
     )
     @app_commands.describe()
@@ -350,7 +389,7 @@ class ActionCog(commands.Cog):
             embed.add_field(
                 name="🧪 Testing",
                 value="`/action test` - Verify API connectivity\n"
-                "`/action session_info` - View current session",
+                "`/action info` - View current session",
                 inline=False,
             )
 

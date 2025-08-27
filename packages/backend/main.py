@@ -14,6 +14,7 @@ from packages.backend.api.health_api import router as health_router
 from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
 from packages.backend.api.voice_api import router as voice_router
+from packages.backend.agents.dm_graph import dm_graph_service
 from packages.backend.components.ai_client import ai_client
 from packages.backend.components.campaign_memory_service import campaign_memory_service
 from packages.backend.components.multi_user_conversation_manager import (
@@ -33,8 +34,8 @@ from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.routes import API_PREFIX
 
 load_dotenv()
-# configure_logging(log_to_file=True, path="logs/backend.log", level="DEBUG")
-configure_logging()
+configure_logging(log_to_file=True, path="logs/backend.log", level="INFO")
+# configure_logging()
 
 # Create logger instance
 logger = get_logger(__name__)
@@ -71,6 +72,14 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "ai_client_initialization_error", error=str(e), service="ai_client"
         )
+    
+    # Initialize DM Graph service
+    logger.info("dm_graph_service_initialization_started")
+    try:
+        await dm_graph_service.initialize()
+        logger.info("dm_graph_service_initialization_successful")
+    except Exception as e:
+        logger.warning("dm_graph_service_initialization_failed", error=str(e))
 
     # Initialize campaign memory service
     logger.info("campaign_memory_service_initialization_started")

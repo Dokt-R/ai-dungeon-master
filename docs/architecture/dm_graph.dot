@@ -1,0 +1,36 @@
+digraph DMGraph {
+    rankdir=LR;
+    node [shape=box, style=rounded];
+    
+    // Nodes
+    process_prompt [label="Process Prompt\n(Validate input)"];
+    compile_context [label="Compile Context\n(System prompt + memory)"];
+    ai_interaction [label="AI Interaction\n(Generate response)"];
+    generate_response [label="Generate Response\n(Extract narrative)"];
+    update_memory [label="Update Memory\n(Persist state)"];
+    handle_error [label="Handle Error\n(Fallback response)"];
+    END [shape=doublecircle, label="END"];
+    
+    // Normal workflow
+    process_prompt -> compile_context [label="Continue"];
+    compile_context -> ai_interaction [label="Continue"];
+    ai_interaction -> generate_response [label="Continue"];
+    generate_response -> update_memory [label="Continue"];
+    update_memory -> END;
+    
+    // Error handling paths
+    process_prompt -> handle_error [label="Error", color=red];
+    compile_context -> handle_error [label="Error", color=red];
+    ai_interaction -> handle_error [label="Error", color=red];
+    generate_response -> handle_error [label="Error", color=red];
+    handle_error -> END [label="Complete"];
+    
+    // Conditional routing
+    process_prompt -> handle_error [label="Error detected", style=dashed];
+    compile_context -> handle_error [label="Error detected", style=dashed];
+    ai_interaction -> handle_error [label="Error detected", style=dashed];
+    
+    // Graph info
+    labelloc="t";
+    label="LangGraph State Machine for AI Dungeon Master\n(packages/backend/agents/dm_graph.py)";
+}

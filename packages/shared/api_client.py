@@ -21,9 +21,16 @@ from packages.shared.models import (
 )
 from packages.shared.routes import ROUTES
 
+from packages.shared.logging_config import configure_logging, get_logger
+
+configure_logging(level="DEBUG", log_to_file=True, path="logs/api_client.log")
+
+# Create logger instance
+logger = get_logger(__name__)
+
 
 class ApiClient:
-    def __init__(self, base_url: str, timeout: float = 10.0):
+    def __init__(self, base_url: str, timeout: float = 30.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         # Store limits for testing purposes
@@ -87,8 +94,21 @@ class ApiClient:
         """
         if response.status_code < 300:
             try:
-                return response.json()
-            except Exception:
+                json_data = response.json()
+                # Log successful response for debugging
+                logger.debug(
+                    "api_response_success",
+                    status_code=response.status_code,
+                    response_keys=list(json_data.keys()) if isinstance(json_data, dict) else "not_dict",
+                )
+                return json_data
+            except Exception as e:
+                logger.error(
+                    "api_response_json_parse_error",
+                    status_code=response.status_code,
+                    error=str(e),
+                    response_text=response.text[:200],  # First 200 chars
+                )
                 return {}
 
         # Parse error response
@@ -118,6 +138,76 @@ class ApiClient:
 
         # Use the existing exception system which handles error code mapping
         raise CustomException(error_code, details=details)
+
+    async def _handle_ai_response(self, response: httpx.Response) -> Dict[str, Any]:
+        """
+        Specialized response handler for AI action responses.
+        Provides better error handling and fallback responses for AI interactions.
+        """
+        if response.status_code < 300:
+            try:
+                data = response.json()
+                # Ensure we have the required fields for AI responses
+                if not data.get("narrative"):
+                    data["narrative"] = "The DM is thinking... Please try again."
+                if not data.get("status"):
+                    data["status"] = "success"
+                
+                logger.debug(
+                    "ai_response_success",
+                    status_code=response.status_code,
+                    narrative_length=len(data.get("narrative", "")),
+                    status=data.get("status"),
+                )
+                return data
+            except Exception as e:
+                logger.error(
+                    "ai_response_parse_error",
+                    status_code=response.status_code,
+                    error=str(e),
+                    response_text=response.text[:200],
+                )
+                # If we can't parse a successful response, return a fallback
+                return {
+                    "narrative": "The DM encountered an issue processing your request. Please try again.",
+                    "status": "error",
+                    "error": f"Response parsing failed: {str(e)}"
+                }
+
+        # Handle error responses with AI-specific fallbacks
+        try:
+            data = response.json()
+            error_info = data.get("error", {})
+            error_message = error_info.get("message", "Unknown error occurred")
+            
+            logger.warning(
+                "ai_response_error",
+                status_code=response.status_code,
+                error_code=error_info.get("error_code", "UNKNOWN"),
+                error_message=error_message,
+            )
+            
+            # Return a user-friendly error response instead of raising an exception
+            return {
+                "narrative": f"The DM encountered an issue: {error_message}. Please try again.",
+                "status": "error",
+                "error": error_message,
+                "error_code": error_info.get("error_code", "UNKNOWN")
+            }
+        except Exception as e:
+            logger.error(
+                "ai_response_error_parse_failed",
+                status_code=response.status_code,
+                error=str(e),
+                response_text=response.text[:200],
+            )
+            # If we can't parse the error response, return a generic fallback
+            return {
+                "narrative": "The DM is currently unavailable. Please try again in a moment.",
+                "status": "error", 
+                "error": f"HTTP {response.status_code}: Unable to process request",
+                "error_code": "CONNECTION_ERROR"
+            }
 
     # ---------------------------
     # Server Config
@@ -262,7 +352,7 @@ class ApiClient:
         """Submit a player action to the AI DM."""
         url = ROUTES.action()
         resp = await self._request("POST", url, json=action_data)
-        return await self._handle_response(resp)
+        return await self._handle_ai_response(resp)
 
     async def test_action_endpoint(self) -> Dict[str, Any]:
         """Test the action API endpoint."""

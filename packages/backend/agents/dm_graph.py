@@ -17,12 +17,14 @@ Key Features:
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional, TypedDict
+from typing import Any, Dict, List, Optional, TypedDict
 
 try:
     from langgraph.checkpoint.memory import MemorySaver
     from langgraph.graph import END, StateGraph
     from langgraph.prebuilt import ToolNode
+    from typing_extensions import Annotated
+    from operator import add
 
     LANGGRAPH_AVAILABLE = True
 except ImportError:
@@ -31,6 +33,8 @@ except ImportError:
     END = None
     ToolNode = None
     MemorySaver = None
+    Annotated = None
+    add = None
 
 from packages.backend.agents.prompts import prompt_manager
 from packages.backend.components.ai_client import ai_client
@@ -51,8 +55,11 @@ class DMGraphState(TypedDict):
     system_prompt: str
     ai_response: Optional[str]
     narrative_response: Optional[str]
-    error: Optional[str]
+    error: Optional[str]  # Keep single error to avoid concurrent updates
     correlation_id: str
+    context_messages: Optional[List[Dict[str, str]]]
+    memory_context: Optional[Any]
+    processing_stage: str  # Track which stage we're in
 
 
 @dataclass
@@ -157,35 +164,16 @@ class DMGraphService:
         workflow.add_node("update_memory", self._update_memory_node)
         workflow.add_node("handle_error", self._handle_error_node)
 
-        # Define the flow
+        # Define the flow - simple linear flow to avoid concurrent updates
         workflow.set_entry_point("process_prompt")
 
-        # Normal flow
+        # Linear flow with error handling at the end
         workflow.add_edge("process_prompt", "compile_context")
         workflow.add_edge("compile_context", "ai_interaction")
         workflow.add_edge("ai_interaction", "generate_response")
         workflow.add_edge("generate_response", "update_memory")
-        workflow.add_edge("update_memory", END)
-
-        # Error handling - all nodes can go to error handler
+        workflow.add_edge("update_memory", "handle_error")
         workflow.add_edge("handle_error", END)
-
-        # Conditional edges for error handling
-        workflow.add_conditional_edges(
-            "process_prompt",
-            self._should_handle_error,
-            {"error": "handle_error", "continue": "compile_context"},
-        )
-        workflow.add_conditional_edges(
-            "compile_context",
-            self._should_handle_error,
-            {"error": "handle_error", "continue": "ai_interaction"},
-        )
-        workflow.add_conditional_edges(
-            "ai_interaction",
-            self._should_handle_error,
-            {"error": "handle_error", "continue": "generate_response"},
-        )
 
         # Compile the graph
         return workflow.compile(checkpointer=self._memory_saver)
@@ -232,6 +220,9 @@ class DMGraphService:
                 narrative_response=None,
                 error=None,
                 correlation_id=correlation_id,
+                context_messages=None,
+                memory_context=None,
+                processing_stage="start",
             )
 
             # Execute the graph with tracing
@@ -328,7 +319,7 @@ class DMGraphService:
                 prompt_length=len(user_prompt),
             )
 
-            return {"error": None}
+            return {"processing_stage": "prompt_processed"}
 
         except Exception as e:
             self.logger.error(
@@ -336,7 +327,7 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Prompt processing failed: {str(e)}"}
+            return {"error": f"Prompt processing failed: {str(e)}", "processing_stage": "prompt_error"}
 
     async def _compile_context_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Compile context including system prompt and memory using memory service."""
@@ -451,7 +442,7 @@ class DMGraphService:
                 "system_prompt": system_prompt,
                 "context_messages": context_messages,
                 "memory_context": memory_context,
-                "error": None,
+                "processing_stage": "context_compiled",
             }
 
         except Exception as e:
@@ -460,7 +451,7 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Context compilation failed: {str(e)}"}
+            return {"error": f"Context compilation failed: {str(e)}", "processing_stage": "context_error"}
 
     async def _ai_interaction_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Handle AI interaction with proper error handling."""
@@ -492,7 +483,7 @@ class DMGraphService:
                     response_length=len(ai_response),
                 )
 
-                return {"ai_response": ai_response, "error": None}
+                return {"ai_response": ai_response, "processing_stage": "ai_completed"}
 
         except Exception as e:
             error_msg = f"AI interaction failed: {str(e)}"
@@ -501,7 +492,7 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": error_msg}
+            return {"error": error_msg, "processing_stage": "ai_error"}
 
     async def _generate_response_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Generate the final narrative response from AI response."""
@@ -522,7 +513,7 @@ class DMGraphService:
                 narrative_length=len(narrative_response),
             )
 
-            return {"narrative_response": narrative_response, "error": None}
+            return {"narrative_response": narrative_response, "processing_stage": "response_generated"}
 
         except Exception as e:
             self.logger.error(
@@ -530,7 +521,7 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Response generation failed: {str(e)}"}
+            return {"error": f"Response generation failed: {str(e)}", "processing_stage": "response_error"}
 
     async def _update_memory_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Update memory state with the interaction results using memory service."""
@@ -560,7 +551,7 @@ class DMGraphService:
                 ai_response_length=len(narrative_response),
             )
 
-            return {"error": None}
+            return {"processing_stage": "memory_updated"}
 
         except Exception as e:
             self.logger.error(
@@ -568,7 +559,7 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Memory update failed: {str(e)}"}
+            return {"error": f"Memory update failed: {str(e)}", "processing_stage": "memory_error"}
 
     async def _handle_error_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Handle errors and provide fallback responses."""
@@ -579,12 +570,15 @@ class DMGraphService:
             "dm_graph_error_handled", correlation_id=correlation_id, error=error
         )
 
-        # Generate fallback response
-        fallback_narrative = self.config.fallback_responses.get(
-            "processing_error", "The DM encountered an issue processing your request."
-        )
-
-        return {"narrative_response": fallback_narrative, "error": error}
+        # Generate fallback response if no narrative exists
+        if not state.get("narrative_response"):
+            fallback_narrative = self.config.fallback_responses.get(
+                "processing_error", "The DM encountered an issue processing your request."
+            )
+            return {"narrative_response": fallback_narrative, "processing_stage": "error_handled"}
+        
+        # If we already have a narrative, just mark as handled
+        return {"processing_stage": "error_handled"}
 
     def _should_handle_error(self, state: DMGraphState) -> str:
         """Determine if error should be handled."""

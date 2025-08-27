@@ -13,6 +13,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import ValidationError
 
+from packages.backend.agents.dm_graph import dm_graph_service
 from packages.shared.logging_config import get_logger
 from packages.shared.models import ActionRequest, ActionResponse
 
@@ -72,9 +73,15 @@ async def handle_action(
                 },
             )
 
-        # Process the action (placeholder implementation)
-        # TODO: Integrate with AI client and prompt system from Stories 2.1.2 and 2.1.3
-        response_narrative = await _process_action_with_ai(action_request)
+        # Initialize DM Graph service if needed
+        if not dm_graph_service.is_initialized():
+            logger.info("Initializing DM Graph service")
+            await dm_graph_service.initialize()
+
+        # Process the action using DM Graph
+        response_narrative = await _process_action_with_dm_graph(
+            action_request, correlation_id
+        )
 
         # Calculate processing time
         processing_time = time.time() - start_time
@@ -88,7 +95,7 @@ async def handle_action(
                 "campaign_context": action_request.campaign_context,
                 "generated_at": time.time(),
                 "processing_details": {
-                    "ai_model": "placeholder",  # TODO: Get from AI client
+                    "ai_model": "langgraph",  # Using DM Graph now
                     "tokens_used": 0,  # TODO: Get from AI client
                     "prompt_template": "core_dm",  # TODO: Get from prompt system
                 },
@@ -204,37 +211,36 @@ def _contains_harmful_content(text: str) -> bool:
     return False
 
 
-async def _process_action_with_ai(action_request: ActionRequest) -> str:
+async def _process_action_with_dm_graph(
+    action_request: ActionRequest, correlation_id: str
+) -> str:
     """
-    Process the action request with AI to generate a narrative response.
-
-    This is a placeholder implementation that will be replaced with
-    actual AI integration using the components from Stories 2.1.2 and 2.1.3.
+    Process the action request using the DM Graph to generate a narrative response.
 
     Args:
         action_request: The validated action request
+        correlation_id: Correlation ID for tracing
 
     Returns:
         Narrative response from the AI DM
     """
-    # TODO: Replace with actual AI integration
-    # This should use:
-    # 1. AI client from Story 2.1.2
-    # 2. Prompt system from Story 2.1.3
-    # 3. Observability from Story 2.1.1
-
-    # Simulate processing delay
-    await asyncio.sleep(0.1)
-
-    # Generate a placeholder response based on the prompt
-    if "attack" in action_request.prompt.lower():
-        return "You swing your weapon at the enemy, connecting with a solid blow!"
-    elif "investigate" in action_request.prompt.lower():
-        return "You carefully examine your surroundings, noticing details you missed before."
-    elif "talk" in action_request.prompt.lower():
-        return "You engage in conversation, learning more about the situation."
-    else:
-        return f"You attempt to {action_request.prompt.lower()}, and the DM responds with a narrative continuation of the story."
+    try:
+        # Process interaction using DM Graph
+        result = await dm_graph_service.process_interaction(
+            user_prompt=action_request.prompt,
+            session_id=action_request.session_id,
+            correlation_id=correlation_id,
+            campaign_context=action_request.campaign_context,
+        )
+        
+        return result["narrative"]
+    except Exception as e:
+        logger.error(
+            "dm_graph_processing_failed",
+            error=str(e),
+            correlation_id=correlation_id,
+        )
+        return "The DM encountered an issue processing your request. Please try again."
 
 
 @router.get("/action/test")
