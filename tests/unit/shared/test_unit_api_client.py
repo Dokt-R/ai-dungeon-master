@@ -18,7 +18,7 @@ async def test_get_ai_health():
     mock_response.json.return_value = {
         "status": "healthy",
         "provider": "openai",
-        "model": "gpt-4",
+        "model": "gpt-5-nano",
     }
 
     with patch.object(

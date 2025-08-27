@@ -73,14 +73,14 @@ class TestTracingWorkflowIntegration:
         """Test the LLM call tracing decorator."""
 
         @service.trace_llm_call_decorator(
-            model_name="gpt-4", include_prompt=True, include_response=True
+            model_name="gpt-5-nano", include_prompt=True, include_response=True
         )
-        def mock_llm_call(prompt: str, model: str = "gpt-4"):
+        def mock_llm_call(prompt: str, model: str = "gpt-5-nano"):
             time.sleep(0.01)
             return f"Response to: {prompt}"
 
         with patch.object(service, "trace_llm_response") as mock_response:
-            result = mock_llm_call("Test prompt", model="gpt-4")
+            result = mock_llm_call("Test prompt", model="gpt-5-nano")
 
             assert result == "Response to: Test prompt"
             # trace_llm_response should be called when include_response=True and result is not None
@@ -128,7 +128,7 @@ class TestTracingWorkflowIntegration:
         with patch.object(service, "add_custom_trace_tags") as mock_tags:
             tags = service.create_ai_trace_tags(
                 operation_type="llm_call",
-                model_name="gpt-4",
+                model_name="gpt-5-nano",
                 provider="openai",
                 prompt_tokens=150,
                 response_tokens=75,
@@ -145,7 +145,7 @@ class TestTracingWorkflowIntegration:
             }
             assert expected_keys.issubset(tags.keys())
             assert tags["operation_type"] == "llm_call"
-            assert tags["llm_model"] == "gpt-4"
+            assert tags["llm_model"] == "gpt-5-nano"
 
     def test_trace_error_handling(self, service):
         """Test error handling in traced operations."""
@@ -204,12 +204,12 @@ class TestTracingWorkflowIntegration:
         # Test LLM call tags
         llm_tags = service.create_ai_trace_tags(
             operation_type="llm_call",
-            model_name="gpt-4",
+            model_name="gpt-5-nano",
             provider="openai",
-            temperature=0.7,
+            temperature=1,
         )
         assert llm_tags["operation_type"] == "llm_call"
-        assert llm_tags["llm_model"] == "gpt-4"
+        assert llm_tags["llm_model"] == "gpt-5-nano"
         assert llm_tags["temperature"] == 0.7
 
         # Test AI workflow tags

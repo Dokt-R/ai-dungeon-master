@@ -1,9 +1,12 @@
 import os
+import time
 from typing import Optional
+from contextlib import asynccontextmanager
 
 import discord
 from discord import app_commands
 from discord.ext import commands
+from langsmith import traceable
 
 from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
@@ -14,6 +17,11 @@ from packages.shared.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from packages.backend.components.observability_service import observability_service
+from packages.shared.logging_config import get_logger
+
+# Create logger for timing and performance tracking
+logger = get_logger(__name__)
 
 # Message constants for maintainability
 ONBOARDING_MESSAGE = (
@@ -135,6 +143,322 @@ class UtilityCog(commands.Cog):
                     ephemeral=True,
                 )
 
+    @discord.app_commands.command(
+        name="templates",
+        description="Show examples of Discord's rich interactive features for RPGs",
+    )
+    @discord_error_handler()
+    async def templates(self, interaction: discord.Interaction):
+        """Show comprehensive examples of Discord's interactive features for RPGs."""
+
+        # Create the main embed with character sheet example
+        embed = discord.Embed(
+            title="🧙‍♂️ Gandalf the Grey",
+            description="*A wise wizard of great power and knowledge*",
+            color=discord.Color.blue(),
+        )
+
+        # Add character stats as fields (simulating a table)
+        embed.add_field(name="💪 Strength", value="12", inline=True)
+        embed.add_field(name="🏃 Dexterity", value="14", inline=True)
+        embed.add_field(name="🧠 Intelligence", value="18", inline=True)
+        embed.add_field(name="🔍 Wisdom", value="16", inline=True)
+        embed.add_field(name="💬 Charisma", value="15", inline=True)
+        embed.add_field(name="💪 Constitution", value="13", inline=True)
+
+        # Add status information
+        embed.add_field(name="❤️ Health", value="45/50 HP", inline=True)
+        embed.add_field(name="✨ Mana", value="30/35 MP", inline=True)
+        embed.add_field(name="⭐ Level", value="10", inline=True)
+
+        # Add equipment section
+        embed.add_field(
+            name="⚔️ Equipment",
+            value="🪄 Staff of Power\n🧥 Robes of the Archmagi\n💍 Ring of Protection",
+            inline=False,
+        )
+
+        # Add a code block table example
+        embed.add_field(
+            name="📊 Combat Stats Table",
+            value="```\n| Stat    | Value | Modifier |\n|---------|-------|----------|\n| AC      |   15  |    +2    |\n| Speed   |   30  |    +0    |\n| Init    |   +2  |    +2    |\n```",
+            inline=False,
+        )
+
+        # Set thumbnail (character portrait)
+        embed.set_thumbnail(
+            url="https://via.placeholder.com/150x150/4A90E2/FFFFFF?text=🧙‍♂️"
+        )
+
+        # Add footer with timestamp
+        embed.set_footer(
+            text="Last updated",
+            icon_url="https://via.placeholder.com/20x20/28A745/FFFFFF?text=✓",
+        )
+        embed.timestamp = discord.utils.utcnow()
+
+        # Create interactive buttons
+        view = TemplateView()
+
+        await interaction.response.send_message(
+            "## 🎲 Discord RPG Interface Examples\n"
+            "Here are examples of Discord's rich interactive features perfect for RPGs:\n\n"
+            "**1. Rich Embeds** - Character sheets, item cards, stat summaries\n"
+            "**2. Interactive Buttons** - Actions, spells, items (try the buttons below!)\n"
+            "**3. Select Menus** - Choose from lists of spells, weapons, actions\n"
+            "**4. Modal Forms** - Level-up forms, skill checks, character updates\n"
+            "**5. Tables** - Combat stats, inventory, party info\n"
+            "**6. Real-time Updates** - Living character sheets that update instantly\n",
+            embed=embed,
+            view=view,
+            ephemeral=True,
+        )
+
+
+# Interactive View class for the templates command
+class TemplateView(discord.ui.View):
+    """Interactive view showcasing Discord's UI components for RPGs."""
+
+    def __init__(self):
+        super().__init__(timeout=300)  # 5 minute timeout
+
+    @discord.ui.button(label="⚔️ Attack", style=discord.ButtonStyle.danger, emoji="⚔️")
+    async def attack_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Example attack button with dice roll simulation."""
+        import random
+
+        # Simulate dice roll
+        d20_roll = random.randint(1, 20)
+        damage_roll = random.randint(1, 8) + 3  # 1d8+3
+
+        embed = discord.Embed(
+            title="⚔️ Attack Roll!",
+            description=f"Gandalf swings his staff with magical force!",
+            color=discord.Color.red(),
+        )
+        embed.add_field(
+            name="🎲 Attack Roll",
+            value=f"d20: **{d20_roll}** (+5 = {d20_roll + 5})",
+            inline=True,
+        )
+        embed.add_field(
+            name="💥 Damage", value=f"1d8+3: **{damage_roll}** damage", inline=True
+        )
+        embed.add_field(
+            name="🎯 Result",
+            value="Hit!" if d20_roll + 5 >= 15 else "Miss!",
+            inline=True,
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @discord.ui.button(
+        label="✨ Cast Spell", style=discord.ButtonStyle.primary, emoji="✨"
+    )
+    async def spell_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Example spell button that opens a spell selection menu."""
+        view = SpellSelectView()
+        await interaction.response.send_message(
+            "Choose a spell to cast:", view=view, ephemeral=True
+        )
+
+    @discord.ui.button(
+        label="🎒 Use Item", style=discord.ButtonStyle.secondary, emoji="🎒"
+    )
+    async def item_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Example item button that shows inventory."""
+        embed = discord.Embed(
+            title="🎒 Inventory",
+            description="Select an item to use:",
+            color=discord.Color.green(),
+        )
+        embed.add_field(name="🧪 Health Potion", value="Restores 25 HP", inline=False)
+        embed.add_field(name="🔮 Mana Potion", value="Restores 15 MP", inline=False)
+        embed.add_field(
+            name="📜 Scroll of Fireball", value="Casts Fireball spell", inline=False
+        )
+
+        view = ItemSelectView()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @discord.ui.button(
+        label="📊 Character Sheet", style=discord.ButtonStyle.success, emoji="📊"
+    )
+    async def character_sheet_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Example button that opens a character update modal."""
+        modal = CharacterUpdateModal()
+        await interaction.response.send_modal(modal)
+
+
+class SpellSelectView(discord.ui.View):
+    """Example spell selection dropdown menu."""
+
+    def __init__(self):
+        super().__init__(timeout=60)
+
+    @discord.ui.select(
+        placeholder="Choose a spell to cast...",
+        options=[
+            discord.SelectOption(
+                label="Fireball",
+                description="3rd level evocation - 8d6 fire damage",
+                emoji="🔥",
+                value="fireball",
+            ),
+            discord.SelectOption(
+                label="Magic Missile",
+                description="1st level evocation - 3 darts of force",
+                emoji="✨",
+                value="magic_missile",
+            ),
+            discord.SelectOption(
+                label="Heal",
+                description="1st level evocation - Restore health",
+                emoji="💚",
+                value="heal",
+            ),
+            discord.SelectOption(
+                label="Shield",
+                description="1st level abjuration - +5 AC",
+                emoji="🛡️",
+                value="shield",
+            ),
+        ],
+    )
+    async def spell_select(
+        self, interaction: discord.Interaction, select: discord.ui.Select
+    ):
+        """Handle spell selection."""
+        import random
+
+        spell_data = {
+            "fireball": {"name": "🔥 Fireball", "damage": "8d6", "type": "Fire"},
+            "magic_missile": {
+                "name": "✨ Magic Missile",
+                "damage": "3d4+3",
+                "type": "Force",
+            },
+            "heal": {"name": "💚 Heal", "damage": "1d8+3", "type": "Healing"},
+            "shield": {"name": "🛡️ Shield", "damage": "+5 AC", "type": "Protection"},
+        }
+
+        selected_spell = spell_data[select.values[0]]
+
+        # Simulate spell effect
+        if select.values[0] == "fireball":
+            damage = sum(random.randint(1, 6) for _ in range(8))
+        elif select.values[0] == "magic_missile":
+            damage = sum(random.randint(1, 4) for _ in range(3)) + 3
+        elif select.values[0] == "heal":
+            damage = random.randint(1, 8) + 3
+        else:  # shield
+            damage = 5
+
+        embed = discord.Embed(
+            title=f"{selected_spell['name']} Cast!",
+            description=f"Gandalf casts {selected_spell['name']}!",
+            color=discord.Color.purple(),
+        )
+        embed.add_field(
+            name="🎲 Effect",
+            value=f"{selected_spell['damage']}: **{damage}**",
+            inline=True,
+        )
+        embed.add_field(name="🔮 Type", value=selected_spell["type"], inline=True)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class ItemSelectView(discord.ui.View):
+    """Example item selection with buttons."""
+
+    def __init__(self):
+        super().__init__(timeout=60)
+
+    @discord.ui.button(label="🧪 Health Potion", style=discord.ButtonStyle.success)
+    async def health_potion(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Use health potion."""
+        embed = discord.Embed(
+            title="🧪 Health Potion Used!",
+            description="Gandalf drinks a health potion and feels refreshed.",
+            color=discord.Color.green(),
+        )
+        embed.add_field(name="💚 Healing", value="+25 HP", inline=True)
+        embed.add_field(name="❤️ New Health", value="50/50 HP (Full!)", inline=True)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @discord.ui.button(label="🔮 Mana Potion", style=discord.ButtonStyle.primary)
+    async def mana_potion(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """Use mana potion."""
+        embed = discord.Embed(
+            title="🔮 Mana Potion Used!",
+            description="Gandalf drinks a mana potion and feels his magical energy restored.",
+            color=discord.Color.blue(),
+        )
+        embed.add_field(name="✨ Mana Restored", value="+15 MP", inline=True)
+        embed.add_field(name="🔮 New Mana", value="35/35 MP (Full!)", inline=True)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class CharacterUpdateModal(discord.ui.Modal):
+    """Example modal form for character updates."""
+
+    def __init__(self):
+        super().__init__(title="📊 Update Character Sheet")
+
+    # Text inputs for the modal
+    character_name = discord.ui.TextInput(
+        label="Character Name",
+        placeholder="Enter character name...",
+        default="Gandalf the Grey",
+        max_length=50,
+    )
+
+    hit_points = discord.ui.TextInput(
+        label="Current Hit Points",
+        placeholder="Enter current HP...",
+        default="45",
+        max_length=10,
+    )
+
+    notes = discord.ui.TextInput(
+        label="Character Notes",
+        placeholder="Add any notes about your character...",
+        style=discord.TextStyle.paragraph,
+        default="Wise wizard seeking to protect Middle-earth from the forces of darkness.",
+        max_length=500,
+        required=False,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        """Handle modal submission."""
+        embed = discord.Embed(
+            title="✅ Character Updated!",
+            description="Your character sheet has been successfully updated.",
+            color=discord.Color.green(),
+        )
+        embed.add_field(name="👤 Name", value=self.character_name.value, inline=True)
+        embed.add_field(name="❤️ HP", value=f"{self.hit_points.value}/50", inline=True)
+        embed.add_field(
+            name="📝 Notes", value=self.notes.value or "No notes", inline=False
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 async def setup(bot):
     await bot.add_cog(UtilityCog(bot))
@@ -184,9 +508,48 @@ async def setup_error_test(bot):
     await bot.add_cog(ErrorTestCog(bot))
 
 
-# Test commands for error handling validation
-class AITestCog(commands.Cog):
-    """Test commands for error handling validation"""
+# Simple LLM Test Cog
+@asynccontextmanager
+async def timing_context(operation_name: str, **context_data):
+    """Context manager for timing operations and logging performance metrics."""
+    start_time = time.perf_counter()
+    start_timestamp = time.time()
+
+    logger.info(
+        f"{operation_name}_started",
+        operation=operation_name,
+        timestamp=start_timestamp,
+        **context_data,
+    )
+
+    try:
+        yield start_time
+    except Exception as e:
+        end_time = time.perf_counter()
+        duration_ms = (end_time - start_time) * 1000
+
+        logger.error(
+            f"{operation_name}_failed",
+            operation=operation_name,
+            duration_ms=round(duration_ms, 2),
+            error=str(e),
+            **context_data,
+        )
+        raise
+    else:
+        end_time = time.perf_counter()
+        duration_ms = (end_time - start_time) * 1000
+
+        logger.info(
+            f"{operation_name}_completed",
+            operation=operation_name,
+            duration_ms=round(duration_ms, 2),
+            **context_data,
+        )
+
+
+class LLMTestCog(commands.Cog):
+    """Simple LLM test commands with comprehensive timing and performance tracking"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -194,136 +557,153 @@ class AITestCog(commands.Cog):
             base_url=os.getenv("FAST_API", "http://localhost:8000")
         )
 
-    health = app_commands.Group(
-        name="ai", description="AI Test Commands"
-    )
-
-    async def cog_load(self):
-        """Called when the cog is loaded."""
-        pass
-
     async def cog_unload(self):
         """Called when the cog is unloaded. Clean up resources."""
         await self.api_client.close()
 
-    @health.command(
-        name="test", description="Check the response of the AI system."
+    @discord.app_commands.command(
+        name="llm-test", description="Test the LLM with a simple prompt"
     )
-    @app_commands.describe()
+    @app_commands.describe(prompt="The prompt to send to the LLM")
     @discord_error_handler()
-    async def ai_test_(self,
-        interaction: discord.Interaction,
-        action: str,
-        session_id: Optional[str] = None,
-        campaign_context: Optional[str] = None,
-    ) -> None:
+    async def llm_test(self, interaction: discord.Interaction, prompt: str) -> None:
         """
-        Submit an action to the AI Dungeon Master for narrative response.
+        Test the LLM with a simple prompt with comprehensive timing tracking.
 
         Args:
             interaction: Discord interaction
-            action: The player's action or command
-            session_id: Optional session identifier
-            campaign_context: Optional campaign context
+            prompt: The prompt to send to the LLM
         """
-        await self._handle_ai_test(
-            interaction, action, session_id, campaign_context
-        )
+        # Generate unique request ID for tracking
+        request_id = f"llm_test_{int(time.time() * 1000)}"
+        user_id = interaction.user.id
+        guild_id = interaction.guild.id if interaction.guild else None
 
-    async def _handle_ai_test(
-        self,
-        interaction: discord.Interaction,
-        action: str,
-        session_id: Optional[str] = None,
-        campaign_context: Optional[str] = None,
-    ) -> None:
-        """Handle action submission to AI DM."""
-        try:
-            await interaction.response.defer(ephemeral=True)
+        async with timing_context(
+            "llm_test_full_request",
+            request_id=request_id,
+            user_id=user_id,
+            guild_id=guild_id,
+            prompt_length=len(prompt),
+        ):
+            try:
+                # Stage 1: Discord interaction defer
+                async with timing_context(
+                    "discord_interaction_defer", request_id=request_id
+                ):
+                    await interaction.response.defer(ephemeral=True)
 
-            # Generate session ID if not provided
-            if not session_id:
-                session_id = (
-                    f"{interaction.guild_id}_{interaction.user.id}_{interaction.id}"
+                # Stage 2: API client call
+                async with timing_context(
+                    "api_client_call", request_id=request_id, prompt_length=len(prompt)
+                ) as api_start:
+                    response = await self.api_client.test_llm(prompt)
+
+                # Stage 3: Response processing
+                async with timing_context(
+                    "response_processing",
+                    request_id=request_id,
+                    response_keys=list(response.keys())
+                    if isinstance(response, dict)
+                    else "not_dict",
+                ):
+                    # Extract timing information from response metadata
+                    metadata = response.get("metadata", {})
+                    response_length = len(response.get("response", ""))
+
+                    # Log response analysis
+                    logger.info(
+                        "llm_response_analysis",
+                        request_id=request_id,
+                        response_length=response_length,
+                        status=response.get("status", "unknown"),
+                        model=metadata.get("model", "unknown"),
+                        backend_prompt_length=metadata.get("prompt_length", 0),
+                        backend_response_length=metadata.get("response_length", 0),
+                    )
+
+                # Stage 4: Discord embed creation
+                async with timing_context(
+                    "discord_embed_creation",
+                    request_id=request_id,
+                    response_length=response_length,
+                ):
+                    # Create response embed with timing information
+                    embed = discord.Embed(
+                        title="🤖 LLM Test Response",
+                        color=discord.Color.green(),
+                        description=response.get("response", "No response received"),
+                    )
+
+                    embed.add_field(
+                        name="📝 Your Prompt",
+                        value=prompt[:1024],  # Discord field limit
+                        inline=False,
+                    )
+
+                    embed.add_field(
+                        name="📊 Status",
+                        value=response.get("status", "unknown").title(),
+                        inline=True,
+                    )
+
+                    # Add comprehensive metadata including timing
+                    if metadata:
+                        stats_text = (
+                            f"Model: {metadata.get('model', 'unknown')}\n"
+                            f"Response Length: {metadata.get('response_length', 0)} chars\n"
+                            f"Request ID: {request_id}"
+                        )
+
+                        embed.add_field(
+                            name="📈 Stats",
+                            value=stats_text,
+                            inline=True,
+                        )
+
+                    # Add performance footer
+                    embed.set_footer(
+                        text=f"Request ID: {request_id} | Check logs for detailed timing"
+                    )
+
+                # Stage 5: Discord response send
+                async with timing_context(
+                    "discord_response_send",
+                    request_id=request_id,
+                    embed_fields=len(embed.fields),
+                ):
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+
+                # Final success log with overall metrics
+                logger.info(
+                    "llm_test_success_summary",
+                    request_id=request_id,
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    prompt_length=len(prompt),
+                    response_length=response_length,
+                    status=response.get("status", "unknown"),
+                    model=metadata.get("model", "unknown"),
                 )
 
-            # Prepare action data
-            action_data = {
-                "session_id": session_id,
-                "user_id": str(interaction.user.id),
-                "prompt": action,
-                "metadata": {
-                    "discord_guild_id": str(interaction.guild_id),
-                    "discord_channel_id": str(interaction.channel_id),
-                    "discord_user_id": str(interaction.user.id),
-                    "discord_username": interaction.user.name,
-                    "timestamp": interaction.created_at.isoformat(),
-                },
-            }
-
-            # Add campaign context if provided
-            if campaign_context:
-                action_data["campaign_context"] = campaign_context
-
-            # Submit action to AI DM
-            response = await self.api_client.submit_action(action_data)
-
-            # Store active session
-            self._active_sessions[interaction.guild_id] = session_id
-
-            # Create response embed
-            embed = discord.Embed(
-                title="🎭 AI Dungeon Master Response",
-                color=discord.Color.blue(),
-                description=response.get(
-                    "narrative", "The DM responds with a narrative continuation..."
-                ),
-            )
-
-            embed.add_field(
-                name="🎯 Your Action",
-                value=action[:1024],  # Discord field limit
-                inline=False,
-            )
-
-            embed.add_field(name="⏱️ Processing Time", value=".2f", inline=True)
-
-            embed.add_field(name="🔢 Session ID", value=session_id, inline=True)
-
-            embed.add_field(
-                name="📊 Status",
-                value=response.get("status", "unknown").title(),
-                inline=True,
-            )
-
-            # Add metadata if available
-            if "metadata" in response and "generated_at" in response["metadata"]:
-                embed.set_footer(
-                    text=f"Generated at: {response['metadata']['generated_at']}"
+            except Exception as e:
+                logger.error(
+                    "llm_test_error_summary",
+                    request_id=request_id,
+                    user_id=user_id,
+                    guild_id=guild_id,
+                    prompt_length=len(prompt),
+                    error_type=type(e).__name__,
+                    error_message=str(e),
                 )
 
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-            self.logger.info(
-                "Action submitted successfully",
-                session_id=session_id,
-                user_id=interaction.user.id,
-                action_length=len(action),
-                response_length=len(response.get("narrative", "")),
-            )
-
-        except Exception as e:
-            self.logger.error(
-                "Failed to submit action",
-                error=str(e),
-                user_id=interaction.user.id,
-                action=action[:100],  # Log first 100 chars
-            )
-
-            await interaction.followup.send(
-                f"❌ Failed to submit action to AI DM: {str(e)}", ephemeral=True
-            )
+                # Send error response with request ID for debugging
+                await interaction.followup.send(
+                    f"❌ Failed to test LLM: {str(e)}\n"
+                    f"Request ID: {request_id} (check logs for details)",
+                    ephemeral=True,
+                )
 
 
-async def setup_ai_test(bot):
-    await bot.add_cog(AITestCog(bot))
+async def setup_llm_test(bot):
+    await bot.add_cog(LLMTestCog(bot))

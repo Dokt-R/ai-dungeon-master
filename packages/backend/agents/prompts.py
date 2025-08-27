@@ -157,7 +157,7 @@ class PromptTemplate(BaseModel):
         """Estimate token count for the filled prompt using tiktoken when available."""
         if TIKTOKEN_AVAILABLE:
             try:
-                # Use tiktoken for accurate tokenization (GPT-4 encoding)
+                # Use tiktoken for accurate tokenization (gpt-5 encoding)
                 encoding = tiktoken.encoding_for_model("gpt-5-nano-2025-08-07")
                 return len(encoding.encode(filled_content))
             except Exception as e:
@@ -426,7 +426,7 @@ Remember: Your primary goal is to create memorable, enjoyable experiences that b
             ],
             metadata={
                 "author": "AI Dungeon Master System",
-                "optimized_for": "gpt-4",
+                "optimized_for": "gpt-5",
                 "estimated_tokens": 850,
                 "last_reviewed": "2024-01-01",
             },
@@ -477,7 +477,7 @@ Remember: Make combat exciting, fair, and memorable while maintaining tactical d
             variables=["player_count", "difficulty", "combat_style", "environment"],
             metadata={
                 "author": "AI Dungeon Master System",
-                "optimized_for": "gpt-4",
+                "optimized_for": "gpt-5",
                 "estimated_tokens": 450,
             },
             tags=["combat", "tactical", "action"],
@@ -532,7 +532,7 @@ Remember: Create social encounters that are as engaging and memorable as any com
             ],
             metadata={
                 "author": "AI Dungeon Master System",
-                "optimized_for": "gpt-4",
+                "optimized_for": "gpt-5",
                 "estimated_tokens": 400,
             },
             tags=["roleplay", "social", "character", "interaction"],

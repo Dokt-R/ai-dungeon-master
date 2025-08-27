@@ -238,20 +238,20 @@ class TestObservabilityServiceIntegration:
 
                 # Test LLM call tracing
                 with service.trace_llm_call(
-                    model_name="gpt-4",
+                    model_name="gpt-5-nano",
                     prompt="Test prompt for LLM",
-                    temperature=0.7,
+                    temperature=1,
                     max_tokens=100,
                 ) as trace_id:
                     assert trace_id is not None
-                    assert "llm_call_gpt-4" in trace_id
+                    assert "llm_call_gpt-5-nano" in trace_id
 
                 # Verify traceable was called for LLM call
                 mock_traceable.assert_called_once()
                 call_args = mock_traceable.call_args
-                assert "llm_call_gpt-4" in call_args[1]["name"]
+                assert "llm_call_gpt-5-nano" in call_args[1]["name"]
                 assert "llm_call" in call_args[1]["tags"]
-                assert "gpt-4" in call_args[1]["tags"]
+                assert "gpt-5-nano" in call_args[1]["tags"]
 
     def test_ai_workflow_tracing_integration(self):
         """Test AI workflow tracing with workflow-specific metadata."""
@@ -313,7 +313,7 @@ class TestObservabilityServiceIntegration:
             # Test tracing LLM response
             trace_id = "test-response-trace"
             response = "This is a test response from the LLM"
-            model_name = "gpt-4"
+            model_name = "gpt-5-nano"
 
             # Should not raise exception
             service.trace_llm_response(
@@ -376,7 +376,7 @@ class TestObservabilityServiceIntegration:
                     assert trace_id is not None
                     # Should return a basic trace ID even without LangSmith
 
-                with service.trace_llm_call("gpt-4", "test prompt") as trace_id:
+                with service.trace_llm_call("gpt-5-nano", "test prompt") as trace_id:
                     assert trace_id is not None
 
     def test_configuration_validation(self):

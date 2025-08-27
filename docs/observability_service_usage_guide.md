@@ -63,7 +63,7 @@ with observability_service.trace_operation("database_query", table="monsters") a
 LLM-specific call tracing.
 
 ```python
-with observability_service.trace_llm_call("gpt-4", prompt="Generate story") as trace_id:
+with observability_service.trace_llm_call("gpt-5-nano", prompt="Generate story") as trace_id:
     response = await ai_client.generate_text("Generate story")
 ```
 
@@ -96,7 +96,7 @@ LLM call tracing decorator.
 
 ```python
 @observability_service.trace_llm_call_decorator(
-    model_name="gpt-4",
+    model_name="gpt-5-nano",
     include_prompt=True,
     include_response=False
 )
@@ -233,14 +233,14 @@ with observability_service.trace_operation("user_registration", user_id="12345")
 async def generate_monster_description(monster_name: str) -> str:
     prompt = f"Describe the {monster_name} from D&D 5.1 SRD"
 
-    with observability_service.trace_llm_call("gpt-4", prompt) as trace_id:
+    with observability_service.trace_llm_call("gpt-5-nano", prompt) as trace_id:
         response = await ai_client.generate_text(prompt)
 
         # Add response data to trace
         observability_service.trace_llm_response(
             trace_id,
             response,
-            "gpt-4"
+            "gpt-5-nano"
         )
 
         return response
@@ -296,7 +296,7 @@ class DungeonMasterService:
         return monster_data
 
     @observability_service.trace_llm_call_decorator(
-        model_name="gpt-4",
+        model_name="gpt-5-nano",
         include_prompt=True,
         include_response=True
     )
@@ -449,7 +449,7 @@ class AIClient:
 
     async def generate_text_with_tracing(self, prompt: str) -> str:
         """Generate text with automatic tracing."""
-        with self.observability.trace_llm_call("gpt-4", prompt) as trace_id:
+        with self.observability.trace_llm_call("gpt-5-nano", prompt) as trace_id:
             response = await self._generate_text(prompt)
 
             # Add performance metrics

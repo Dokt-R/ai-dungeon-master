@@ -5,7 +5,6 @@ This module provides the core API endpoints for handling player actions
 and receiving AI DM responses in the narrative interaction system.
 """
 
-import asyncio
 import time
 from typing import Any, Dict
 from uuid import uuid4

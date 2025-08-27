@@ -306,7 +306,7 @@ class MockApiClient:
         return {
             "status": "healthy",
             "provider": "openai",
-            "model": "gpt-4",
+            "model": "gpt-5-nano",
             "traced": True,
             "timestamp": "2025-08-24T20:30:00Z",
         }

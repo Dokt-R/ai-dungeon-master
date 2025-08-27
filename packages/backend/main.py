@@ -13,6 +13,7 @@ from packages.backend.api.character_api import router as character_router
 from packages.backend.api.health_api import router as health_router
 from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
+from packages.backend.api.utility_api import router as utility_router
 from packages.backend.api.voice_api import router as voice_router
 from packages.backend.agents.dm_graph import dm_graph_service
 from packages.backend.components.ai_client import ai_client
@@ -218,6 +219,7 @@ app.include_router(player_router, prefix=API_PREFIX)
 app.include_router(character_router, prefix=API_PREFIX)
 app.include_router(health_router, prefix=API_PREFIX)
 app.include_router(action_router, prefix=API_PREFIX)
+app.include_router(utility_router, prefix=API_PREFIX)
 app.include_router(voice_router, prefix=API_PREFIX)
 
 

@@ -110,10 +110,11 @@ async def load_cogs():
     await bot.load_extension("packages.bot.cogs.voice_cog")
     await bot.load_extension("packages.bot.cogs.action_cog")
     await bot.load_extension("packages.bot.cogs.health_cog")
-    # Load test cog for error handler validation
-    from packages.bot.cogs.utility_cog import setup_error_test
+    # Load test cogs
+    from packages.bot.cogs.utility_cog import setup_error_test, setup_llm_test
 
     await setup_error_test(bot)
+    await setup_llm_test(bot)
 
 
 if __name__ == "__main__":

@@ -506,9 +506,9 @@ class TestEnhancedObservabilityService:
     def test_ai_trace_tags_creation(self, service):
         """Test AI-specific trace tags creation."""
         # Test different operation types
-        llm_tags = service.create_ai_trace_tags("llm_call", model_name="gpt-4")
+        llm_tags = service.create_ai_trace_tags("llm_call", model_name="gpt-5-nano")
         assert llm_tags["operation_type"] == "llm_call"
-        assert llm_tags["llm_model"] == "gpt-4"
+        assert llm_tags["llm_model"] == "gpt-5-nano"
 
         workflow_tags = service.create_ai_trace_tags("ai_workflow", stage="processing")
         assert workflow_tags["operation_type"] == "ai_workflow"

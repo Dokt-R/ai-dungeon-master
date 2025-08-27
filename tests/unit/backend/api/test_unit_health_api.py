@@ -123,7 +123,7 @@ class TestGeneralHealthEndpoint:
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
             }
 
             response = client.get(ROUTES.health_general())
@@ -233,7 +233,7 @@ class TestAIHealthEndpoint:
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
                 "circuit_breaker_state": "CLOSED",
             }
 
@@ -256,7 +256,7 @@ class TestAIHealthEndpoint:
             data = response.json()
             assert data["status"] == "healthy"
             assert data["provider"] == "openai"
-            assert data["model"] == "gpt-4"
+            assert data["model"] == "gpt-5-nano"
             assert data["traced"] is True
             assert data["prompt_system"]["status"] == "healthy"
             assert data["prompt_system"]["template_count"] == 2
@@ -280,7 +280,7 @@ class TestAIHealthEndpoint:
             mock_ai_health.return_value = {
                 "status": "unhealthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
                 "error": "configuration_failed",
             }
 
@@ -297,7 +297,7 @@ class TestAIHealthEndpoint:
             data = response.json()
             assert data["status"] == "unhealthy"
             assert data["provider"] == "openai"
-            assert data["model"] == "gpt-4"
+            assert data["model"] == "gpt-5-nano"
             assert data["traced"] is True
             assert data["failed_components"] == ["ai_client"]
             assert "error" in data
@@ -315,7 +315,7 @@ class TestAIHealthEndpoint:
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
             }
 
             mock_trace.side_effect = Exception("Tracing failed")
@@ -342,7 +342,7 @@ class TestAIHealthEndpoint:
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
             }
 
             mock_trace.return_value.__enter__ = Mock(return_value="test-trace-id")
@@ -395,7 +395,7 @@ class TestGeneralHealthEndpointWithAI:
             mock_ai_health.return_value = {
                 "status": "healthy",
                 "provider": "openai",
-                "model": "gpt-4",
+                "model": "gpt-5-nano",
             }
 
             response = client.get(ROUTES.health_general())

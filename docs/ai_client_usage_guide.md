@@ -31,7 +31,7 @@ Configuration dataclass for AI client settings.
 - `provider`: AI provider (OPENAI, ANTHROPIC)
 - `api_key`: API key for authentication
 - `base_url`: Custom API endpoint URL
-- `model`: AI model name (default: "gpt-4")
+- `model`: AI model name (default: "gpt-5-nano")
 - `timeout`: Request timeout in seconds (default: 30.0)
 - `max_retries`: Maximum retry attempts (default: 3)
 - `retry_delay`: Initial delay between retries (default: 1.0)
@@ -78,7 +78,7 @@ export AI_PROVIDER_API_KEY="your_api_key_here"
 # Optional
 export AI_PROVIDER="openai"                    # openai or anthropic
 export AI_PROVIDER_BASE_URL="https://api.openai.com/v1"
-export AI_PROVIDER_MODEL="gpt-4"
+export AI_PROVIDER_MODEL="gpt-5-nano"
 export AI_PROVIDER_TIMEOUT="30.0"
 export AI_PROVIDER_MAX_RETRIES="3"
 export AI_PROVIDER_RETRY_DELAY="1.0"
@@ -110,7 +110,7 @@ Automatic retry with exponential backoff for transient failures:
 response = await ai_client.generate_text(
     prompt="Generate story content",
     max_tokens=1000,
-    temperature=0.7
+    temperature=1
 )
 ```
 
@@ -154,7 +154,7 @@ if success:
     response = await ai_client.generate_text(
         prompt="Create a dungeon description",
         max_tokens=500,
-        temperature=0.8
+        temperature=1
     )
     print(f"Generated: {response}")
 ```
@@ -176,7 +176,7 @@ messages = [
 response = await ai_client.generate_chat(
     messages=messages,
     max_tokens=300,
-    temperature=0.7
+    temperature=1
 )
 print(f"DM Response: {response}")
 ```
@@ -190,7 +190,7 @@ from packages.backend.components.ai_client import AIClientConfig, AIProvider
 config = AIClientConfig(
     provider=AIProvider.OPENAI,
     api_key="your-api-key",
-    model="gpt-4-turbo",
+    model="gpt-5-nano-turbo",
     timeout=60.0,
     max_retries=5,
     circuit_breaker_threshold=10
@@ -355,7 +355,7 @@ class DungeonMasterAgent:
         return await self.ai_client.generate_chat(
             messages=messages,
             max_tokens=1000,
-            temperature=0.8
+            temperature=1
         )
 ```
 

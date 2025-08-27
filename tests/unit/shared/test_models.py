@@ -174,7 +174,7 @@ class TestActionResponse:
 
     def test_valid_action_response_complete(self):
         """Test creating a valid ActionResponse with all fields."""
-        metadata = {"model": "gpt-4", "tokens": 150}
+        metadata = {"model": "gpt-5-nano", "tokens": 150}
         error = {"code": "RATE_LIMIT", "message": "Too many requests"}
 
         response = ActionResponse(

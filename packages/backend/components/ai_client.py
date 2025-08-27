@@ -88,7 +88,7 @@ class AIClientConfig:
     provider: AIProvider = AIProvider.OPENAI
     api_key: str = ""
     base_url: Optional[str] = None
-    model: str = "gpt-5-nano-2025-08-07"
+    model: str = "gpt-5-nano"
     timeout: float = 30.0
     max_retries: int = 3
     retry_delay: float = 1.0
@@ -142,7 +142,7 @@ class AIClientConfig:
                 provider=provider,
                 api_key=api_key.strip(),
                 base_url=os.getenv("AI_PROVIDER_BASE_URL"),
-                model=os.getenv("AI_PROVIDER_MODEL", "gpt-4"),
+                model=os.getenv("AI_PROVIDER_MODEL", "gpt-5-nano"),
                 timeout=float(os.getenv("AI_PROVIDER_TIMEOUT", "30.0")),
                 max_retries=int(os.getenv("AI_PROVIDER_MAX_RETRIES", "3")),
                 retry_delay=float(os.getenv("AI_PROVIDER_RETRY_DELAY", "1.0")),
@@ -348,12 +348,27 @@ class OpenAIProvider(AIProviderInterface):
         temperature: Optional[float] = None,
         **kwargs: Any,
     ) -> str:
-        """Generate text using OpenAI."""
+        """Generate text using OpenAI with detailed timing."""
+        import time
+        
+        start_time = time.perf_counter()
+        provider_id = f"openai_{int(time.time() * 1000)}"
+        
         if not self.client:
             raise ConnectionError("OpenAI client not initialized")
 
         try:
-            # Prepare parameters for OpenAI API call
+            self.logger.info(
+                "openai_generate_text_started",
+                provider_id=provider_id,
+                model=self.config.model,
+                prompt_length=len(prompt),
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            
+            # Stage 1: Parameter preparation
+            prep_start = time.perf_counter()
             openai_params = {
                 "model": self.config.model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -369,13 +384,55 @@ class OpenAIProvider(AIProviderInterface):
                 
             # Include any additional kwargs
             openai_params.update(kwargs)
+            
+            prep_time = (time.perf_counter() - prep_start) * 1000
+            
+            self.logger.debug(
+                "openai_params_prepared",
+                provider_id=provider_id,
+                prep_time_ms=round(prep_time, 2),
+                param_count=len(openai_params)
+            )
 
+            # Stage 2: OpenAI API call
+            api_start = time.perf_counter()
             response = await self.client.chat.completions.create(**openai_params)
+            api_time = (time.perf_counter() - api_start) * 1000
+            
+            # Stage 3: Response extraction
+            extract_start = time.perf_counter()
+            result = response.choices[0].message.content
+            extract_time = (time.perf_counter() - extract_start) * 1000
+            
+            total_time = (time.perf_counter() - start_time) * 1000
+            
+            self.logger.info(
+                "openai_generate_text_completed",
+                provider_id=provider_id,
+                model=self.config.model,
+                prompt_length=len(prompt),
+                response_length=len(result) if result else 0,
+                prep_time_ms=round(prep_time, 2),
+                api_call_time_ms=round(api_time, 2),
+                extract_time_ms=round(extract_time, 2),
+                total_time_ms=round(total_time, 2),
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
 
-            return response.choices[0].message.content
+            return result
 
         except Exception as e:
-            self.logger.error("openai_text_generation_failed", error=str(e))
+            total_time = (time.perf_counter() - start_time) * 1000
+            self.logger.error(
+                "openai_text_generation_failed",
+                provider_id=provider_id,
+                model=self.config.model,
+                prompt_length=len(prompt),
+                total_time_ms=round(total_time, 2),
+                error=str(e),
+                error_type=type(e).__name__
+            )
             raise self._map_openai_error(e)
 
     async def generate_chat(
@@ -540,6 +597,7 @@ class AIClient:
         self,
         prompt: str,
         max_tokens: Optional[int] = None,
+        max_completion_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
         **kwargs: Any,
     ) -> str:
@@ -604,7 +662,7 @@ class AIClient:
 
     async def _execute_with_retry(self, method_name: str, **kwargs: Any) -> str:
         """
-        Execute AI provider method with retry logic and circuit breaker.
+        Execute AI provider method with retry logic and circuit breaker with detailed timing.
 
         Args:
             method_name: Name of the method to execute
@@ -616,6 +674,11 @@ class AIClient:
         Raises:
             AIClientError: If execution fails
         """
+        import time
+        
+        overall_start = time.perf_counter()
+        execution_id = f"ai_exec_{int(time.time() * 1000)}"
+        
         if not self._circuit_breaker or not self._circuit_breaker.can_execute():
             raise ConnectionError(
                 "Circuit breaker is open, AI service temporarily unavailable"
@@ -623,8 +686,28 @@ class AIClient:
 
         method = getattr(self._provider, method_name)
         delay = self._config.retry_delay
+        
+        # Extract prompt info for logging
+        prompt_info = {}
+        if "prompt" in kwargs:
+            prompt_info["prompt_length"] = len(kwargs["prompt"])
+        elif "messages" in kwargs:
+            prompt_info["messages_count"] = len(kwargs["messages"])
+            prompt_info["total_message_length"] = sum(len(msg.get("content", "")) for msg in kwargs["messages"])
+
+        logger.info(
+            "ai_client_execution_started",
+            execution_id=execution_id,
+            method=method_name,
+            provider=self._config.provider.value,
+            model=self._config.model,
+            max_retries=self._config.max_retries,
+            **prompt_info
+        )
 
         for attempt in range(self._config.max_retries + 1):
+            attempt_start = time.perf_counter()
+            
             try:
                 with observability_service.trace_operation(
                     operation_name=f"ai_{method_name}",
@@ -632,15 +715,24 @@ class AIClient:
                     model=self._config.model,
                     attempt=attempt + 1,
                     max_attempts=self._config.max_retries + 1,
+                    execution_id=execution_id,
                 ) as trace_id:
                     logger.info(
-                        "ai_request_started",
+                        "ai_request_attempt_started",
+                        execution_id=execution_id,
                         method=method_name,
                         trace_id=trace_id,
                         attempt=attempt + 1,
+                        **prompt_info
                     )
 
+                    # Time the actual provider method call
+                    provider_start = time.perf_counter()
                     result = await method(**kwargs)
+                    provider_time = (time.perf_counter() - provider_start) * 1000
+                    
+                    attempt_time = (time.perf_counter() - attempt_start) * 1000
+                    total_time = (time.perf_counter() - overall_start) * 1000
 
                     # Record success and return
                     if self._circuit_breaker:
@@ -648,9 +740,15 @@ class AIClient:
 
                     logger.info(
                         "ai_request_success",
+                        execution_id=execution_id,
                         method=method_name,
                         trace_id=trace_id,
                         attempt=attempt + 1,
+                        provider_call_ms=round(provider_time, 2),
+                        attempt_total_ms=round(attempt_time, 2),
+                        execution_total_ms=round(total_time, 2),
+                        response_length=len(result) if isinstance(result, str) else "unknown",
+                        **prompt_info
                     )
 
                     return result

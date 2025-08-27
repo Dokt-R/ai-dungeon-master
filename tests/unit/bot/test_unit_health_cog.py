@@ -12,7 +12,7 @@ async def test_ai_health_command_success(mock_interaction, mock_health_cog):
         {
             "status": "healthy",
             "provider": "openai",
-            "model": "gpt-4",
+            "model": "gpt-5-nano",
             "traced": True,
             "timestamp": "2025-08-24T20:30:00Z",
         },

@@ -48,7 +48,7 @@ class TestAIClientConfig:
             provider=AIProvider.OPENAI,
             api_key="test-key",
             base_url="https://api.example.com",
-            model="gpt-4-turbo",
+            model="gpt-5-nano-turbo",
             timeout=60.0,
             max_retries=5,
             retry_delay=2.0,
@@ -58,7 +58,7 @@ class TestAIClientConfig:
         assert config.provider == AIProvider.OPENAI
         assert config.api_key == "test-key"
         assert config.base_url == "https://api.example.com"
-        assert config.model == "gpt-4-turbo"
+        assert config.model == "gpt-5-nano-turbo"
         assert config.timeout == 60.0
         assert config.max_retries == 5
         assert config.retry_delay == 2.0
@@ -71,7 +71,7 @@ class TestAIClientConfig:
         assert config.provider == AIProvider.OPENAI
         assert config.api_key == "test-key"
         assert config.base_url is None
-        assert config.model == "gpt-4"
+        assert config.model == "gpt-5-nano"
         assert config.timeout == 30.0
         assert config.max_retries == 3
         assert config.retry_delay == 1.0
@@ -104,7 +104,7 @@ class TestAIClientConfig:
         {
             "AI_PROVIDER_API_KEY": "env-test-key",
             "AI_PROVIDER_BASE_URL": "https://api.example.com",
-            "AI_PROVIDER_MODEL": "gpt-4-turbo",
+            "AI_PROVIDER_MODEL": "gpt-5-nano-turbo",
             "AI_PROVIDER_TIMEOUT": "45.0",
             "AI_PROVIDER_MAX_RETRIES": "5",
         },
@@ -115,7 +115,7 @@ class TestAIClientConfig:
 
         assert config.api_key == "env-test-key"
         assert config.base_url == "https://api.example.com"
-        assert config.model == "gpt-4-turbo"
+        assert config.model == "gpt-5-nano-turbo"
         assert config.timeout == 45.0
         assert config.max_retries == 5
 
@@ -308,10 +308,10 @@ class TestOpenAIProvider:
 
         assert result == "Generated text"
         mock_client.chat.completions.create.assert_called_once_with(
-            model="gpt-4",
+            model="gpt-5-nano",
             messages=[{"role": "user", "content": "Test prompt"}],
             max_tokens=None,
-            temperature=0.7,
+            temperature=1,
         )
 
     @patch("packages.backend.components.ai_client.AsyncOpenAI")
@@ -327,20 +327,20 @@ class TestOpenAIProvider:
         mock_client.chat.completions.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
-        config = AIClientConfig(api_key="test-key", model="gpt-4-turbo")
+        config = AIClientConfig(api_key="test-key", model="gpt-5-nano-turbo")
         provider = OpenAIProvider(config)
         provider.client = mock_client
 
         result = asyncio.run(
-            provider.generate_text("Test prompt", max_tokens=100, temperature=0.5)
+            provider.generate_text("Test prompt", max_tokens=100, temperature=1)
         )
 
         assert result == "Generated text"
         mock_client.chat.completions.create.assert_called_once_with(
-            model="gpt-4-turbo",
+            model="gpt-5-nano-turbo",
             messages=[{"role": "user", "content": "Test prompt"}],
             max_tokens=100,
-            temperature=0.5,
+            temperature=1,
         )
 
     @patch("packages.backend.components.ai_client.AsyncOpenAI")
@@ -409,7 +409,7 @@ class TestOpenAIProvider:
 
         assert result == "Chat response"
         mock_client.chat.completions.create.assert_called_once_with(
-            model="gpt-4", messages=messages, max_tokens=None, temperature=0.7
+            model="gpt-5-nano", messages=messages, max_tokens=None, temperature=1
         )
 
 
@@ -561,7 +561,7 @@ class TestAIClient:
 
         assert status["status"] == "healthy"
         assert status["provider"] == "openai"
-        assert status["model"] == "gpt-4"
+        assert status["model"] == "gpt-5-nano"
         assert status["circuit_breaker_state"] == "CLOSED"
         assert status["timeout"] == 30.0
         assert status["max_retries"] == 3

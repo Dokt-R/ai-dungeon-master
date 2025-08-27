@@ -6,6 +6,7 @@ Provides centralized error handling and response parsing.
 from typing import Any, Dict, List, Optional
 
 import httpx
+from langsmith import traceable
 
 from packages.shared.correlation import get_correlation_id
 from packages.shared.errors import ErrorCode
@@ -424,6 +425,82 @@ class ApiClient:
         url = ROUTES.voice_health()
         resp = await self._request("GET", url)
         return await self._handle_response(resp)
+
+    # --------------------------- Utility API Methods ---------------------------
+    @traceable
+    async def test_llm(self, prompt: str) -> Dict[str, Any]:
+        """Test LLM with a simple prompt with detailed timing."""
+        import time
+        
+        start_time = time.perf_counter()
+        logger.debug(
+            "api_client_llm_test_started",
+            prompt_length=len(prompt),
+            base_url=self.base_url
+        )
+        
+        try:
+            # Stage 1: Prepare request
+            request_start = time.perf_counter()
+            url = ROUTES.utility_llm_test()
+            request_data = {"prompt": prompt}
+            request_prep_time = (time.perf_counter() - request_start) * 1000
+            
+            logger.debug(
+                "api_client_request_prepared",
+                url=url,
+                request_prep_time_ms=round(request_prep_time, 2)
+            )
+            
+            # Stage 2: HTTP request
+            http_start = time.perf_counter()
+            resp = await self._request("POST", url, json=request_data)
+            http_time = (time.perf_counter() - http_start) * 1000
+            
+            logger.debug(
+                "api_client_http_completed",
+                status_code=resp.status_code,
+                http_time_ms=round(http_time, 2)
+            )
+            
+            # Stage 3: Response handling
+            response_start = time.perf_counter()
+            result = await self._handle_response(resp)
+            response_time = (time.perf_counter() - response_start) * 1000
+            
+            total_time = (time.perf_counter() - start_time) * 1000
+            
+            logger.info(
+                "api_client_llm_test_completed",
+                prompt_length=len(prompt),
+                response_length=len(result.get("response", "")),
+                request_prep_time_ms=round(request_prep_time, 2),
+                http_time_ms=round(http_time, 2),
+                response_time_ms=round(response_time, 2),
+                total_time_ms=round(total_time, 2),
+                status=result.get("status", "unknown")
+            )
+            
+            # Add timing metadata to response
+            if isinstance(result, dict):
+                result.setdefault("timing", {}).update({
+                    "api_client_total_ms": round(total_time, 2),
+                    "request_prep_ms": round(request_prep_time, 2),
+                    "http_request_ms": round(http_time, 2),
+                    "response_processing_ms": round(response_time, 2)
+                })
+            
+            return result
+            
+        except Exception as e:
+            total_time = (time.perf_counter() - start_time) * 1000
+            logger.error(
+                "api_client_llm_test_failed",
+                prompt_length=len(prompt),
+                total_time_ms=round(total_time, 2),
+                error=str(e)
+            )
+            raise
 
     # --------------------------- Health API Methods ---------------------------
 

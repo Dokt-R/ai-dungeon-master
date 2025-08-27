@@ -94,6 +94,10 @@ class Routes:
     def action_test(self) -> str:
         return f"{self.prefix}/action/test"
 
+    # Utility endpoints
+    def utility_llm_test(self) -> str:
+        return f"{self.prefix}/utility/llm-test"
+
     # Voice endpoints
     def voice_status(self) -> str:
         return f"{self.prefix}/voice/status"

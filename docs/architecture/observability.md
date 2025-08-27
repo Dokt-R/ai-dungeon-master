@@ -134,7 +134,7 @@ AI-specific trace tagging system for enhanced filtering and analysis:
 - `ai_service: ai-dungeon-master` - Service identification
 
 **LLM-Specific Tags:**
-- `llm_model` - Model name (e.g., gpt-4)
+- `llm_model` - Model name (e.g., gpt-5-nano)
 - `llm_provider` - Provider (e.g., openai, anthropic)
 - `prompt_tokens`, `response_tokens` - Token usage tracking
 - `temperature` - Model temperature setting
@@ -211,7 +211,7 @@ def process_user_query(query: str, context: dict):
 
 ```python
 @observability_service.trace_llm_call_decorator(
-    model_name="gpt-4",
+    model_name="gpt-5-nano",
     include_prompt=True,
     include_response=True
 )
@@ -240,7 +240,7 @@ def generate_campaign_narrative(campaign_data: dict):
 # Add custom tags to traces
 tags = observability_service.create_ai_trace_tags(
     operation_type="llm_call",
-    model_name="gpt-4",
+    model_name="gpt-5-nano",
     user_id="user123",
     campaign_id="campaign456"
 )

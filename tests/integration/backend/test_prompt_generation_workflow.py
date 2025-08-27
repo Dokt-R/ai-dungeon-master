@@ -332,5 +332,5 @@ class TestPromptGenerationWorkflowIntegration:
 
         # Should use tiktoken estimation
         assert estimated_tokens == 3
-        mock_encoding_for_model.assert_called_with("gpt-4")
+        mock_encoding_for_model.assert_called_with("gpt-5-nano")
         mock_encoding.encode.assert_called_with(test_text)
