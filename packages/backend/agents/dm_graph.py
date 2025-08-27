@@ -463,8 +463,15 @@ class DMGraphService:
             # Prepare messages for AI
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
             ]
+            
+            # Add context messages from memory
+            context_messages = state.get("context_messages", [])
+            if context_messages:
+                messages.extend(context_messages)
+            
+            # Add current user prompt
+            messages.append({"role": "user", "content": user_prompt})
 
             # Call AI with tracing
             with observability_service.trace_operation(

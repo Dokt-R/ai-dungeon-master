@@ -730,8 +730,8 @@ class MemoryService:
                     "scratchpad": json.dumps(memory_state.scratchpad),
                     "turn_count": memory_state.turn_count,
                     "total_messages": len(memory_state.messages),
-                    "last_activity": memory_state.last_activity.isoformat(),
-                    "last_save": datetime.utcnow().isoformat(),
+                    "last_activity": memory_state.last_activity,  # Keep as datetime object
+                    "last_save": datetime.utcnow(),  # Keep as datetime object
                 }
 
                 if existing_record:

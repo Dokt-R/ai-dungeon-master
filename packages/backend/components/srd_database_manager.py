@@ -37,7 +37,7 @@ python
 
 Phase 2: Update SRD Database Manager
 class SRDDatabaseManager:
-    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session_dependency)):
         self.session = session
 
     async def create_monster(self, monster: Monster) -> int:

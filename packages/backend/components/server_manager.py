@@ -7,7 +7,7 @@ from fastapi import Depends
 from pydantic import SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from packages.shared.db import get_async_session
+from packages.shared.db import get_async_session_dependency
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import ValidationError
 from packages.shared.models import Server
@@ -16,7 +16,7 @@ load_dotenv()
 
 
 class ServerSettingsManager:
-    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session_dependency)):
         self.session = session
         self.key = self._load_encryption_key()
 

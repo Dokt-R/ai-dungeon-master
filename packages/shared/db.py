@@ -36,8 +36,14 @@ async def initialize_schema(engine):
         await conn.run_sync(SQLModel.metadata.create_all)
 
 
-async def get_async_session():
-    """Get an async database session."""
+def get_async_session():
+    """Get an async database session context manager."""
+    engine = get_async_engine()
+    return AsyncSession(engine)
+
+
+async def get_async_session_dependency():
+    """Get an async database session for FastAPI dependency injection."""
     engine = get_async_engine()
     async with AsyncSession(engine) as session:
         yield session

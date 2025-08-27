@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from packages.shared.db import get_async_session
+from packages.shared.db import get_async_session_dependency
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Character, Player
@@ -15,7 +15,7 @@ class CharacterManager:
     Manages character creation, updates, removal, and retrieval for players.
     """
 
-    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session_dependency)):
         """
         Initialize the CharacterManager.
         """

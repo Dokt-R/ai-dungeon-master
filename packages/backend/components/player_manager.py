@@ -4,7 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from packages.shared.db import get_async_session
+from packages.shared.db import get_async_session_dependency
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.models import Campaign, CampaignPlayerLink, Character, Player
@@ -15,7 +15,7 @@ class PlayerManager:
     Manages player participation, campaign membership, and character associations.
     """
 
-    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+    def __init__(self, session: AsyncSession = Depends(get_async_session_dependency)):
         """
         Initialize the PlayerManager with a database session.
         """
