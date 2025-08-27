@@ -15,6 +15,7 @@ Key Features:
 - Performance monitoring and logging
 """
 
+import asyncio
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, TypedDict
@@ -175,8 +176,9 @@ class DMGraphService:
         workflow.add_edge("update_memory", "handle_error")
         workflow.add_edge("handle_error", END)
 
-        # Compile the graph
-        return workflow.compile(checkpointer=self._memory_saver)
+        # Compile the graph without checkpointer for faster execution
+        # Memory is handled separately by the memory service
+        return workflow.compile()
 
     async def process_interaction(
         self,
@@ -353,11 +355,12 @@ class DMGraphService:
                 # Use fallback system prompt
                 system_prompt = self._get_fallback_system_prompt()
 
-            # Prepare memory context using memory service
+            # Prepare memory context using memory service (fast mode for speed)
             memory_context = await memory_service.prepare_memory_context(
                 session_id=session_id,
                 user_prompt=user_prompt,
                 correlation_id=correlation_id,
+                fast_mode=True,  # Prioritize response speed over comprehensive context
             )
 
             # Compile context messages from memory context
@@ -531,7 +534,7 @@ class DMGraphService:
             return {"error": f"Response generation failed: {str(e)}", "processing_stage": "response_error"}
 
     async def _update_memory_node(self, state: DMGraphState) -> Dict[str, Any]:
-        """Update memory state with the interaction results using memory service."""
+        """Update memory state with the interaction results using memory service (async background)."""
         try:
             memory_state = state["memory_state"]
             narrative_response = state.get("narrative_response", "")
@@ -539,19 +542,21 @@ class DMGraphService:
             correlation_id = state["correlation_id"]
             session_id = memory_state.session_id
 
-            # Update memory using memory service
-            await memory_service.update_memory_after_interaction(
-                session_id=session_id,
-                user_prompt=user_prompt,
-                ai_response=narrative_response,
-                correlation_id=correlation_id,
+            # Update memory in background (fire-and-forget)
+            asyncio.create_task(
+                self._background_memory_update(
+                    session_id=session_id,
+                    user_prompt=user_prompt,
+                    ai_response=narrative_response,
+                    correlation_id=correlation_id,
+                )
             )
 
-            # Clear scratchpad for next interaction
+            # Clear scratchpad for next interaction (immediate)
             memory_state.clear_scratchpad()
 
             self.logger.debug(
-                "memory_updated_with_service",
+                "memory_update_queued",
                 correlation_id=correlation_id,
                 session_id=session_id,
                 user_prompt_length=len(user_prompt),
@@ -586,6 +591,42 @@ class DMGraphService:
         
         # If we already have a narrative, just mark as handled
         return {"processing_stage": "error_handled"}
+
+    async def _background_memory_update(
+        self, session_id: str, user_prompt: str, ai_response: str, correlation_id: str
+    ) -> None:
+        """Update memory in background without blocking response delivery."""
+        try:
+            # Update memory with the interaction
+            await memory_service.update_memory_after_interaction(
+                session_id=session_id,
+                user_prompt=user_prompt,
+                ai_response=ai_response,
+                correlation_id=correlation_id,
+            )
+            
+            # Also prepare comprehensive memory context for next interaction (pre-cache)
+            await memory_service.prepare_memory_context(
+                session_id=session_id,
+                user_prompt=ai_response,  # Use AI response to build context
+                correlation_id=f"{correlation_id}_precache",
+                fast_mode=False,  # Full analysis in background
+            )
+            
+            self.logger.debug(
+                "background_memory_operations_completed",
+                correlation_id=correlation_id,
+                session_id=session_id,
+            )
+            
+        except Exception as e:
+            # Log error but don't fail - memory update is non-critical for immediate response
+            self.logger.warning(
+                "background_memory_operations_failed",
+                correlation_id=correlation_id,
+                session_id=session_id,
+                error=str(e),
+            )
 
     def _should_handle_error(self, state: DMGraphState) -> str:
         """Determine if error should be handled."""
