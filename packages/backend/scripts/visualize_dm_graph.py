@@ -6,7 +6,7 @@ Dependencies:
   - Graphviz: Install system-wide (see https://graphviz.org/download/)
 """
 import asyncio
-from packages.backend.agents.dm_graph import dm_graph_service
+from packages.backend.ai.dm_graph import dm_graph_service
 
 async def visualize_dm_graph():
     # Initialize the DM graph service

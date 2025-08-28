@@ -41,6 +41,7 @@ The backend service is broken down into the following logical components:
     - Used by PlayerManager and external clients for character management.
 
 * **`AIOrchestrator`:** The central component that manages the **LangGraph execution flow**. It passes the current game state through the graph's nodes to process player actions and generate responses.
+* **`ActionResolutionGraph`:** A modular LangGraph implementation organized into domain-specific nodes for processing player actions. See [Modular AI Node Architecture](../modular_ai_node_architecture.md) for implementation details.
 * **`CampaignMemoryService`:** Manages the **four-tiered persistence strategy**. It is responsible for loading the 'Campaign Knowledge Base' into the graph state, appending events to the 'Campaign Chronicle', and providing access to the SQLite 'Rules Library'.
 * **`RulesEngine`:** Contains the deterministic functions for D&D 5.1 SRD rules by querying the SQLite database.
 * **`SRD Compliance Service`** (`packages/backend/components/srd_compliance_service.py`): Manages OGL 1.0a compliance verification, data source validation, and licensing compliance tracking.

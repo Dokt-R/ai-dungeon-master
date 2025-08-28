@@ -15,6 +15,7 @@
 * **Deployment** The project must support easy self-hosting using **Docker Compose** and will be updated as the project grows.
 * **Agentic AI:** Using frameworks like LangGraph to manage complex AI tasks and state.
 * **Agentic AI (State Machine):** By using **LangGraph**, we will build the core application as a state machine or graph. This gives us explicit, deterministic control over the game loop, which is essential for a rule-heavy, stateful application.
+* **Modular AI Node Architecture:** Following domain-driven design principles, AI graph nodes will be organized into modular, domain-specific modules for maintainability, testability, and scalable development. See [Modular AI Node Architecture](../Modular_AI_Node_Architecture.md) for detailed implementation guidelines.
 * **Polyglot Persistence:** Using the best tool for each data job (files, key-value stores, databases, etc.).
 * **Containerization:** The application's services will be containerized (using Docker) to ensure portability and simplify both local self-hosting and cloud deployment.
 * **Provider Pattern for AI:** The AI model and TTS service will be treated as "swappable" components, allowing the system to be configured to use different providers.

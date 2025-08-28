@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 
-from packages.backend.agents.prompts import prompt_manager
+from packages.backend.ai.prompts import prompt_manager
 from packages.backend.components.ai_client import ai_client
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import configure_logging, get_logger
@@ -71,7 +71,7 @@ async def get_ai_health() -> Dict[str, Any]:
         prompt_count = 0
         try:
             # Check if we can access prompt templates
-            from packages.backend.agents.prompts import PromptType
+            from packages.backend.ai.prompts import PromptType
 
             core_template = prompt_manager.get_default_template(PromptType.CORE_DM)
             if core_template:

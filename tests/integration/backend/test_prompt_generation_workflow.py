@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from packages.backend.agents.prompts import (
+from packages.backend.ai.prompts import (
     TIKTOKEN_AVAILABLE,
     PromptManager,
     PromptTemplate,

@@ -14,7 +14,7 @@ import pytest
 # Add the packages directory to the Python path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from packages.backend.agents.dm_graph import dm_graph_service
+from packages.backend.ai.dm_graph import dm_graph_service
 from packages.backend.components.ai_client import ai_client
 from packages.shared.models import ActionRequest
 

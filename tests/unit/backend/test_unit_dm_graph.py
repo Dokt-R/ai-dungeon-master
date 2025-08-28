@@ -12,7 +12,7 @@ Tests cover:
 import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
-from packages.backend.agents.dm_graph import DMGraphConfig, DMGraphService, DMGraphState
+from packages.backend.ai.dm_graph import DMGraphConfig, DMGraphService, DMGraphState
 from packages.shared.models import MemoryState
 
 

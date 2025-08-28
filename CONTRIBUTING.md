@@ -158,6 +158,15 @@ When making changes, update relevant docs:
 - **Logging**: Use structured logging with appropriate levels
 - **Security**: Never commit secrets or sensitive data
 
+### AI Node Development
+- **Modular Architecture**: Follow the modular AI node architecture outlined in [Modular AI Node Architecture](../docs/Modular_AI_Node_Architecture.md)
+- **Domain Separation**: Place nodes in appropriate domain directories (`core/`, `combat/`, `exploration/`, `social/`, etc.)
+- **Node Naming**: Use `_node` suffix (e.g., `combat_resolution_node`) for consistency
+- **State Management**: Never modify input state objects - use functional updates only
+- **Error Handling**: Implement graceful error handling with fallback responses
+- **Observability**: Use `@observability_service.trace_ai_operation()` for node functions
+- **Testing**: Create unit tests for each new node before integration
+
 ### Observability Best Practices
 - **AI Operation Tracing**: Use `@observability_service.trace_ai_operation()` for AI-related functions
 - **LLM Call Tracing**: Use `@observability_service.trace_llm_call_decorator()` for LLM API calls

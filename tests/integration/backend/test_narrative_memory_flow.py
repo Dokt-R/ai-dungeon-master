@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from packages.backend.agents.dm_graph import DMGraphService
+from packages.backend.ai.dm_graph import DMGraphService
 from packages.backend.components.memory_service import MemoryContext, MemoryService
 from packages.shared.models import MemoryState
 

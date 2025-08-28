@@ -12,7 +12,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import ValidationError
 
-from packages.backend.agents.dm_graph import dm_graph_service
+from packages.backend.ai.dm_graph import dm_graph_service
 from packages.shared.logging_config import get_logger
 from packages.shared.models import ActionRequest, ActionResponse
 

@@ -11,7 +11,7 @@ Tests cover:
 
 import pytest
 
-from packages.backend.agents.prompts import (
+from packages.backend.ai.prompts import (
     DungeonMasterPrompts,
     PromptManager,
     PromptTemplate,

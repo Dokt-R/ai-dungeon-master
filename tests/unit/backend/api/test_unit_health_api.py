@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from packages.backend.agents.prompts import prompt_manager
+from packages.backend.ai.prompts import prompt_manager
 from packages.backend.components.ai_client import AIClient, ai_client
 from packages.backend.components.observability_service import (
     ObservabilityService,
