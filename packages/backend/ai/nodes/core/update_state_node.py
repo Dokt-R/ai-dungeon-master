@@ -5,9 +5,11 @@ This module handles updating the game state based on action results,
 managing NPC HP changes, item acquisitions, and other state transitions.
 """
 
+import time
 from typing import Any, Dict
 
 from packages.backend.ai.state.action_resolution_state import ActionResolutionState
+from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)

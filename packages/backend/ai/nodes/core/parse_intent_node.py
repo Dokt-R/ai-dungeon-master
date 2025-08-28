@@ -5,6 +5,7 @@ This module contains the functionality for parsing player action text
 to determine intent and extract relevant information.
 """
 
+import time
 from typing import Any, Dict, List, Optional
 
 from packages.backend.ai.state.action_resolution_state import ActionResolutionState, ParsedIntent
@@ -20,12 +21,6 @@ def _display_action(message: str) -> None:
     print(message)
 
 
-@observability_service.trace_ai_operation(
-    operation_name="parse_player_intent",
-    operation_type="intent_parsing",
-    include_args=True,
-    include_result=False
-)
 def _parse_action_text(action_text: str) -> ParsedIntent:
     """Parse action text to determine intent (simplified NLP)."""
 
@@ -81,18 +76,37 @@ def _extract_target(text: str, possible_targets: List[str]) -> Optional[str]:
 
 async def parse_intent_node(state: ActionResolutionState) -> Dict[str, Any]:
     """Parse the player's action text to determine intent."""
-    try:
-        action_text = state["player_action"].lower().strip()
+    with observability_service.trace_operation(
+        operation_name="parse_intent_node_execution",
+        node_type="action_parsing",
+        correlation_id=state["correlation_id"]
+    ) as node_trace_id:
 
-        parsed_intent = _parse_action_text(action_text)
+        start_time = time.time()
 
-        _display_action(f"🎯 Parsed Intent: {parsed_intent.action_type}")
-        if parsed_intent.target:
-            _display_action(f"🎯 Target: {parsed_intent.target}")
+        try:
+            action_text = state["player_action"].lower().strip()
 
-        return {"parsed_intent": parsed_intent.__dict__}
+            parsed_intent = _parse_action_text(action_text)
 
-    except Exception as e:
-        error_msg = f"Intent parsing failed: {str(e)}"
-        logger.error("intent_parsing_failed", error=str(e), correlation_id=state["correlation_id"])
-        return {"error": error_msg}
+            _display_action(f"🎯 Parsed Intent: {parsed_intent.action_type}")
+            if parsed_intent.target:
+                _display_action(f"🎯 Target: {parsed_intent.target}")
+
+            execution_time = time.time() - start_time
+            logger.debug("parse_intent_node_completed",
+                        trace_id=node_trace_id,
+                        execution_time=f"{execution_time:.4f}s",
+                        action_type=parsed_intent.action_type)
+
+            return {"parsed_intent": parsed_intent.__dict__}
+
+        except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Intent parsing failed: {str(e)}"
+            logger.error("intent_parsing_failed",
+                        error=str(e),
+                        correlation_id=state["correlation_id"],
+                        execution_time=f"{execution_time:.4f}s",
+                        trace_id=node_trace_id)
+            return {"error": error_msg}

@@ -5,9 +5,11 @@ This module handles generating narrative descriptions of action results,
 providing engaging storytelling for all action outcomes.
 """
 
+import time
 from typing import Any, Dict
 
 from packages.backend.ai.state.action_resolution_state import ActionResolutionState
+from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
