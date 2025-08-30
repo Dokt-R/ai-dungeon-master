@@ -104,9 +104,9 @@ async def combat_node(state: ActionResolutionState) -> Dict[str, Any]:
         # Get player and target stats
         player = game_state.get("player", {})
         npcs = game_state.get("npcs", [])
-        target = None
 
-        for npc in npcs:
+        target = None
+        for npc in npcs.values():
             if npc.get("name", "").lower() == target_name.lower():
                 target = npc
                 break
@@ -118,6 +118,8 @@ async def combat_node(state: ActionResolutionState) -> Dict[str, Any]:
         attack_result = _resolve_attack(player, target, correlation_id)
 
         _display_attack_result(attack_result)
+        print(f"Attack Result ---> {attack_result}")
+        print("="*30)
 
         return {"action_result": attack_result}
 

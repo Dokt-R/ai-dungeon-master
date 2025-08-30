@@ -1,0 +1,215 @@
+{
+    "player": {
+        "name": "Roric",
+        "hp": 12,
+        "max_hp": 12,
+        "ac": 14,
+        "speed": 30,
+        "strength": 14,
+        "dexterity": 13,
+        "constitution": 14,
+        "intelligence": 10,
+        "wisdom": 12,
+        "charisma": 8,
+        "strength_mod": 2,
+        "dexterity_mod": 1,
+        "constitution_mod": 2,
+        "intelligence_mod": 0,
+        "wisdom_mod": 1,
+        "charisma_mod": -1,
+        "attacks": [
+            {
+                "name": "Shortsword",
+                "bonus": 4,
+                "damage": "1d6+2",
+                "damage_type": "piercing",
+                "range": 5
+            }
+        ],
+        "proficiency_bonus": 2,
+        "initiative_modifier": 1,
+        "conditions": [],
+        "is_alive": true,
+        "is_hostile": false,
+        "inventory": [
+            {
+                "name": "Sword",
+                "type": "weapon",
+                "weight": 3.0,
+                "value": 50,
+                "properties": {
+                    "weapon_type": "shortsword"
+                },
+                "description": "A simple iron shortsword.",
+                "equipped": false
+            },
+            {
+                "name": "Shield",
+                "type": "armor",
+                "weight": 6.0,
+                "value": 30,
+                "properties": {
+                    "armor": 2
+                },
+                "description": "A stout wooden shield.",
+                "equipped": false
+            },
+            {
+                "name": "Healing Potion",
+                "type": "consumable",
+                "weight": 0.5,
+                "value": 50,
+                "properties": {
+                    "healing": "2d4+2"
+                },
+                "description": "A red potion that restores health.",
+                "equipped": false
+            },
+            {
+                "name": "Key",
+                "type": "key",
+                "weight": 0.1,
+                "value": 25,
+                "properties": {},
+                "description": "A simple iron key.",
+                "equipped": false
+            }
+        ],
+        "equipped_items": {},
+        "spell_slots": null,
+        "hit_dice": "1d8",
+        "hit_dice_remaining": 1
+    },
+    "npcs": {
+        "goblin_1": {
+            "name": "Goblin",
+            "hp": 7,
+            "max_hp": 7,
+            "ac": 15,
+            "speed": 30,
+            "strength": 8,
+            "dexterity": 14,
+            "constitution": 10,
+            "intelligence": 10,
+            "wisdom": 8,
+            "charisma": 8,
+            "strength_mod": -1,
+            "dexterity_mod": 2,
+            "constitution_mod": 0,
+            "intelligence_mod": 0,
+            "wisdom_mod": -1,
+            "charisma_mod": -1,
+            "attacks": [
+                {
+                    "name": "Scimitar",
+                    "bonus": 4,
+                    "damage": "1d6+2",
+                    "damage_type": "slashing",
+                    "range": 5
+                }
+            ],
+            "proficiency_bonus": 2,
+            "initiative_modifier": 2,
+            "conditions": [],
+            "is_alive": true,
+            "is_hostile": true,
+            "inventory": null,
+            "equipped_items": null,
+            "spell_slots": null,
+            "hit_dice": null,
+            "hit_dice_remaining": null
+        }
+    },
+    "current_room_id": "starting_room",
+    "rooms": {
+        "starting_room": {
+            "name": "Damp Stone Chamber",
+            "description": "A small, damp room with moss-covered stone walls. A single torch flickers on the wall, casting dancing shadows. You see a goblin standing guard near an iron chest in the corner. There are some items scattered on the floor.",
+            "description_explored": "The room has scratch marks on the walls, as if something was dragged here. The chest sits on a slightly raised stone platform. A few items are scattered around the room.",
+            "exits": {
+                "north": "locked_exit"
+            },
+            "objects": [
+                {
+                    "name": "Iron Chest",
+                    "description": "A sturdy iron chest with an intricate lock.",
+                    "state": {
+                        "locked": true,
+                        "open": false,
+                        "trap_triggered": false
+                    },
+                    "interactions": [
+                        "examine",
+                        "unlock",
+                        "open",
+                        "search"
+                    ],
+                    "contains": [
+                        {
+                            "name": "Golden Key",
+                            "type": "key",
+                            "weight": 0.1,
+                            "value": 50,
+                            "properties": {
+                                "unlocks": "exit_door"
+                            },
+                            "description": "An ornate golden key that looks important.",
+                            "equipped": false
+                        },
+                        {
+                            "name": "Healing Potion",
+                            "type": "consumable",
+                            "weight": 0.5,
+                            "value": 50,
+                            "properties": {
+                                "healing": "2d4+2"
+                            },
+                            "description": "A red potion that restores health.",
+                            "equipped": false
+                        }
+                    ]
+                }
+            ],
+            "items": [
+                {
+                    "name": "Silver Coin",
+                    "type": "misc",
+                    "weight": 0.02,
+                    "value": 1,
+                    "properties": {},
+                    "description": "A shiny silver coin.",
+                    "equipped": false
+                },
+                {
+                    "name": "Iron Key",
+                    "type": "key",
+                    "weight": 0.1,
+                    "value": 10,
+                    "properties": {},
+                    "description": "A rusted iron key.",
+                    "equipped": false
+                }
+            ],
+            "npcs": [
+                "goblin_1"
+            ],
+            "light_level": "dim",
+            "hazards": null,
+            "explored": false
+        }
+    },
+    "quest_flags": {
+        "has_key": false,
+        "chest_opened": false,
+        "goblin_defeated": false
+    },
+    "completed_objectives": [],
+    "in_combat": false,
+    "combat_order": null,
+    "current_turn": null,
+    "recent_actions": [],
+    "narrative_tone": "heroic",
+    "turn_count": 0,
+    "session_id": "std_micro_adventure",
+    "difficulty": "medium"
+}

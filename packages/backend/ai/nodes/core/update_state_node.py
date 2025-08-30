@@ -31,7 +31,7 @@ async def update_state_node(state: ActionResolutionState) -> Dict[str, Any]:
             target_name = action_result.get("target_name")
             npcs = game_state.get("npcs", [])
 
-            for npc in npcs:
+            for npc in npcs.values():
                 if npc.get("name") == target_name:
                     npc["hp"] = action_result["new_hp"]
                     npc["is_alive"] = action_result["defender_alive"]

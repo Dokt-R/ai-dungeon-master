@@ -16,7 +16,7 @@ __pycache__/
 ai_dm_project.egg-info/
 server_settings.db
 file
-todo.md
+todo*.md
 notes.md
 htmlcov/
 *workspace*

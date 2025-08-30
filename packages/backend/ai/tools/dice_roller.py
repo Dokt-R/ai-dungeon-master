@@ -84,7 +84,7 @@ class DiceRoller:
         
         return rolls, result
     
-    def parse_dice_notation(self, notation: str) -> Dict[str, Any]:
+    def _parse_dice_notation(self, notation: str) -> Dict[str, Any]:
         """
         Parse standard dice notation like '2d6+3', '1d20', 'd4-1', etc.
         
@@ -117,7 +117,7 @@ class DiceRoller:
     
     def roll_dice_notation(self, notation: str, advantage_type: AdvantageType = AdvantageType.NORMAL) -> DiceRoll:
         """Roll dice using standard notation with optional advantage/disadvantage."""
-        parsed = self.parse_dice_notation(notation)
+        parsed = self._parse_dice_notation(notation)
         count = parsed['count']
         sides = parsed['sides']
         modifier = parsed['modifier']
