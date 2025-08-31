@@ -10,26 +10,12 @@ from typing import Dict, List, Optional, Set, Tuple, Any
 from enum import Enum
 from pydantic import BaseModel, Field
 import random
+from .base_state import InteractionType
 
 # ============================================
 # INTERACTIVE OBJECTS
 # ============================================
 
-class InteractionType(Enum):
-    """Defines extensible types of interactions with objects or the environment."""
-    EXAMINE = "examine"
-    USE = "use"
-    ATTACK = "attack"
-    PUSH = "push"
-    PULL = "pull"
-    ACTIVATE = "activate"
-    COMBINE = "combine"
-    LOOK = "look"
-    TAKE = "take"
-    OPEN = "open"
-    CLOSE = "close"
-    UNLOCK = "unlock"
-    LOCK = "lock"
 
 class InteractiveObject(BaseModel):
     """

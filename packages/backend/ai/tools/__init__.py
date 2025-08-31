@@ -12,6 +12,15 @@ from .dice_roller import (
     roll_stats
 )
 
+from .calculators.currency_calculator import (
+    CoinType,
+    Wallet,
+    COIN_CONVERSIONS,
+    COIN_WEIGHT_PER_COIN,
+    calculate_total_value_in_gp,
+    calculate_coin_weight,
+)
+
 __all__ = [
     "DiceRoller",
     "DiceType", 
@@ -19,5 +28,11 @@ __all__ = [
     "DiceRoll",
     "RollResult",
     "roll",
-    "roll_stats"
+    "roll_stats",
+    "CoinType",
+    "Wallet",
+    "COIN_CONVERSIONS",
+    "COIN_WEIGHT_PER_COIN",
+    "calculate_total_value_in_gp",
+    "calculate_coin_weight",
 ]

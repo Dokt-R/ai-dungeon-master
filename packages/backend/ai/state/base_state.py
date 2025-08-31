@@ -8,6 +8,9 @@ These provide the standardized building blocks for D&D 5e mechanics.
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict
+from pydantic import BaseModel, Field
+
+from packages.backend.ai.tools.calculators.currency_calculator import Wallet, calculate_coin_weight
 
 
 class DamageType(Enum):
@@ -45,6 +48,23 @@ class Condition(Enum):
     UNCONSCIOUS = "unconscious"
 
 
+class InteractionType(Enum):
+    """Defines extensible types of interactions with objects or the environment."""
+    EXAMINE = "examine"
+    USE = "use"
+    ATTACK = "attack"
+    PUSH = "push"
+    PULL = "pull"
+    ACTIVATE = "activate"
+    COMBINE = "combine"
+    LOOK = "look"
+    TAKE = "take"
+    OPEN = "open"
+    CLOSE = "close"
+    UNLOCK = "unlock"
+    LOCK = "lock"
+
+
 class Attack(TypedDict):
     """Standardized attack definition"""
     name: str
@@ -54,18 +74,33 @@ class Attack(TypedDict):
     range: int  # Range in feet (5 for melee, higher for ranged)
 
 
-class Item(TypedDict):
+class Item(BaseModel):
     """Standardized item definition"""
     name: str
-    type: str  # weapon, armor, consumable, key, misc
-    weight: float
-    value: int  # Value in copper pieces
-    properties: Dict[str, Any]
+    type: str = Field(..., description="e.g., weapon, armor, consumable, key, misc")
+    weight: float = Field(..., ge=0)
+    value: int = Field(..., ge=0, description="Value in copper pieces")
     description: str
-    equipped: Optional[bool]
+    source: str = Field("SRD", description="Can be SRD, Homebrew or other")
+    
+    # Gameplay properties
+    quantity: int = Field(1, ge=1)
+    is_stackable: bool = False
+    rarity: str = Field("common", description="e.g., common, uncommon, rare, legendary")
+    requires_attunement: bool = False
+    
+    # Functional properties
+    effects: Dict[str, Any] = Field(default_factory=dict, description="e.g., {'passive': {'ac_bonus': 1}, 'on_use': {'heal': '1d4'}}")
+    interactions: Dict[InteractionType, Dict[str, Any]] = Field(default_factory=dict, description="How the item can be used")
+    properties: Dict[str, Any] = Field(default_factory=dict, description="For miscellaneous data")
+    
+    # State
+    equipped: Optional[bool] = False
 
 
-class Character(TypedDict):
+
+
+class Character(BaseModel):
     """Comprehensive character/NPC definition following D&D 5e rules"""
     name: str
     hp: int
@@ -73,40 +108,81 @@ class Character(TypedDict):
     ac: int  # Armor Class
     speed: int  # Movement speed in feet
 
-    # Ability scores (1-20)
-    strength: int
-    dexterity: int
-    constitution: int
-    intelligence: int
-    wisdom: int
-    charisma: int
-
-    # Derived modifiers ((-5) to (+5) typically)
-    strength_mod: int
-    dexterity_mod: int
-    constitution_mod: int
-    intelligence_mod: int
-    wisdom_mod: int
-    charisma_mod: int
+    # Ability scores (1-30)
+    strength: int = Field(..., ge=1, le=30)
+    dexterity: int = Field(..., ge=1, le=30)
+    constitution: int = Field(..., ge=1, le=30)
+    intelligence: int = Field(..., ge=1, le=30)
+    wisdom: int = Field(..., ge=1, le=30)
+    charisma: int = Field(..., ge=1, le=30)
 
     # Combat
-    attacks: List[Attack]
-    proficiency_bonus: int  # 2 for levels 1-4, scales up
-    initiative_modifier: int  # Usually dex_mod
+    attacks: List[Attack] = Field(default_factory=list)
+    proficiency_bonus: int = 2
 
     # Status
-    conditions: List[str]  # Use Condition enum values
-    is_alive: bool
-    is_hostile: bool
+    conditions: List[Condition] = Field(default_factory=list)
+    is_alive: bool = True
+    is_hostile: bool = False
 
-    # Inventory (player only)
-    inventory: Optional[List[Item]]
-    equipped_items: Optional[Dict[str, Item]]  # slot -> item
+    # Inventory
+    inventory: List[Item] = Field(default_factory=list)
+    equipped_items: Dict[str, Item] = Field(default_factory=dict)
+    wallet: Wallet = Field(default_factory=lambda: {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0})
 
-    # Resources (magical characters)
-    spell_slots: Optional[Dict[int, int]]  # level -> remaining slots
-    hit_dice: Optional[str]  # e.g., "1d8+1"
-    hit_dice_remaining: Optional[int]
+    # Resources
+    spell_slots: Optional[Dict[int, int]] = None
+    hit_dice: Optional[str] = None
+    hit_dice_remaining: Optional[int] = None
+
+    @property
+    def strength_mod(self) -> int:
+        return calculate_modifier(self.strength)
+
+    @property
+    def dexterity_mod(self) -> int:
+        return calculate_modifier(self.dexterity)
+
+    @property
+    def constitution_mod(self) -> int:
+        return calculate_modifier(self.constitution)
+
+    @property
+    def intelligence_mod(self) -> int:
+        return calculate_modifier(self.intelligence)
+
+    @property
+    def wisdom_mod(self) -> int:
+        return calculate_modifier(self.wisdom)
+
+    @property
+    def charisma_mod(self) -> int:
+        return calculate_modifier(self.charisma)
+
+    @property
+    def initiative_modifier(self) -> int:
+        return self.dexterity_mod
+
+    def get_total_weight(self) -> float:
+        """Calculates the total weight of all items and coins."""
+        item_weight = sum(item.get("weight", 0.0) * item.get("quantity", 1) for item in self.inventory)
+        coin_weight = calculate_coin_weight(self.wallet)
+        return item_weight + coin_weight
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Returns a dictionary representation of the character, including
+        computed properties for LangGraph compatibility.
+        """
+        data = self.model_dump()
+        data["strength_mod"] = self.strength_mod
+        data["dexterity_mod"] = self.dexterity_mod
+        data["constitution_mod"] = self.constitution_mod
+        data["intelligence_mod"] = self.intelligence_mod
+        data["wisdom_mod"] = self.wisdom_mod
+        data["charisma_mod"] = self.charisma_mod
+        data["initiative_modifier"] = self.initiative_modifier
+        return data
 
 
 @dataclass

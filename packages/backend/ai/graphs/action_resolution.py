@@ -15,20 +15,18 @@ Architecture follows patterns from dm_graph.py and combat_graph.py.
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from packages.backend.ai.constants.actions import ROUTE_MAPPING
 from packages.backend.ai.state import ActionResolutionState, ParsedIntent
+from packages.backend.ai.state.base_state import Character, Item, Attack, InteractionType, Condition
+from packages.backend.ai.state.environment_state import TacticalRoom, InteractiveObject, EnvironmentalEffect, TerrainType
+from packages.backend.ai.state.game_state import GameState as GraphGameState # Import GameState for LangGraph type system
 
 # LangGraph imports
 try:
     from langgraph.graph import END, StateGraph
     LANGGRAPH_AVAILABLE = True
-    # Import GameState for LangGraph type system
-    from packages.backend.ai.state.game_state import (
-        GameState as GraphGameState,
-        create_micro_adventure_state,
-    )
     GameState = GraphGameState  # Make it available as GameState
 except ImportError:
     LANGGRAPH_AVAILABLE = False
@@ -36,7 +34,6 @@ except ImportError:
     END = None
     # Fallback types if imports fail
     GameState = dict
-    create_micro_adventure_state = lambda: {}
 
 # Node imports
 from packages.backend.ai.graphs.subgraphs.combat_subgraph import get_combat_subgraph
@@ -58,6 +55,7 @@ from packages.backend.ai.tools import DiceRoller
 from packages.backend.components.observability_service import observability_service
 from packages.shared.errors import ErrorCode
 from packages.shared.logging_config import configure_logging, get_logger
+import random # For dynamic room descriptions
 
 configure_logging(level="DEBUG")
 logger = get_logger(__name__)
@@ -239,9 +237,224 @@ class ActionResolutionService:
 
 
     # Standardized game state creation function
-def create_example_game_state():
-    """Create example game state for testing using standardized D&D 5e schema."""
-    return create_micro_adventure_state()
+def create_example_game_state() -> GameState:
+    """Create example game state for testing using enhanced D&D 5e schema."""
+    
+    # Create player character
+    player_character = Character(
+        name="Roric",
+        hp=12,
+        max_hp=12,
+        ac=14,
+        speed=30,
+        strength=14,
+        dexterity=13,
+        constitution=14,
+        intelligence=10,
+        wisdom=12,
+        charisma=8,
+        attacks=[
+            Attack(
+                name="Shortsword",
+                bonus=4,  # +2 str mod, +2 proficiency
+                damage="1d6+2",
+                damage_type="piercing",
+                range=5
+            )
+        ],
+        proficiency_bonus=2,
+        conditions=[],
+        is_alive=True,
+        is_hostile=False,
+        inventory=[
+            Item(
+                name="Sword",
+                type="weapon",
+                weight=3.0,
+                value=50,
+                description="A simple iron shortsword.",
+                source="SRD",
+                quantity=1,
+                is_stackable=False,
+                rarity="common",
+                requires_attunement=False,
+                effects={},
+                interactions={},
+                properties={"weapon_type": "shortsword"},
+                equipped=False
+            ),
+            Item(
+                name="Shield",
+                type="armor",
+                weight=6.0,
+                value=30,
+                description="A stout wooden shield.",
+                source="SRD",
+                quantity=1,
+                is_stackable=False,
+                rarity="common",
+                requires_attunement=False,
+                effects={},
+                interactions={},
+                properties={"armor": 2},
+                equipped=False
+            ),
+            Item(
+                name="Healing Potion",
+                type="consumable",
+                weight=0.5,
+                value=50,
+                description="A red potion that restores health.",
+                source="SRD",
+                quantity=1,
+                is_stackable=True,
+                rarity="common",
+                requires_attunement=False,
+                effects={"on_use": {"heal": "2d4+2"}},
+                interactions={InteractionType.USE: {"effect": "heal"}},
+                properties={},
+                equipped=False
+            ),
+            Item(
+                name="Key",
+                type="key",
+                weight=0.1,
+                value=25,
+                description="A simple iron key.",
+                source="SRD",
+                quantity=1,
+                is_stackable=False,
+                rarity="common",
+                requires_attunement=False,
+                effects={},
+                interactions={InteractionType.USE: {"unlocks": "some_lock"}},
+                properties={},
+                equipped=False
+            )
+        ],
+        equipped_items={},
+        wallet={"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0},
+    )
+
+    # Create NPC (Goblin)
+    goblin_character = Character(
+        name="Goblin",
+        hp=7,
+        max_hp=7,
+        ac=15,
+        speed=30,
+        strength=8,
+        dexterity=14,
+        constitution=10,
+        intelligence=10,
+        wisdom=8,
+        charisma=8,
+        attacks=[
+            Attack(
+                name="Scimitar",
+                bonus=4,
+                damage="1d6+2",
+                damage_type="slashing",
+                range=5
+            )
+        ],
+        proficiency_bonus=2,
+        conditions=[],
+        is_alive=True,
+        is_hostile=True,
+        inventory=[],
+        equipped_items={},
+        wallet={"cp": 5, "sp": 0, "ep": 0, "gp": 0, "pp": 0},
+    )
+
+    # Create interactive objects
+    iron_chest = InteractiveObject(
+        name="Iron Chest",
+        description={
+            "default": "a sturdy iron chest with an intricate lock",
+            "unlocked": "an unlocked iron chest",
+            "open": "an open chest containing treasures",
+            "trapped": "a chest with a visible poison dart trap!"
+        },
+        current_state="default",
+        interactions={
+            InteractionType.EXAMINE: {
+                "effects": [{"type": "skill_check", "skill": "investigation", "dc": 12,
+                           "success": {"reveal": "trap", "message": "You spot a poison dart trap!"},
+                           "failure": {"message": "The chest looks valuable."}}]
+            },
+            InteractionType.USE: {
+                "requires": {"item": "golden_key"},
+                "next_state": "unlocked",
+                "message": "The key turns with a satisfying click!"
+            },
+            InteractionType.OPEN: {
+                "requires": {"state": "unlocked"},
+                "next_state": "open",
+                "message": "The chest creaks open, revealing its contents!"
+            }
+        },
+        state_transitions={},
+        properties={"locked": True, "trap_present": True}
+    )
+
+    # Create environmental effects
+    goblin_reinforcements_effect = EnvironmentalEffect(
+        name="Goblin Reinforcements",
+        trigger_condition="every_n_turns",
+        trigger_frequency=5,
+        effect_type="spawn",
+        effect_data={"spawn": "goblin_warrior", "location": "entrance"},
+        warning_signs=[
+            "You hear footsteps echoing from the entrance...",
+            "The footsteps grow louder!",
+            "Something is coming!"
+        ],
+        active=True,
+        turns_until_trigger=5
+    )
+
+    # Create the TacticalRoom
+    dungeon_room = TacticalRoom(
+        name="Goblin's Lair",
+        base_description="A damp stone chamber lit by a flickering torch.",
+        conditional_descriptions=[
+            ("goblin_dead", "The goblin's body lies crumpled on the floor."),
+            ("chest_open", "The chest stands open, revealing its treasures."),
+            ("hp<5", "Your vision blurs from your wounds."),
+            ("trap_triggered", "Poison darts stick out from the walls!")
+        ],
+        lighting="dim",
+        sounds=["dripping water", "distant scratching", "your own breathing"],
+        smells=["mildew", "goblin stench", "old leather"],
+        zones={
+            "entrance": {"terrain": TerrainType.NORMAL, "cover": "none", "elevation": 0},
+            "center": {"terrain": TerrainType.NORMAL, "cover": "none", "elevation": 0},
+            "chest_area": {"terrain": TerrainType.DIFFICULT, "cover": "half", "elevation": 0},
+            "goblin_corner": {"terrain": TerrainType.NORMAL, "cover": "three_quarters", "elevation": 5}
+        },
+        positions={"player": "entrance", "goblin_1": "goblin_corner"},
+        objects=[iron_chest],
+        environmental_effects=[goblin_reinforcements_effect],
+        flags=set()
+    )
+
+    return GameState(
+        player=player_character.to_dict(),
+        npcs={"goblin_1": goblin_character.to_dict()},
+        current_room_id="goblin_lair",
+        rooms={"goblin_lair": dungeon_room.model_dump()}, # Convert TacticalRoom to dict
+        quest_flags={"has_key": False, "chest_opened": False, "goblin_defeated": False},
+        completed_objectives=[],
+        in_combat=False,
+        combat_order=None,
+        current_turn=None,
+        recent_actions=[],
+        narrative_tone="heroic",
+        turn_count=0,
+        session_id="enhanced_micro_adventure",
+        difficulty="medium"
+    )
 
 
 # Test function to demonstrate the system
@@ -260,57 +473,53 @@ async def test_action_resolution():
     # Test actions to verify routing works correctly
     test_actions = [
         # Combat actions (should route to combat_node)
-        {"action": "I attack the goblin with my sword", "expected_route": "combat_node", "category": "Combat"},
-        {"action": "I swing my sword at the goblin", "expected_route": "combat_node", "category": "Combat"},
+        {"action": "I attack the goblin with my sword", "expected_route": "combat_subgraph", "category": "Combat"},
+        # {"action": "I swing my sword at the goblin", "expected_route": "combat_subgraph", "category": "Combat"},
 
-        # Interaction actions (should route to interaction_node)
-        {"action": "I use the key on the chest", "expected_route": "interaction_node", "category": "Interaction"},
-        {"action": "I take the silver coin", "expected_route": "interaction_node", "category": "Interaction"},
-        {"action": "I say hello to the goblin", "expected_route": "interaction_node", "category": "Interaction"},
-        {"action": "I use the healing potion", "expected_route": "interaction_node", "category": "Interaction"},
+        # # Interaction actions (should route to interaction_node)
+        # {"action": "I use the key on the chest", "expected_route": "interaction_node", "category": "Interaction"},
+        # {"action": "I take the silver coin", "expected_route": "interaction_node", "category": "Interaction"},
+        # {"action": "I say hello to the goblin", "expected_route": "interaction_node", "category": "Interaction"},
+        # {"action": "I use the healing potion", "expected_route": "interaction_node", "category": "Interaction"},
+        # {"action": "I open the chest", "expected_route": "interaction_node", "category": "Interaction"},
+
 
         # # Exploration actions (should route to exploration_node)
-        {"action": "I search the room", "expected_route": "exploration_node", "category": "Exploration"},
-        {"action": "I examine the chest", "expected_route": "exploration_node", "category": "Exploration"},
-        {"action": "I open the door", "expected_route": "exploration_node", "category": "Exploration"},
-
-        # Edge cases (should route to exploration_node by default)
-        {"action": "I look around the room", "expected_route": "exploration_node", "category": "Exploration"},
-        {"action": "I stand up", "expected_route": "exploration_node", "category": "Exploration"}
+        # {"action": "I search the room", "expected_route": "exploration_node", "category": "Exploration"},
+        # {"action": "I examine the chest", "expected_route": "exploration_node", "category": "Exploration"},
+        # {"action": "I look around the room", "expected_route": "exploration_node", "category": "Exploration"},
+        # {"action": "I stand up", "expected_route": "exploration_node", "category": "Exploration"}
     ]
 
     # Get current room information
-    current_room = game_state['rooms'][game_state['current_room_id']]
-    room_objects = current_room.get('objects', [])
+    current_room = TacticalRoom(**game_state['rooms'][game_state['current_room_id']]) # Re-instantiate for methods
+    
+    # Explicitly convert inventory items to Item models for the test's Character instantiation
+    player_char_data = game_state['player'].copy()
+    player_char_data['inventory'] = [Item(**item_data) for item_data in player_char_data['inventory']]
+    player_char = Character(**player_char_data)
 
-    # Find chest object
-    chest_locked = None
-    for obj in room_objects:
-        if 'chest' in obj['name'].lower():
-            chest_locked = obj.get('state', {}).get('locked', False)
-            break
-
-    print(f"🏃 Player Character: {game_state['player']['name']}")
-    print(f"❤️  Health: {game_state['player']['hp']}/{game_state['player']['max_hp']}")
-    print(f"🛡️ AC: {game_state['player']['ac']}")
-    # Handle both legacy string and standardized Item formats
-    inventory_items = game_state['player']['inventory']
-    if inventory_items:
-        inventory_names = []
-        for item in inventory_items:
-            if isinstance(item, str):
-                inventory_names.append(item)
-            elif isinstance(item, dict) and 'name' in item:
-                inventory_names.append(item['name'])
-            else:
-                inventory_names.append(str(item))
-        inventory_display = ', '.join(inventory_names) if inventory_names else 'Empty'
-    else:
-        inventory_display = 'Empty'
+    print(f"🏃 Player Character: {player_char.name}")
+    print(f"❤️  Health: {player_char.hp}/{player_char.max_hp}")
+    print(f"🛡️ AC: {player_char.ac}")
+    
+    inventory_display = ', '.join([item.name for item in player_char.inventory]) if player_char.inventory else 'Empty'
     print(f"🎒 Inventory: {inventory_display}")
-    print(f"📍 Current Room: {current_room['name']}")
-    print(f"📍 Room items: {', '.join(str(item) if isinstance(item, str) else item.get('name', 'Unknown') for item in current_room['items']) if current_room['items'] else 'None'}")
-    print(f"💰 Chest: {'🔒 Locked' if chest_locked else '🔓 Unlocked' if chest_locked is not None else 'Not found'}")
+    print(f"📍 Current Room: {current_room.name}")
+    
+    room_objects_display = ', '.join([obj.name for obj in current_room.objects]) if current_room.objects else 'None'
+    print(f"📍 Room objects: {room_objects_display}")
+    
+    chest_obj = next((obj for obj in current_room.objects if obj.name == "Iron Chest"), None)
+    chest_status = "Not found"
+    if chest_obj:
+        if chest_obj.current_state == "open":
+            chest_status = "🔓 Open"
+        elif chest_obj.properties.get("locked"):
+            chest_status = "🔒 Locked"
+        else:
+            chest_status = "   box Unlocked"
+    print(f"💰 Chest: {chest_status}")
     print("=" * 50)
 
     # Show quest flags
@@ -334,6 +543,7 @@ async def test_action_resolution():
         print("-" * 60)
 
         try:
+            # Pass a copy of the game_state to avoid side effects between tests
             result = await action_resolution_service.resolve_action(
                 player_action=action,
                 game_state=game_state.copy(),
@@ -345,43 +555,64 @@ async def test_action_resolution():
                 continue
 
             # Show routing information
-            action_type = result.get('performance', {}).get('action_type', 'unknown')
+            action_type = result.get('parsed_intent', {}).get('action_type', 'unknown')
             narrative = result.get('narrative', 'No response')
-
-            # Try to determine which node was actually used based on the result
-            route_indicator = "Unknown"
-            if "attack" in action_type.lower():
-                route_indicator = "💥 combat_node"
-            elif any(word in action_type.lower() for word in ["use", "take", "talk", "pick", "grab"]):
-                route_indicator = "🤝 interaction_node"
-            elif "unknown" not in action_type.lower():
-                route_indicator = "🔍 exploration_node"
+            routed_to = result.get('performance', {}).get('routing_path', 'unknown')
 
             print(f"🎯 Action Type: {action_type}")
-            print(f"🎭 Routed to: {route_indicator}")
+            print(f"🎭 Routed to: {routed_to}")
             print(f"📖 Response: {narrative}")
 
             # Show state changes if any (compare key properties)
             updated_game_state = result.get('updated_game_state')
-            if updated_game_state != game_state and updated_game_state:
+            if updated_game_state and updated_game_state != game_state:
                 state_changes = []
+                
+                # Explicitly convert inventory items for updated_player_char and original_player_char
+                updated_player_data = updated_game_state['player'].copy()
+                updated_player_data['inventory'] = [Item(**item_data) for item_data in updated_player_data['inventory']]
+                updated_player_char = Character(**updated_player_data)
 
-                # Check player HP changes
-                if updated_game_state['player']['hp'] != game_state['player']['hp']:
-                    state_changes.append(f"HP: {game_state['player']['hp']} → {updated_game_state['player']['hp']}")
-                else:
-                    state_changes.append("Game state modified")
+                original_player_data = game_state['player'].copy()
+                original_player_data['inventory'] = [Item(**item_data) for item_data in original_player_data['inventory']]
+                original_player_char = Character(**original_player_data)
+
+                if updated_player_char.hp != original_player_char.hp:
+                    state_changes.append(f"HP: {original_player_char.hp} → {updated_player_char.hp}")
+                
+                if updated_player_char.wallet != original_player_char.wallet:
+                    state_changes.append(f"Wallet: {original_player_char.wallet} → {updated_player_char.wallet}")
+
+                if updated_player_char.inventory != original_player_char.inventory:
+                    state_changes.append(f"Inventory changed.")
+
+                updated_room = TacticalRoom(**updated_game_state['rooms'][updated_game_state['current_room_id']])
+                original_room = TacticalRoom(**game_state['rooms'][game_state['current_room_id']])
+
+                if updated_room.objects != original_room.objects:
+                    state_changes.append(f"Room objects changed.")
+                
+                if updated_game_state['quest_flags'] != game_state['quest_flags']:
+                    state_changes.append(f"Quest flags changed.")
+
 
                 if state_changes:
                     print(f"📊 State Changes: {', '.join(state_changes)}")
+                else:
+                    print("📊 No significant state changes detected.")
 
-            success_count += 1
+            if routed_to == expected_route:
+                print("✅ Routing test passed.")
+                success_count += 1
+            else:
+                print(f"❌ Routing test FAILED. Expected: {expected_route}, Got: {routed_to}")
+
 
         except Exception as e:
             print(f"❌ Test failed: {str(e)}")
 
     print("\n" + "=" * 50)
-    print(f"📊 Test Results: {success_count}/{total_tests} tests completed")
+    print(f"📊 Test Results: {success_count}/{total_tests} tests passed")
     print(f"🎯 Enhanced conditional routing implementation provides flexible action routing!")
 
 

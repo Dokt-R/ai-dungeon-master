@@ -141,3 +141,42 @@ ITEM_INTERACTION_TYPES = {
     "FUNCTIONAL": ["use", "activate", "trigger", "pull"],
     "KEY": ["unlock", "open", "insert", "turn"]
 }
+
+from enum import Enum
+
+class ActionType(Enum):
+    """Defines the main actions a character can take on their turn, based on the SRD."""
+    ATTACK = "Attack with a weapon or an Unarmed Strike."
+    DASH = "For the rest of the turn, give yourself extra movement equal to your Speed."
+    DISENGAGE = "Your movement doesn’t provoke Opportunity Attacks for the rest of the turn."
+    DODGE = "Until the start of your next turn, attack rolls against you have Disadvantage, and you make Dexterity saving throws with Advantage."
+    HELP = "Help another creature’s ability check or attack roll, or administer first aid."
+    HIDE = "Make a Dexterity (Stealth) check."
+    INFLUENCE = "Make a Charisma (Deception, Intimidation, Performance, or Persuasion) or Wisdom (Animal Handling) check to alter a creature’s attitude."
+    MAGIC = "Cast a spell, use a magic item, or use a magical feature."
+    READY = "Prepare to take an action in response to a trigger you define."
+    SEARCH = "Make a Wisdom (Insight, Medicine, Perception, or Survival) check."
+    STUDY = "Make an Intelligence (Arcana, History, Investigation, Nature, or Religion) check."
+    UTILIZE = "Use a nonmagical object."
+
+
+class SkillType(Enum):
+    """Defines the skills a character can use, based on the SRD."""
+    ACROBATICS = "Stay on your feet in a tricky situation, or perform an acrobatic stunt."
+    ANIMAL_HANDLING = "Calm or train an animal, or get an animal to behave in a certain way."
+    ARCANA = "Recall lore about spells, magic items, and the planes of existence."
+    ATHLETICS = "Jump farther than normal, stay afloat in rough water, or break something."
+    DECEPTION = "Tell a convincing lie, or wear a disguise convincingly."
+    HISTORY = "Recall lore about historical events, people, nations, and cultures."
+    INSIGHT = "Discern a person’s mood and intentions."
+    INTIMIDATION = "Awe or threaten someone into doing what you want."
+    INVESTIGATION = "Find obscure information in books, or deduce how something works."
+    MEDICINE = "Diagnose an illness, or determine what killed the recently slain."
+    NATURE = "Recall lore about terrain, plants, animals, and weather."
+    PERCEPTION = "Using a combination of senses, notice something that’s easy to miss."
+    PERFORMANCE = "Act, tell a story, perform music, or dance."
+    PERSUASION = "Honestly and graciously convince someone of something."
+    RELIGION = "Recall lore about gods, religious rituals, and holy symbols."
+    SLEIGHT_OF_HAND = "Pick a pocket, conceal a handheld object, or perform legerdemain."
+    STEALTH = "Escape notice by moving quietly and hiding behind things."
+    SURVIVAL = "Follow tracks, forage, find a trail, or avoid natural hazards."
