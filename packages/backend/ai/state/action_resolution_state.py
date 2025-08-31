@@ -8,6 +8,7 @@ Other schema definitions have been moved to their appropriate architecture files
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, TypedDict
 
+from .combat_state import CombatState
 from .game_state import GameState
 
 
@@ -15,10 +16,11 @@ class ActionResolutionState(TypedDict):
     """State for the action resolution graph workflow with standardized schemas."""
     player_action: str
     game_state: GameState  # Must be standardized GameState schema
+    combat_state: Optional[CombatState] # To hold all combat-specific data
     parsed_intent: Optional[Dict[str, Any]]
     action_result: Optional[Dict[str, Any]]
     narrative_response: Optional[str]
-    error: Optional[str]
+    error: Optional[Dict[str, Any]]  # To hold structured error info
     correlation_id: str
     trace_context: Optional[Dict[str, Any]]  # Extended trace context
     performance_metrics: Optional[Dict[str, Any]]  # Performance tracking

@@ -5,10 +5,11 @@ Handles all standard dice types, modifiers, advantage/disadvantage, and complex 
 
 import random
 import re
-from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
+#TODO: Enhance to return critical success and refactor nodes accordingly
 
 class DiceType(Enum):
     """Standard D&D dice types."""
@@ -239,8 +240,8 @@ class DiceRoller:
         """Roll an attack roll with bonus and optional advantage/disadvantage."""
         roll = self.roll_dice_notation("1d20", advantage_type)
         roll.modifier = attack_bonus
-        roll.total = roll.rolls[0] if advantage_type == AdvantageType.NORMAL else max(roll.rolls) if advantage_type == AdvantageType.ADVANTAGE else min(roll.rolls)
-        roll.total += attack_bonus
+        roll.actual = roll.rolls[0] if advantage_type == AdvantageType.NORMAL else max(roll.rolls) if advantage_type == AdvantageType.ADVANTAGE else min(roll.rolls)
+        roll.total = roll.actual + attack_bonus
         roll.description = f"Attack: 1d20{'+' + str(attack_bonus) if attack_bonus >= 0 else str(attack_bonus)}"
         
         if advantage_type != AdvantageType.NORMAL:

@@ -40,6 +40,10 @@ class ErrorCode(str, Enum):
     PLAYER_HAS_NO_CAMPAIGNS = "PLAYER_HAS_NO_CAMPAIGNS"
     PLAYER_NOT_IN_CAMPAIGN = "PLAYER_NOT_IN_CAMPAIGN"
 
+    # Action Resolution
+    INTENT_PARSING_FAILED = "INTENT_PARSING_FAILED"
+    ACTION_RESOLUTION_FAILED = "ACTION_RESOLUTION_FAILED"
+
     @property
     def message(self):
         return ERRORS[self].message
@@ -191,6 +195,17 @@ ERRORS: Dict[str, ErrorDef] = {
         "Failed to fetch server members",
         HTTPStatus.INTERNAL_SERVER_ERROR,
     ),
+    # Action Resolution
+    ErrorCode.INTENT_PARSING_FAILED: ErrorDef(
+        ErrorCode.INTENT_PARSING_FAILED,
+        "Failed to parse player intent from action.",
+        HTTPStatus.BAD_REQUEST,
+    ),
+    ErrorCode.ACTION_RESOLUTION_FAILED: ErrorDef(
+        ErrorCode.ACTION_RESOLUTION_FAILED,
+        "The requested action could not be resolved.",
+        HTTPStatus.UNPROCESSABLE_ENTITY,
+    ),
 }
 
 
@@ -284,5 +299,14 @@ PLAYER_ERRORS: Dict[str, PlayerErrorDef] = {
     ErrorCode.MEMBER_FETCH_ERROR: PlayerErrorDef(
         ErrorCode.MEMBER_FETCH_ERROR,
         "Error fetching server members. Make sure the bot has 'Server Members Intent' enabled in Discord Developer Portal.",
+    ),
+    # Action Resolution
+    ErrorCode.INTENT_PARSING_FAILED: PlayerErrorDef(
+        ErrorCode.INTENT_PARSING_FAILED,
+        "I'm sorry, I didn't understand what you wanted to do. Could you please rephrase your action?",
+    ),
+    ErrorCode.ACTION_RESOLUTION_FAILED: PlayerErrorDef(
+        ErrorCode.ACTION_RESOLUTION_FAILED,
+        "I'm sorry, but I can't do that right now. The action '{action}' could not be completed.",
     ),
 }

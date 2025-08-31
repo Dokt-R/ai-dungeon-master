@@ -39,8 +39,9 @@ except ImportError:
     create_micro_adventure_state = lambda: {}
 
 # Node imports
-from packages.backend.ai.nodes.combat import combat_node
+from packages.backend.ai.graphs.subgraphs.combat_subgraph import get_combat_subgraph
 from packages.backend.ai.nodes.core import (
+    error_handler_node,
     narrate_result_node,
     parse_intent_node,
     update_state_node,
@@ -55,6 +56,7 @@ from packages.backend.ai.nodes.social.interaction_resolution_node import (
 # Dice roller integration
 from packages.backend.ai.tools import DiceRoller
 from packages.backend.components.observability_service import observability_service
+from packages.shared.errors import ErrorCode
 from packages.shared.logging_config import configure_logging, get_logger
 
 configure_logging(level="DEBUG")
@@ -62,9 +64,16 @@ logger = get_logger(__name__)
 
 
 async def route_by_intent(state: ActionResolutionState) -> str:
-    """Route to appropriate node based on parsed intent."""
+    """Route to appropriate node based on parsed intent or error state."""
+    if state.get("error"):
+        return "error_handler"
+
     if not state.get("parsed_intent"):
-        return "narrate_result"  # Skip to narration with error
+        state["error"] = {
+            "error_code": ErrorCode.INTENT_PARSING_FAILED,
+            "details": {"player_action": state.get("player_action")},
+        }
+        return "error_handler"
 
     action_type = state["parsed_intent"].get("action_type", "").lower()
 
@@ -110,11 +119,13 @@ class ActionResolutionService:
 
         # Add nodes (imported from modular node modules)
         workflow.add_node("parse_intent", parse_intent_node)
-        workflow.add_node("combat_node", combat_node)
+        combat_subgraph = get_combat_subgraph()
+        workflow.add_node("combat_subgraph", combat_subgraph)
         workflow.add_node("exploration_node", exploration_node)
         workflow.add_node("interaction_node", interaction_node)  # New node for interactions
         workflow.add_node("update_state", update_state_node)
         workflow.add_node("narrate_result", narrate_result_node)
+        workflow.add_node("error_handler", error_handler_node)
 
         
         # Set Entry Point
@@ -126,18 +137,20 @@ class ActionResolutionService:
             "parse_intent",
             route_by_intent,
             {
-                "combat_node": "combat_node",
+                "combat_node": "combat_subgraph",
                 "exploration_node": "exploration_node",
                 "interaction_node": "interaction_node",
-                "narrate_result": "narrate_result"  # For errors or unrecognized actions
+                "narrate_result": "narrate_result",  # For errors or unrecognized actions
+                "error_handler": "error_handler",
                 # MAYBE: Add Social Node and Error Handler specific routes
             }
         )
 
         # All action nodes converge to update_state
-        workflow.add_edge("combat_node", "update_state")
+        workflow.add_edge("combat_subgraph", "update_state")
         workflow.add_edge("exploration_node", "update_state")
         workflow.add_edge("interaction_node", "update_state")
+        workflow.add_edge("error_handler", "update_state")
 
         # Final narration and end
         workflow.add_edge("update_state", "narrate_result")

@@ -118,6 +118,46 @@ class ActionResult:
     resolution_details: Optional[Dict[str, Any]] = None
 
 
+
+@dataclass
+class Position:
+    """Represents a 3D position in the game world."""
+    x: int
+    y: int
+    z: int
+
+
+class EnvironmentalEffect(TypedDict):
+    """Represents an environmental effect."""
+    name: str
+    description: str
+    effect_type: str  # e.g., "magical", "weather", "hazard"
+    duration: int  # in rounds, -1 for permanent
+    area_of_effect: Dict[str, Any]  # e.g., {"shape": "sphere", "radius": 10}
+
+
+class InteractiveObject(TypedDict):
+    """Represents an object in the environment that can be interacted with."""
+    name: str
+    description: str
+    position: Position
+    is_interactive: bool
+    is_movable: bool
+    properties: Dict[str, Any]  # e.g., {"locked": true, "key_id": "key_to_chest"}
+
+
+class Room(TypedDict):
+    """Represents a single location in the game world."""
+    name: str
+    description: str
+    dimensions: Dict[str, int]  # e.g., {"width": 20, "length": 30, "height": 10}
+    terrain: str  # TerrainType enum value
+    objects: List[InteractiveObject]
+    characters: List[str]  # List of character names/IDs
+    environmental_effects: List[EnvironmentalEffect]
+    exits: Dict[str, str]  # e.g., {"north": "room_id_2"}
+
+
 def calculate_modifier(score: int) -> int:
     """Calculate D&D 5e ability modifier from ability score."""
     return (score - 10) // 2
