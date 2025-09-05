@@ -16,13 +16,6 @@ Import everything here so the rest of your code doesn't change
 
 ################################################
 
-from .advanced_voice_features_models import (
-    AudioMixConfiguration,
-    ConversationIntelligenceData,
-    MultiUserConversation,
-    SpeakerProfile,
-    VoiceActivitySegment,
-)
 from .ai_action_models import ActionRequest, ActionResponse
 from .ai_integration_models import AccuracyValidation, ToolCall, ToolResult
 from .api_request_models import (
@@ -40,6 +33,43 @@ from .api_request_models import (
     ServerConfigModel,
     UpdateCharacterRequest,
 )
+from .audio.advanced_voice_features_models import (
+    AudioMixConfiguration,
+    ConversationIntelligenceData,
+    MultiUserConversation,
+    SpeakerProfile,
+    VoiceActivitySegment,
+)
+from .audio.stt_tts_models import (
+    AudioProcessingConfig,
+    AudioTranscriptionRequest,
+    ProviderHealthStatus,
+    SpeechSynthesisResult,
+    STTServiceStatus,
+    TextToSpeechRequest,
+    TranscriptionResult,
+    TTSServiceStatus,
+)
+from .audio.voice_command_models import (
+    CommandExecutionResult,
+    CommandFeedback,
+    CommandHistory,
+    CommandPattern,
+    VoiceCommandIntent,
+)
+from .audio.voice_integration_models import (
+    AudioStreamInfo,
+    MemoryQueryRequest,
+    VoiceChannelInfo,
+    VoiceChannelResponse,
+    VoiceCommandResponse,
+    VoiceConnection,
+    VoiceJoinRequest,
+    VoiceLeaveRequest,
+    VoicePermission,
+    VoiceSession,
+    VoiceStatusResponse,
+)
 from .core_db_models import (
     Campaign,
     CampaignPlayerLink,
@@ -49,10 +79,10 @@ from .core_db_models import (
     Server,
 )
 from .enum_models import CharacterSheetMode, DMVisibility, PlayerRollMode
-from .langgraph_state_models import MemoryState
+from .langgraph_state_models import MinimalGameState
 from .memory_management_models import (
     CreateMemoryEventRequest,
-    CreateMemoryFactRequest,
+    CreateMemoryFactRequest, 
     MemoryContext,
     MemoryEvent,
     MemoryFact,
@@ -75,36 +105,6 @@ from .srd_compliance_models import (
     Spell,
     SRDCompliance,
     Weapon,
-)
-from .stt_tts_models import (
-    AudioProcessingConfig,
-    AudioTranscriptionRequest,
-    ProviderHealthStatus,
-    SpeechSynthesisResult,
-    STTServiceStatus,
-    TextToSpeechRequest,
-    TranscriptionResult,
-    TTSServiceStatus,
-)
-from .voice_command_models import (
-    CommandExecutionResult,
-    CommandFeedback,
-    CommandHistory,
-    CommandPattern,
-    VoiceCommandIntent,
-)
-from .voice_integration_models import (
-    AudioStreamInfo,
-    MemoryQueryRequest,
-    VoiceChannelInfo,
-    VoiceChannelResponse,
-    VoiceCommandResponse,
-    VoiceConnection,
-    VoiceJoinRequest,
-    VoiceLeaveRequest,
-    VoicePermission,
-    VoiceSession,
-    VoiceStatusResponse,
 )
 
 # Re-export everything for backward compatibility
@@ -180,7 +180,11 @@ __all__ = [
     "PlayerRollMode",
 
     # LangGraph State Models
-    "MemoryState",
+    # "MemoryState",
+    # "ActionHistory", #! EXPERIMENTAL
+    # "CampaignGameState", #! EXPERIMENTAL
+    "MinimalGameState", #! EXPERIMENTAL
+
 
     # SRD Compliance Models
     "DataSource",

@@ -22,7 +22,7 @@ from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.speaker_identification_service import (
+from packages.backend.components.audio.speaker_identification_service import (
     speaker_identification_service,
 )
 from packages.shared.correlation import (

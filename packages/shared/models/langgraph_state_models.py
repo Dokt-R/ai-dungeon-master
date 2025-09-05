@@ -3,130 +3,161 @@ LangGraph State Models
 Models for conversational AI interactions in LangGraph.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, TypedDict
 
-from pydantic import BaseModel, Field as PydanticField, model_validator
-from pydantic.config import ConfigDict
+from sqlalchemy.dialects.postgresql import JSON
+from sqlmodel import Column, Field as SQLField, Index, SQLModel
 
 
-class MemoryState(BaseModel):
-    """Represents the conversational memory state for LangGraph."""
+class MinimalGameState(TypedDict, total=False):
+    """Ultra-lightweight state for LangGraph"""
+    # Context IDs only
+    campaign_id: int
+    state_players: List[str]
+    state_npcs: List[str]
+    state_enemies: List[str]
+    character_id: int
+    discord_user_id: str
+    discord_channel_id: str
+    correlation_id: str
 
-    model_config = ConfigDict(serialize_default_values=True)
+    # Current action
+    player_action: str
+    parsed_intent: Dict[str, Any]
 
-    messages: List[Dict[str, str]] = PydanticField(
-        default_factory=list,
-        description="Conversation history with user and AI messages",
-        examples=[
-            [
-                {"role": "user", "content": "I want to investigate the room"},
-                {"role": "assistant", "content": "You carefully examine the room..."},
-            ]
-        ],
+    # Computed results (not persisted)
+    action_result: str
+    dice_results: Dict[str, Any]
+
+    # Combat context (loaded when needed)
+    combat_state: 'CombatState'
+
+    # Control flow flags
+    exit_early: bool
+    error: Dict[str, Any]
+
+"""
+Combat State Definitions
+
+This module contains all state definitions and data structures specifically
+for combat mechanics and battle orchestration.
+"""
+
+
+class CombatParticipant(SQLModel, table=True):
+    """Represents a single participant in a combat scenario."""
+    __tablename__ = "combat_participants"
+    participant_id: Optional[int] = SQLField(default=None, primary_key=True)
+    campaign_id: int = SQLField(foreign_key="campaigns.campaign_id")
+
+    creature_type: str = SQLField(default=None) # 'player', 'enemy', 'npc'
+    creature_id: int = SQLField(default=None)  # character_id or npc_id
+    creature_name: str = SQLField(default=None)
+
+    initiative_roll: Optional[int] = SQLField(default=None)
+    initiative_modifier: Optional[int] = SQLField(default=None) # Could be deprecated with Character DEX Modifier
+
+    # HP
+    current_health: int = SQLField(default=None)
+    max_health: int = SQLField(default=None)
+    temp_hp: int = SQLField(default=None)
+    percent_of_damage_taken_this_round: Optional[float] = SQLField(default=None)
+
+    # Turn management
+    is_active: bool = SQLField(default=True)
+    has_acted_this_turn: bool = SQLField(default=False)
+    has_moved_this_turn: bool = SQLField(default=False)
+    has_bonus_action: bool = SQLField(default=True)
+    has_reaction: bool = SQLField(default=True)
+
+    # Combat-specific conditions (separate from creature's permanent conditions)
+    active_conditions: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
+    temporary_effects: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
+    
+    # Tactical state
+    position_x: Optional[float] = SQLField(default=None)  # Battle map coordinates
+    position_y: Optional[float] = SQLField(default=None)
+    cover_status: Optional[str] = SQLField(default=None)  # e.g., 'none', 'half', 'three-quarters', 'full'
+    is_surprised: bool = SQLField(default=False)
+    advantage_conditions: Optional[str] = SQLField(default=None)  # e.g., 'advantage', 'disadvantage'
+
+    death_save_successes: Optional[int] = SQLField(default=0, ge=0, le=3)
+    death_save_failures: Optional[int] = SQLField(default=0, ge=0, le=3)
+    is_stable: bool = SQLField(default=False)
+
+    # Performance indexes
+    __table_args__ = (
+        Index('idx_combat_participant_creature', 'creature_type', 'creature_id'),
     )
 
-    context: Dict[str, Any] = PydanticField(
-        default_factory=dict,
-        description="Additional context data for the conversation",
-        examples=[
-            {
-                "campaign_name": "Lost Mines of Phandelver",
-                "player_level": 3,
-                "character_name": "Eldrin",
-                "current_location": "Goblin Hideout",
-            }
-        ],
-    )
+    @property
+    def participant_key(self) -> str:
+        """Generate unique key for this participant"""
+        return f"{self.creature_type}_{self.creature_id}"
+    
+    @property
+    def effective_hp(self) -> int:
+        """Current HP + temporary HP"""
+        return self.current_hp + self.temp_hp
+    
+    @property
+    def is_unconscious(self) -> bool:
+        """Is participant at 0 HP"""
+        return self.current_hp <= 0 and self.current_hp > -self.max_hp
+    
+    @property
+    def is_dead(self) -> bool:
+        """Is participant dead (failed death saves or massive damage)"""
+        return (self.death_save_failures >= 3 or 
+                self.current_hp <= -self.max_hp)
+    
+    def reset_turn_actions(self):
+        """Reset action economy for new turn"""
+        self.has_acted_this_turn = False
+        self.has_moved_this_turn = False
+        self.has_bonus_action = True
+        self.has_reaction = True
 
-    session_id: str = PydanticField(
-        ...,
-        description="Unique session identifier for conversation tracking",
-        examples=["session_123", "campaign_session_abc"],
-    )
 
-    turn_count: int = PydanticField(
-        default=0,
-        ge=0,
-        description="Number of conversation turns in this session",
-        examples=[5, 15, 42],
-    )
+class Effect(TypedDict):
+    """Represents a temporary status effect or modifier."""
+    effect_id: str
+    type: str  # e.g., 'poison', 'haste'
+    duration: int  # in rounds
+    source_id: str
+    target_id: str
+    effect_parameters: Dict[str, Any]
 
-    last_activity: datetime = PydanticField(
-        default_factory=datetime.utcnow,
-        description="Timestamp of the last activity in this session",
-    )
 
-    scratchpad: List[str] = PydanticField(
-        default_factory=list,
-        description="Temporary notes and observations for the current interaction",
-        examples=[
-            [
-                "Player is investigating a statue",
-                "Player has detect magic ability",
-                "Statue appears to be magical",
-            ]
-        ],
-    )
+@dataclass
+class CombatState:
+    """Encapsulates all combat-specific information."""
+    campaign_id: int
+    participants: Dict[str, str] = field(default_factory=dict)  # participant_id -> creature_key
+    active_participants: List[str] = field(default_factory=list)
 
-    turn_count_explicitly_set: bool = PydanticField(
-        default=False,
-        description="Whether turn_count was explicitly set (not auto-calculated)",
-        exclude=True,  # Don't include in serialization
-    )
+    # Turn management
+    current_round: int = 1
+    active_participant_id: Optional[str] = None
+    combat_phase: str = "initialize"  # 'initiative', 'action', 'movement', 'end_turn', 'end_combat'
 
-    @model_validator(mode="after")
-    def detect_explicit_turn_count(self):
-        """Detect if turn_count was explicitly set."""
-        # Check if turn_count was set to a non-default value
-        if hasattr(self, "__pydantic_fields_set__"):
-            if "turn_count" in self.__pydantic_fields_set__ and self.turn_count != 0:
-                self.turn_count_explicitly_set = True
-        return self
+    # Initiative system
+    initiative_order: List[Dict[str, int]] = field(default_factory=list)
+    initiative_complete: bool = False
+    needs_initiative_reroll: bool = False
 
-    def add_message(self, role: str, content: str) -> None:
-        """Add a message to the conversation history."""
-        self.messages.append({"role": role, "content": content})
-        # Only auto-update turn_count if it wasn't explicitly set
-        if not self.turn_count_explicitly_set:
-            self.turn_count = len(
-                [msg for msg in self.messages if msg["role"] == "user"]
-            )
-        self.last_activity = datetime.utcnow()
+    # Action queues
+    pending_damage: List[Dict[str, Any]] = field(default_factory=list)
+    pending_effects: List[Dict[str, Any]] = field(default_factory=list)
+    pending_saves: List[Dict[str, Any]] = field(default_factory=list)
 
-    def add_to_scratchpad(self, note: str) -> None:
-        """Add a note to the scratchpad."""
-        self.scratchpad.append(note)
-        self.last_activity = datetime.utcnow()
+    # Environmental
+    battlefield_effects: List[Dict[str, Any]] = field(default_factory=list)
+    round_timer: Optional[int] = None
 
-    def clear_scratchpad(self) -> None:
-        """Clear all scratchpad notes."""
-        self.scratchpad.clear()
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert memory state to dictionary for serialization."""
-        return {
-            "messages": self.messages,
-            "context": self.context,
-            "session_id": self.session_id,
-            "turn_count": self.turn_count,
-            "last_activity": self.last_activity.isoformat(),
-            "scratchpad": self.scratchpad,
-        }
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MemoryState":
-        """Create memory state from dictionary."""
-        instance = cls(
-            messages=data.get("messages", []),
-            context=data.get("context", {}),
-            session_id=data["session_id"],
-            turn_count=data.get("turn_count", 0),
-            scratchpad=data.get("scratchpad", []),
-        )
-        # Mark turn_count as explicitly set if it was in the data
-        if "turn_count" in data:
-            instance.turn_count_explicitly_set = True
-        if "last_activity" in data:
-            instance.last_activity = datetime.fromisoformat(data["last_activity"])
-        return instance
+    # State flags
+    is_surprised_round: bool = False
+    combat_started: bool = True
+    combat_ended: bool = False
+    victory_condition: Optional[str] = None

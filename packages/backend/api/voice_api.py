@@ -11,10 +11,10 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from packages.backend.components.advanced_vad_processor import (
+from packages.backend.components.audio.advanced_vad_processor import (
     AdvancedVADProcessor,
 )
-from packages.backend.components.audio_mixer_service import (
+from packages.backend.components.audio.audio_mixer_service import (
     AudioSource,
     SpatialPosition,
     audio_mixer_service,
@@ -25,7 +25,7 @@ from packages.backend.components.conversation_intelligence import (
 from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
-from packages.backend.components.speaker_identification_service import (
+from packages.backend.components.audio.speaker_identification_service import (
     speaker_identification_service,
 )
 from packages.shared.logging_config import get_logger

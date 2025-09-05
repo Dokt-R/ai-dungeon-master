@@ -13,8 +13,8 @@ from unittest.mock import AsyncMock, patch
 import numpy as np
 import pytest
 
-from packages.backend.components.advanced_vad_processor import AdvancedVADProcessor
-from packages.backend.components.audio_mixer_service import (
+from packages.backend.components.audio.advanced_vad_processor import AdvancedVADProcessor
+from packages.backend.components.audio.audio_mixer_service import (
     AudioMixerService,
     AudioSource,
     SpatialPosition,
@@ -25,7 +25,7 @@ from packages.backend.components.conversation_intelligence import (
 from packages.backend.components.multi_user_conversation_manager import (
     MultiUserConversationManager,
 )
-from packages.backend.components.speaker_identification_service import (
+from packages.backend.components.audio.speaker_identification_service import (
     SpeakerIdentificationService,
 )
 from packages.shared.models import (

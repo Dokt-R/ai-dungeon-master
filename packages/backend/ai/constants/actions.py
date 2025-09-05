@@ -59,9 +59,10 @@ EXPLORATION_TARGETS: List[str] = [
 # Routing map - action_type to node mapping
 ROUTE_MAPPING: Dict[str, str] = {
     # Combat actions
-    "attack": "combat_node",
-    "defend": "combat_node",
-    "cast": "combat_node",
+    "attack": "combat_subgraph",
+    "cast": "combat_subgraph",
+    "combat": "combat_subgraph",
+    "defend": "combat_subgraph",
 
     # Exploration actions
     "move": "exploration_node",
@@ -83,7 +84,8 @@ ROUTE_MAPPING: Dict[str, str] = {
     "deceive": "interaction_node",
     "grab": "interaction_node",
     "pick": "interaction_node",
-    "activate": "interaction_node"
+    "activate": "interaction_node",
+    "interaction": "interaction_node"
 }
 
 # Action-specific target mapping

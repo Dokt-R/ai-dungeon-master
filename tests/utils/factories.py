@@ -7,6 +7,7 @@ import discord
 from httpx import HTTPStatusError
 
 from packages.shared.models import Campaign, Character, Player
+from packages.shared.models.langgraph_state_models import MinimalGameState
 
 # Optional: if you're using SQLModel for these, adjust imports accordingly
 
@@ -345,3 +346,20 @@ class HttpMockFactory:
             "httpx.AsyncClient.request", side_effect=exception_class(*args, **kwargs)
         ):
             yield
+
+
+def create_test_minimal_game_state(player_action: str = "") -> MinimalGameState:
+    """Factory for creating a test MinimalGameState."""
+    return MinimalGameState(
+        campaign_id=1,
+        character_id=1,
+        discord_user_id="test_user",
+        discord_channel_id="test_channel",
+        correlation_id="test_correlation",
+        player_action=player_action,
+        parsed_intent=None,
+        action_result=None,
+        dice_results=None,
+        exit_early=False,
+        error=None,
+    )

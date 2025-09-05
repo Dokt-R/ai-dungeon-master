@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from packages.backend.components.tts_service import (
+from packages.backend.components.audio.tts_service import (
     ElevenLabsTTSProvider,
     OpenAITTSProvider,
     ProviderHealthStatus,

@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from packages.backend.components.srd_compliance_service import (
+from packages.backend.components.srd.srd_compliance_service import (
     ComplianceResult,
     LicenseRestriction,
     SRDComplianceService,

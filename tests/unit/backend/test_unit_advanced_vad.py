@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, patch
 import numpy as np
 import pytest
 
-from packages.backend.components.advanced_vad_processor import (
+from packages.backend.components.audio.advanced_vad_processor import (
     AdvancedVADProcessor,
     VADConfiguration,
     VADState,

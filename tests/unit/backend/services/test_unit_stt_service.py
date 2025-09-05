@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from packages.backend.components.stt_service import (
+from packages.backend.components.audio.stt_service import (
     AudioProcessingConfig,
     GoogleSTTProvider,
     OpenAISTTProvider,

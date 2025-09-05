@@ -1,6 +1,7 @@
 from typing import List, Optional
 
 from fastapi import Depends
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -133,3 +134,20 @@ class CharacterManager:
         statement = select(Character).where(Character.player_id == player_id)
         result = await self.session.execute(statement)
         return list(result.scalars().all())
+
+    async def get_character_by_id(self, character_id: int) -> Character:
+        """Get a character by their ID."""
+        statement = select(Character).where(Character.character_id == character_id)
+        try:
+            result = await self.session.execute(statement).scalar_one()
+        except NoResultFound:
+            raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
+        return result
+
+    async def get_character_by_name(self, name: str, campaign_id: Optional[int] = None) -> Character:
+        """Get a character by name, optionally within a specific campaign."""
+        statement = select(Character).where(Character.name == name)
+        if campaign_id:
+            statement = statement.where(Character.campaign_id == campaign_id)
+        result = await self.session.execute(statement).scalars().first()
+        return result

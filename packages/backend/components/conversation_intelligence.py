@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 import numpy as np
 from pydantic import BaseModel, Field
 
-from packages.backend.components.audio_utils import AudioUtils
+from packages.backend.components.audio.audio_utils import AudioUtils
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)

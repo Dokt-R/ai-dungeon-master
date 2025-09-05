@@ -11,7 +11,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from packages.backend.components.audio_mixer_service import (
+from packages.backend.components.audio.audio_mixer_service import (
     AudioMixerService,
     AudioSource,
     HRTFProcessor,

@@ -19,7 +19,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from packages.backend.components.srd_database_manager import SRDDatabaseManager
+from packages.backend.components.srd.srd_database_manager import SRDDatabaseManager
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 

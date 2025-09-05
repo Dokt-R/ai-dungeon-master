@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from packages.backend.components.srd_data_import_service import (
+from packages.backend.components.srd.srd_data_import_service import (
     ConflictResolution,
     ImportProgress,
     ImportResult,

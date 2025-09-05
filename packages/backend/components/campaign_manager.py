@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 from fastapi import Depends
@@ -12,6 +13,7 @@ from packages.shared.exceptions import (
     ValidationError,
 )
 from packages.shared.models import Campaign, Player
+from packages.shared.models.langgraph_state_models import MinimalGameState
 
 
 class CampaignManager:
@@ -124,9 +126,9 @@ class CampaignManager:
 
         return campaign.players
 
-    async def update_campaign_state(self, campaign_id: int, state: str) -> Campaign:
+    async def update_campaign_state(self, campaign_id: int, state: MinimalGameState) -> Campaign:
         """
-        Update the state of a campaign.
+        Update the state of a campaign using MinimalGameState.
         """
         campaign = await self.session.get(Campaign, campaign_id)
         if not campaign:
@@ -136,7 +138,7 @@ class CampaignManager:
                 details={"campaign_id": campaign_id, "state": state},
             )
 
-        campaign.state = state
+        campaign.state = json.dumps(state)  # Convert MinimalGameState to JSON string
         self.session.add(campaign)
         await self.session.commit()
         await self.session.refresh(campaign)

@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 import pytest
 
-from packages.backend.components.srd_database_manager import (
+from packages.backend.components.srd.srd_database_manager import (
     DatabaseStats,
     SRDDatabaseManager,
 )

@@ -24,11 +24,11 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from packages.backend.components.srd_compliance_service import srd_compliance_service
-from packages.backend.components.srd_data_verification_service import (
+from packages.backend.components.srd.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd.srd_data_verification_service import (
     srd_data_verification_service,
 )
-from packages.backend.components.srd_database_manager import srd_database_manager
+from packages.backend.components.srd.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 

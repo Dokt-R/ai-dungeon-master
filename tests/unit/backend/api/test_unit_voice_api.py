@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from packages.backend.components.audio_mixer_service import (
+from packages.backend.components.audio.audio_mixer_service import (
     audio_mixer_service,
 )
 from packages.backend.components.conversation_intelligence import (
@@ -25,7 +25,7 @@ from packages.backend.components.conversation_intelligence import (
 from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
-from packages.backend.components.speaker_identification_service import (
+from packages.backend.components.audio.speaker_identification_service import (
     speaker_identification_service,
 )
 from packages.backend.main import app

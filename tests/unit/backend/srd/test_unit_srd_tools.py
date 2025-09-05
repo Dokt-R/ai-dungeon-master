@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from packages.backend.components.srd_tool_service import (
+from packages.backend.components.srd.srd_tool_service import (
     SRDToolService,
     ToolPerformanceMetrics,
 )

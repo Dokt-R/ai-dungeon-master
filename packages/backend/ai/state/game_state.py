@@ -8,7 +8,8 @@ Replaces generic dictionaries with proper TypedDict structures for type safety a
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypedDict
 
-from .base_state import Attack, Character, Item, calculate_modifier
+from packages.shared.models.core_db_models import Attack, Character, Item, DamageType
+from .base_state import calculate_modifier
 
 
 class GameObject(TypedDict):
@@ -96,26 +97,16 @@ def create_character(
         wisdom=abilities.get("wisdom", 10),
         charisma=abilities.get("charisma", 10),
 
-        strength_mod=calculate_modifier(abilities.get("strength", 10)),
-        dexterity_mod=calculate_modifier(abilities.get("dexterity", 10)),
-        constitution_mod=calculate_modifier(abilities.get("constitution", 10)),
-        intelligence_mod=calculate_modifier(abilities.get("intelligence", 10)),
-        wisdom_mod=calculate_modifier(abilities.get("wisdom", 10)),
-        charisma_mod=calculate_modifier(abilities.get("charisma", 10)),
-
         attacks=attacks,
         proficiency_bonus=2,  # Standard for levels 1-4
-        initiative_modifier=calculate_modifier(abilities.get("dexterity", 10)),
 
-        conditions=[],  # No conditions initially
+        # JSON fields for conditions, features, etc.
+        conditions="[]",  # JSON string for empty list
+        features=None,
+        spells_known=None,
+
         is_alive=True,
         is_hostile=is_hostile,
-
-        inventory=[] if not is_hostile else None,
-        equipped_items={} if not is_hostile else None,
-        spell_slots=None,
-        hit_dice="1d8" if not is_hostile else None,
-        hit_dice_remaining=1 if not is_hostile else None
     )
 
 
@@ -135,7 +126,7 @@ def create_micro_adventure_state() -> GameState:
                 name="Shortsword",
                 bonus=4,  # +2 str mod, +2 proficiency
                 damage="1d6+2",
-                damage_type="piercing",
+                damage_type=DamageType.PIERCING,
                 range=5
             )
         ]
@@ -150,6 +141,8 @@ def create_micro_adventure_state() -> GameState:
             value=50,
             properties={"weapon_type": "shortsword"},
             description="A simple iron shortsword.",
+            effects=None,
+            interactions=None,
             equipped=False
         ),
         Item(
@@ -159,6 +152,8 @@ def create_micro_adventure_state() -> GameState:
             value=30,
             properties={"armor": 2},
             description="A stout wooden shield.",
+            effects=None,
+            interactions=None,
             equipped=False
         ),
         Item(
@@ -166,8 +161,10 @@ def create_micro_adventure_state() -> GameState:
             type="consumable",
             weight=0.5,
             value=50,
-            properties={"healing": "2d4+2"},
+            properties=None,  # properties as JSON
             description="A red potion that restores health.",
+            effects={"on_use": {"heal": "2d4+2"}},
+            interactions={"use": {"effect": "heal"}},
             equipped=False
         ),
         Item(
@@ -175,8 +172,10 @@ def create_micro_adventure_state() -> GameState:
             type="key",
             weight=0.1,
             value=25,
-            properties={},
+            properties=None,
             description="A simple iron key.",
+            effects=None,
+            interactions=None,
             equipped=False
         )
     ]
@@ -194,7 +193,7 @@ def create_micro_adventure_state() -> GameState:
                 name="Scimitar",
                 bonus=4,
                 damage="1d6+2",
-                damage_type="slashing",
+                damage_type=DamageType.SLASHING,
                 range=5
             )
         ],
@@ -212,8 +211,10 @@ def create_micro_adventure_state() -> GameState:
                 type="key",
                 weight=0.1,
                 value=50,
-                properties={"unlocks": "exit_door"},
+                properties={"unlocks": "exit_door"},  # Can't be None for SQLModel
                 description="An ornate golden key that looks important.",
+                effects=None,
+                interactions=None,
                 equipped=False
             ),
             Item(
@@ -221,8 +222,10 @@ def create_micro_adventure_state() -> GameState:
                 type="consumable",
                 weight=0.5,
                 value=50,
-                properties={"healing": "2d4+2"},
+                properties=None,  # properties as JSON
                 description="A red potion that restores health.",
+                effects={"on_use": {"heal": "2d4+2"}},
+                interactions=None,
                 equipped=False
             )
         ]
@@ -235,8 +238,10 @@ def create_micro_adventure_state() -> GameState:
             type="misc",
             weight=0.02,
             value=1,
-            properties={},
+            properties=None,
             description="A shiny silver coin.",
+            effects=None,
+            interactions=None,
             equipped=False
         ),
         Item(
@@ -244,8 +249,10 @@ def create_micro_adventure_state() -> GameState:
             type="key",
             weight=0.1,
             value=10,
-            properties={},
+            properties=None,
             description="A rusted iron key.",
+            effects=None,
+            interactions=None,
             equipped=False
         )
     ]

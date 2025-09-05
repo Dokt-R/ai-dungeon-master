@@ -16,7 +16,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from packages.backend.components.srd_database_manager import srd_database_manager
+from packages.backend.components.srd.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)

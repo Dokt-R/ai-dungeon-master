@@ -8,35 +8,24 @@ to determine intent and extract relevant information.
 import time
 from typing import Any, Dict, List, Optional
 
-from packages.backend.ai.state.action_resolution_state import ActionResolutionState, ParsedIntent
 from packages.backend.ai.constants.actions import (
-    COMBAT_KEYWORDS, EXPLORATION_KEYWORDS, INTERACTION_KEYWORDS,
-    DIALOGUE_KEYWORDS, SOCIAL_SKILL_MAPPING, ROUTE_MAPPING,
-    COMBAT_TARGETS, INTERACTION_TARGETS, EXPLORATION_TARGETS,
-    ACTION_TARGET_MAPPING
+    ACTION_TARGET_MAPPING,
+    COMBAT_KEYWORDS,
+    COMBAT_TARGETS,
+    DIALOGUE_KEYWORDS,
+    EXPLORATION_KEYWORDS,
+    EXPLORATION_TARGETS,
+    INTERACTION_KEYWORDS,
+    INTERACTION_TARGETS,
+    ROUTE_MAPPING,
+    SOCIAL_SKILL_MAPPING,
 )
-from packages.backend.ai.tools import DiceRoller
+from packages.backend.ai.state import ParsedIntent
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
+from packages.shared.models.langgraph_state_models import MinimalGameState
 
 logger = get_logger(__name__)
-
-
-def _display_action(parsed_intent: str) -> None:
-    """Display action message to screen."""
-        # Display enhanced parsing results
-    print("------PARSED_INTENT_NODE------")
-    print()
-    print(f"Intent: {parsed_intent.intent}")
-    print(f"Action Type: {parsed_intent.action_type}")
-    print(f"Target: {parsed_intent.target or 'none'}")
-    print(f"Confidence: {parsed_intent.confidence * 100}%")
-
-    if parsed_intent.modifier and parsed_intent.modifier != parsed_intent.action_type:
-        if parsed_intent.action_type == "talk":
-            print(f"💬 Dialogue: '{parsed_intent.modifier}'")
-        else:
-            print(f"✨ Modifier: {parsed_intent.modifier}")
 
 
 def _parse_action_text(action_text: str) -> ParsedIntent:
@@ -155,7 +144,7 @@ def _extract_dialogue(text: str) -> Optional[str]:
     return None
 
 
-async def parse_intent_node(state: ActionResolutionState) -> Dict[str, Any]:
+async def parse_intent_node(state: MinimalGameState) -> Dict[str, Any]:
     """Parse the player's action text to determine intent."""
     with observability_service.trace_operation(
         operation_name="parse_intent_node_execution",
@@ -170,13 +159,10 @@ async def parse_intent_node(state: ActionResolutionState) -> Dict[str, Any]:
 
             parsed_intent = _parse_action_text(action_text)
 
-            _display_action(parsed_intent)
-
             # Determine routing category using standardized route mapping #! May need to change and route based on intent
             routed_node = ROUTE_MAPPING.get(parsed_intent.action_type, "exploration_node")
 
-            print(f"Routing To ---> {routed_node}")
-            print("-" * 30)
+            
 
             execution_time = time.time() - start_time
             logger.debug("parse_intent_node_completed",

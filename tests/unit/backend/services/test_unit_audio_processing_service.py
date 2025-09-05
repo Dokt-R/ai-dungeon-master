@@ -12,7 +12,7 @@ This module provides comprehensive unit tests for the audio processing service i
 import numpy as np
 import pytest
 
-from packages.backend.components.audio_processing_service import (
+from packages.backend.components.audio.audio_processing_service import (
     AudioPipelineMetrics,
     AudioProcessingResult,
     AudioProcessingService,

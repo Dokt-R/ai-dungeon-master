@@ -9,6 +9,16 @@ from packages.backend.ai.tools import DiceRoller
 
 async def surprise_check_node(state: ActionResolutionState) -> Dict[str, Any]:
     """Performs a surprise check for all participants."""
+    """
+    ! Surprise.
+    If a combatant is surprised by combat 
+    starting, that combatant has Disadvantage on their 
+    Initiative roll. For example, if an ambusher starts 
+    combat while hidden from a foe who is unaware 
+    that combat is starting, that foe is surprised.
+    """
+    return {}
+
     combat_state = state["combat_state"]
     if not combat_state:
         return {}
