@@ -248,6 +248,26 @@ class Character(SQLModel, table=True):
     prof_wis_save: bool = SQLField(default=False)
     prof_cha_save: bool = SQLField(default=False)
 
+    # Skill Proficiencies
+    prof_acrobatics: bool = SQLField(default=False)
+    prof_animal_handling: bool = SQLField(default=False)
+    prof_arcana: bool = SQLField(default=False)
+    prof_athletics: bool = SQLField(default=False)
+    prof_deception: bool = SQLField(default=False)
+    prof_history: bool = SQLField(default=False)
+    prof_insight: bool = SQLField(default=False)
+    prof_intimidation: bool = SQLField(default=False)
+    prof_investigation: bool = SQLField(default=False)
+    prof_medicine: bool = SQLField(default=False)
+    prof_nature: bool = SQLField(default=False)
+    prof_perception: bool = SQLField(default=False)
+    prof_performance: bool = SQLField(default=False)
+    prof_persuasion: bool = SQLField(default=False)
+    prof_religion: bool = SQLField(default=False)
+    prof_sleight_of_hand: bool = SQLField(default=False)
+    prof_stealth: bool = SQLField(default=False)
+    prof_survival: bool = SQLField(default=False)
+
     # COMPUTED COLUMNS - Stored in DB for performance!
     str_modifier: int = SQLField(
         sa_column=Column(
@@ -353,6 +373,170 @@ class Character(SQLModel, table=True):
             Integer,
             Computed(
                 "((charisma - 10) / 2) + (CASE WHEN prof_cha_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+
+    # Computed Skill Modifiers (including proficiency)
+    acrobatics_modifier: int = SQLField(
+        sa_column=Column(
+            "acrobatics_modifier",
+            Integer,
+            Computed(
+                "((dexterity - 10) / 2) + (CASE WHEN prof_acrobatics THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    animal_handling_modifier: int = SQLField(
+        sa_column=Column(
+            "animal_handling_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_animal_handling THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    arcana_modifier: int = SQLField(
+        sa_column=Column(
+            "arcana_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_arcana THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    athletics_modifier: int = SQLField(
+        sa_column=Column(
+            "athletics_modifier",
+            Integer,
+            Computed(
+                "((strength - 10) / 2) + (CASE WHEN prof_athletics THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    deception_modifier: int = SQLField(
+        sa_column=Column(
+            "deception_modifier",
+            Integer,
+            Computed(
+                "((charisma - 10) / 2) + (CASE WHEN prof_deception THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    history_modifier: int = SQLField(
+        sa_column=Column(
+            "history_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_history THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    insight_modifier: int = SQLField(
+        sa_column=Column(
+            "insight_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_insight THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    intimidation_modifier: int = SQLField(
+        sa_column=Column(
+            "intimidation_modifier",
+            Integer,
+            Computed(
+                "((charisma - 10) / 2) + (CASE WHEN prof_intimidation THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    investigation_modifier: int = SQLField(
+        sa_column=Column(
+            "investigation_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_investigation THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    medicine_modifier: int = SQLField(
+        sa_column=Column(
+            "medicine_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_medicine THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    nature_modifier: int = SQLField(
+        sa_column=Column(
+            "nature_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_nature THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    perception_modifier: int = SQLField(
+        sa_column=Column(
+            "perception_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_perception THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    performance_modifier: int = SQLField(
+        sa_column=Column(
+            "performance_modifier",
+            Integer,
+            Computed(
+                "((charisma - 10) / 2) + (CASE WHEN prof_performance THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    persuasion_modifier: int = SQLField(
+        sa_column=Column(
+            "persuasion_modifier",
+            Integer,
+            Computed(
+                "((charisma - 10) / 2) + (CASE WHEN prof_persuasion THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    religion_modifier: int = SQLField(
+        sa_column=Column(
+            "religion_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_religion THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    sleight_of_hand_modifier: int = SQLField(
+        sa_column=Column(
+            "sleight_of_hand_modifier",
+            Integer,
+            Computed(
+                "((dexterity - 10) / 2) + (CASE WHEN prof_sleight_of_hand THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    stealth_modifier: int = SQLField(
+        sa_column=Column(
+            "stealth_modifier",
+            Integer,
+            Computed(
+                "((dexterity - 10) / 2) + (CASE WHEN prof_stealth THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    survival_modifier: int = SQLField(
+        sa_column=Column(
+            "survival_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_survival THEN proficiency_bonus ELSE 0 END)"
             ),
         )
     )

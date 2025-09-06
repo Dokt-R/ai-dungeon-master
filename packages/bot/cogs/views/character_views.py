@@ -1,9 +1,11 @@
 import discord
-
-from packages.shared.logging_config import get_logger
-from packages.shared.models.enum_models import AbilityName
-
 from ..modals.character_modals import CharacterCreationModal
+from packages.shared.logging_config import get_logger
+from packages.shared.models.enum_models import (
+    AbilityName,
+    SkillName,
+    SKILL_TO_ABILITY_MAP,
+)
 
 logger = get_logger(__name__)
 
@@ -140,7 +142,8 @@ class CharacterCreationView(discord.ui.View):
             self.clear_items()
             self.update_to_proficiencies_view()
             await interaction.response.edit_message(
-                content="Finally, select two saving throw proficiencies.", view=self
+                content="Finally, select two saving throw proficiencies and your skill proficiencies.",
+                view=self,
             )
 
         button.callback = callback
@@ -156,8 +159,29 @@ class CharacterCreationView(discord.ui.View):
             "Wisdom",
             "Charisma",
         ]
-        options = [discord.SelectOption(label=st) for st in saving_throws]
-        self.add_item(ProficiencySelect(options))
+        saving_throw_options = [discord.SelectOption(label=st) for st in saving_throws]
+        self.add_item(
+            ProficiencySelect(
+                saving_throw_options,
+                "saving_throws",
+                min_values=2,
+                max_values=2,
+                placeholder="Select 2 Saving Throw Proficiencies",
+            )
+        )
+
+        skills = sorted([skill.value.replace("_", " ").title() for skill in SkillName])
+        skill_options = [discord.SelectOption(label=s) for s in skills]
+        self.add_item(
+            ProficiencySelect(
+                skill_options,
+                "skills",
+                min_values=0,
+                max_values=4,
+                placeholder="Select Skill Proficiencies (up to 4)",
+            )
+        )  # D&D 5e typically 2-4 skills
+
         self.add_item(self.get_submit_button())
 
     def get_submit_button(self):
@@ -167,8 +191,8 @@ class CharacterCreationView(discord.ui.View):
 
         async def callback(interaction: discord.Interaction):
             if (
-                "proficiencies" not in self.character_data
-                or len(self.character_data["proficiencies"]) != 2
+                "saving_throws" not in self.character_data
+                or len(self.character_data["saving_throws"]) != 2
             ):
                 await interaction.response.send_message(
                     "Please select exactly two saving throw proficiencies.",
@@ -176,19 +200,32 @@ class CharacterCreationView(discord.ui.View):
                 )
                 return
 
+            # Skill proficiency count check (adjust as needed for class/background)
+            selected_skills_count = len(self.character_data.get("skills", []))
+            if not (0 <= selected_skills_count <= 4):  # Example: allow 0-4 skills
+                await interaction.response.send_message(
+                    "Please select between 0 and 4 skill proficiencies.", ephemeral=True
+                )
+                return
+
             await interaction.response.defer()
 
-            # Initialize all proficiencies to False
             # Initialize all proficiencies to False
             proficiency_data = {
                 f"prof_{ability.value}_save": False for ability in AbilityName
             }
+            for skill in SkillName:
+                proficiency_data[f"prof_{skill.value}"] = False
 
-            # Set selected proficiencies to True
-            for p in self.character_data["proficiencies"]:
-                # Map full ability name to its abbreviated form using the enum
+            # Set selected saving throw proficiencies to True
+            for p in self.character_data.get("saving_throws", []):
                 abbreviated_name = AbilityName[p.upper()].value
                 proficiency_data[f"prof_{abbreviated_name}_save"] = True
+
+            # Set selected skill proficiencies to True
+            for p in self.character_data.get("skills", []):
+                abbreviated_name = SkillName[p.upper().replace(" ", "_")].value
+                proficiency_data[f"prof_{abbreviated_name}"] = True
 
             full_character_data = {
                 **self.character_data,
@@ -258,14 +295,23 @@ class AbilitySelect(discord.ui.Select):
 
 
 class ProficiencySelect(discord.ui.Select):
-    def __init__(self, options: list):
+    def __init__(
+        self,
+        options: list,
+        proficiency_type: str,
+        min_values: int,
+        max_values: int,
+        placeholder: str = None,
+    ):
         super().__init__(
-            placeholder="Select 2 Saving Throw Proficiencies",
-            min_values=2,
-            max_values=2,
+            placeholder=placeholder
+            or f"Select {min_values}-{max_values} {proficiency_type.replace('_', ' ').title()} Proficiencies",
+            min_values=min_values,
+            max_values=max_values,
             options=options,
         )
+        self.proficiency_type = proficiency_type
 
     async def callback(self, interaction: discord.Interaction):
-        self.view.character_data["proficiencies"] = self.values
+        self.view.character_data[self.proficiency_type] = self.values
         await interaction.response.defer()
