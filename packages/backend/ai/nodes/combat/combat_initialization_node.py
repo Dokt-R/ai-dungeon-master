@@ -1,6 +1,7 @@
 """
 Combat Initialization Node
 """
+
 from typing import Dict
 
 from fastapi import Depends

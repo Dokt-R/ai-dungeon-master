@@ -1,6 +1,7 @@
 """
 Unit tests for the combat_initialization_node module.
 """
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest

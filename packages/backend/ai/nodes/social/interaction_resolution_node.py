@@ -2,11 +2,11 @@
 Interaction Resolution Node for non-combat actions
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 from packages.backend.ai.state.action_resolution_state import ActionResolutionState
-from packages.backend.ai.state.base_state import Character, Item, ActionResult
-from packages.backend.ai.state.game_state import GameState, GameObject, Room
+from packages.backend.ai.state.base_state import ActionResult
+from packages.backend.ai.state.game_state import GameState
 from packages.backend.ai.tools import DiceRoller
 from packages.shared.logging_config import get_logger
 
@@ -29,19 +29,20 @@ async def interaction_node(state: ActionResolutionState) -> Dict[str, Any]:
         if not game_state or not isinstance(game_state, dict):
             return {
                 "error": "Invalid game state provided",
-                "action_result": {"success": False, "description": "Cannot process interaction: invalid game state"}
+                "action_result": {
+                    "success": False,
+                    "description": "Cannot process interaction: invalid game state",
+                },
             }
 
-        logger.debug("interaction_node_processing",
-                    action_type=action_type,
-                    target=target,
-                    correlation_id=state["correlation_id"])
-
-        result = ActionResult(
-            success=False,
-            description="",
-            state_changes={}
+        logger.debug(
+            "interaction_node_processing",
+            action_type=action_type,
+            target=target,
+            correlation_id=state["correlation_id"],
         )
+
+        result = ActionResult(success=False, description="", state_changes={})
 
         # Handle different interaction types with standardized game state
         if action_type in ["take", "pick", "grab"]:
@@ -68,12 +69,16 @@ async def interaction_node(state: ActionResolutionState) -> Dict[str, Any]:
         action_result_dict = {
             "success": result.success,
             "description": result.description,
-            "state_changes": result.state_changes.__dict__ if hasattr(result.state_changes, '__dict__') else result.state_changes
+            "state_changes": result.state_changes.__dict__
+            if hasattr(result.state_changes, "__dict__")
+            else result.state_changes,
         }
 
-        logger.debug("interaction_node_completed",
-                    success=result.success,
-                    correlation_id=state["correlation_id"])
+        logger.debug(
+            "interaction_node_completed",
+            success=result.success,
+            correlation_id=state["correlation_id"],
+        )
 
         # Return updated state with results
         updated_state = state.copy()
@@ -83,9 +88,11 @@ async def interaction_node(state: ActionResolutionState) -> Dict[str, Any]:
         return updated_state
 
     except Exception as e:
-        logger.error("interaction_node_failed",
-                    error=str(e),
-                    correlation_id=state["correlation_id"])
+        logger.error(
+            "interaction_node_failed",
+            error=str(e),
+            correlation_id=state["correlation_id"],
+        )
         updated_state = state.copy()
         updated_state["error"] = f"Failed to process interaction: {str(e)}"
         return updated_state
@@ -98,7 +105,7 @@ async def handle_item_pickup(item_name: str, game_state: GameState) -> ActionRes
         return ActionResult(
             success=False,
             description="You need to specify what to pick up.",
-            state_changes={}
+            state_changes={},
         )
 
     # Get current room
@@ -114,7 +121,10 @@ async def handle_item_pickup(item_name: str, game_state: GameState) -> ActionRes
         if isinstance(room_item, str) and item_name.lower() in room_item.lower():
             item_found = room_item
             break
-        elif isinstance(room_item, dict) and item_name.lower() in room_item.get("name", "").lower():
+        elif (
+            isinstance(room_item, dict)
+            and item_name.lower() in room_item.get("name", "").lower()
+        ):
             item_details = room_item
             item_found = room_item["name"]
             break
@@ -124,7 +134,10 @@ async def handle_item_pickup(item_name: str, game_state: GameState) -> ActionRes
         for game_obj in current_room["objects"]:
             if game_obj.get("contains"):
                 for contained_item in game_obj["contains"]:
-                    if isinstance(contained_item, dict) and item_name.lower() in contained_item.get("name", "").lower():
+                    if (
+                        isinstance(contained_item, dict)
+                        and item_name.lower() in contained_item.get("name", "").lower()
+                    ):
                         if not game_obj.get("state", {}).get("locked", False):
                             item_details = contained_item
                             item_found = contained_item["name"]
@@ -136,7 +149,7 @@ async def handle_item_pickup(item_name: str, game_state: GameState) -> ActionRes
         return ActionResult(
             success=False,
             description=f"There is no {item_name} here to pick up.",
-            state_changes={}
+            state_changes={},
         )
 
     return ActionResult(
@@ -144,8 +157,8 @@ async def handle_item_pickup(item_name: str, game_state: GameState) -> ActionRes
         description=f"You pick up the {item_found}.",
         state_changes={
             "inventory_add": item_found if item_details is None else item_details,
-            "room_item_remove": item_found if item_details is None else item_details
-        }
+            "room_item_remove": item_found if item_details is None else item_details,
+        },
     )
 
 
@@ -156,8 +169,8 @@ async def handle_item_use(item_name: str, game_state: GameState) -> ActionResult
     if not player_inventory:
         return ActionResult(
             success=False,
-            description=f"You don't have any items to use.",
-            state_changes={}
+            description="You don't have any items to use.",
+            state_changes={},
         )
 
     # Find the item in inventory
@@ -178,7 +191,7 @@ async def handle_item_use(item_name: str, game_state: GameState) -> ActionResult
         return ActionResult(
             success=False,
             description=f"You don't have a {item_name} to use.",
-            state_changes={}
+            state_changes={},
         )
 
     # Special case: using key on chest
@@ -199,8 +212,8 @@ async def handle_item_use(item_name: str, game_state: GameState) -> ActionResult
                 description="You unlock the chest with the key. It creaks open, revealing its contents!",
                 state_changes={
                     "inventory_remove": item_to_use,
-                    "object_state": {"chest": {"locked": False, "open": True}}
-                }
+                    "object_state": {"chest": {"locked": False, "open": True}},
+                },
             )
 
     # Health potion
@@ -222,21 +235,21 @@ async def handle_item_use(item_name: str, game_state: GameState) -> ActionResult
             description=f"You drink the {item_name} and recover {healing.total} hit points!",
             state_changes={
                 "inventory_remove": item_name_for_removal,
-                "player_hp": new_hp
-            }
+                "player_hp": new_hp,
+            },
         )
 
     # Generic item use
     return ActionResult(
         success=True,
         description=f"You use the {item_name}.",
-        state_changes={
-            "inventory_remove": item_to_use
-        }
+        state_changes={"inventory_remove": item_to_use},
     )
 
 
-async def handle_social_check(check_type: str, target: str, game_state: GameState) -> ActionResult:
+async def handle_social_check(
+    check_type: str, target: str, game_state: GameState
+) -> ActionResult:
     """Handle social skill checks with standardized D&D mechanics."""
     # Determine the appropriate ability based on social skill
     ability_mod = 0
@@ -247,7 +260,9 @@ async def handle_social_check(check_type: str, target: str, game_state: GameStat
         ability_name = "Charisma"
     elif check_type == "intimidation":
         # Intimidation uses Strength or Charisma (whichever is higher)
-        ability_mod = max(game_state["player"]["strength_mod"], game_state["player"]["charisma_mod"])
+        ability_mod = max(
+            game_state["player"]["strength_mod"], game_state["player"]["charisma_mod"]
+        )
         ability_name = "Charisma/Strength"
     elif check_type == "deception":
         ability_mod = game_state["player"]["charisma_mod"]
@@ -268,13 +283,13 @@ async def handle_social_check(check_type: str, target: str, game_state: GameStat
         return ActionResult(
             success=True,
             description=f"[{check_type.capitalize()}] You rolled {roll.total}+{ability_mod}={total} vs DC {dc}. Success! ({ability_name})",
-            state_changes={}
+            state_changes={},
         )
     else:
         return ActionResult(
             success=False,
             description=f"[{check_type.capitalize()}] You rolled {roll.total}+{ability_mod}={total} vs DC {dc}. Failed. ({ability_name})",
-            state_changes={}
+            state_changes={},
         )
 
 
@@ -295,20 +310,20 @@ async def handle_lockpicking(target: str, game_state: GameState) -> ActionResult
             return ActionResult(
                 success=False,
                 description="There is no chest here to unlock.",
-                state_changes={}
+                state_changes={},
             )
 
         if not chest_locked:
             return ActionResult(
                 success=False,
                 description="The chest is already unlocked.",
-                state_changes={}
+                state_changes={},
             )
 
         # Thieves' tools proficiency check (using D&D expertise)
         has_thieves_tools = any(
-            (isinstance(item, str) and "thieves" in item.lower()) or
-            (isinstance(item, dict) and "thieves" in item.get("name", "").lower())
+            (isinstance(item, str) and "thieves" in item.lower())
+            or (isinstance(item, dict) and "thieves" in item.get("name", "").lower())
             for item in game_state["player"].get("inventory", [])
         )
 
@@ -325,34 +340,38 @@ async def handle_lockpicking(target: str, game_state: GameState) -> ActionResult
                 description=f"You successfully pick the lock! (Rolled {roll.total}+{dex_mod}{f'+{proficiency}' if proficiency else ''}={total} vs DC {dc})",
                 state_changes={
                     "object_state": {"chest": {"locked": False, "open": True}}
-                }
+                },
             )
         else:
             return ActionResult(
                 success=False,
                 description=f"You fail to pick the lock. (Rolled {roll.total}+{dex_mod}{f'+{proficiency}' if proficiency else ''}={total} vs DC {dc})",
-                state_changes={}
+                state_changes={},
             )
 
     return ActionResult(
         success=False,
         description=f"There's no {target} to unlock here.",
-        state_changes={}
+        state_changes={},
     )
 
 
-async def handle_dialogue(target: str, dialogue: str, game_state: GameState) -> ActionResult:
+async def handle_dialogue(
+    target: str, dialogue: str, game_state: GameState
+) -> ActionResult:
     """Handle speaking/dialogue actions with standardized response structure."""
     # For now, just acknowledge the dialogue
     # In future, this could trigger NPC responses based on personality, history, etc.
     return ActionResult(
         success=True,
         description=f'You say "{dialogue}" to {target if target else "no one in particular"}.',
-        state_changes={}
+        state_changes={},
     )
 
 
-def apply_state_changes(game_state: GameState, state_changes: Dict[str, Any]) -> GameState:
+def apply_state_changes(
+    game_state: GameState, state_changes: Dict[str, Any]
+) -> GameState:
     """
     Apply state changes to the standardized GameState structure.
     Returns a new GameState with changes applied (immutable updates).
@@ -381,13 +400,18 @@ def apply_state_changes(game_state: GameState, state_changes: Dict[str, Any]) ->
                 room = new_game_state["rooms"][current_room_id]
                 for obj_name, obj_state in value.items():
                     for i, obj in enumerate(room["objects"]):
-                        if obj["name"].lower().replace(" ", "_") == obj_name.lower() or obj["name"].lower() == obj_name.lower():
+                        if (
+                            obj["name"].lower().replace(" ", "_") == obj_name.lower()
+                            or obj["name"].lower() == obj_name.lower()
+                        ):
                             room["objects"][i]["state"].update(obj_state)
                             break
 
         elif key == "player_hp" and isinstance(value, int):
             # Update player HP
-            new_game_state["player"]["hp"] = max(0, min(value, new_game_state["player"]["max_hp"]))
+            new_game_state["player"]["hp"] = max(
+                0, min(value, new_game_state["player"]["max_hp"])
+            )
 
         elif key == "room_item_add" and isinstance(value, str):
             # Add item to room

@@ -37,13 +37,21 @@ def _parse_action_text(action_text: str) -> ParsedIntent:
     # Combat actions - highest priority (using standardized constants)
     if any(keyword in action_text for keyword in COMBAT_KEYWORDS):
         target = _extract_target(action_text, COMBAT_TARGETS)
-        action_type = "attack" if any(k in action_text for k in ["attack", "strike", "hit", "fight", "swing"]) else "defend" if "defend" in action_text else "cast"
+        action_type = (
+            "attack"
+            if any(
+                k in action_text for k in ["attack", "strike", "hit", "fight", "swing"]
+            )
+            else "defend"
+            if "defend" in action_text
+            else "cast"
+        )
         return ParsedIntent(
             intent="combat",
             action_type=action_type,
             target=target,
             modifier="combat",
-            confidence=0.9
+            confidence=0.9,
         )
 
     # Interaction/social actions - medium priority (using standardized constants)
@@ -66,22 +74,26 @@ def _parse_action_text(action_text: str) -> ParsedIntent:
             action_type = "take"
         elif any(k in action_text for k in ["use", "activate"]):
             action_type = "use"
-        elif any(k in action_text for k in DIALOGUE_KEYWORDS):  # Use standardized dialogue keywords
+        elif any(
+            k in action_text for k in DIALOGUE_KEYWORDS
+        ):  # Use standardized dialogue keywords
             action_type = "talk"
             dialogue = dialogue  # Store extracted dialogue
         elif any(k in action_text for k in ["persuade", "intimidate", "deceive"]):
             # Map to D&D skill using standardized mapping
-            social_skill = action_text.split()[1] if len(action_text.split()) > 1 else "persuade"
+            social_skill = (
+                action_text.split()[1] if len(action_text.split()) > 1 else "persuade"
+            )
             action_type = SOCIAL_SKILL_MAPPING.get(social_skill, "persuade")
         else:
             action_type = "use"
 
         return ParsedIntent(
-            intent="social", #! Needs cross checking
+            intent="social",  #! Needs cross checking
             action_type=action_type,
             target=target,
             modifier=dialogue,  # Store dialogue here if present
-            confidence=0.8
+            confidence=0.8,
         )
 
     # Exploration/investigation actions - lower priority (using standardized constants)
@@ -94,7 +106,11 @@ def _parse_action_text(action_text: str) -> ParsedIntent:
         elif any(k in action_text for k in ["open", "unlock"]):
             action_type = "open" if "open" in action_text else "unlock"
         elif any(k in action_text for k in ["look", "examine", "inspect"]):
-            action_type = "examine" if any(k in action_text for k in ["examine", "inspect"]) else "look"
+            action_type = (
+                "examine"
+                if any(k in action_text for k in ["examine", "inspect"])
+                else "look"
+            )
         else:
             action_type = "investigate"
 
@@ -103,7 +119,7 @@ def _parse_action_text(action_text: str) -> ParsedIntent:
             action_type=action_type,
             target=target,
             modifier="exploration",
-            confidence=0.7
+            confidence=0.7,
         )
 
     # Default to exploration for unknown actions (using standardized fallback)
@@ -113,7 +129,7 @@ def _parse_action_text(action_text: str) -> ParsedIntent:
             action_type="look",  # Default exploration action
             target="area",
             modifier="exploration",
-            confidence=0.3
+            confidence=0.3,
         )
 
 
@@ -130,15 +146,15 @@ def _extract_dialogue(text: str) -> Optional[str]:
     # Look for dialogue patterns like "say X", "speak Y", "hello", etc.
 
     # Find text after dialogue keywords
-    dialogue_keywords = ['say', 'speak', 'talk', 'tell']
+    dialogue_keywords = ["say", "speak", "talk", "tell"]
     words = text.lower().split()
 
     for i, word in enumerate(words):
         if word in dialogue_keywords and i < len(words) - 1:
             # Get everything after the dialogue keyword
-            dialogue_text = ' '.join(words[i+1:])
+            dialogue_text = " ".join(words[i + 1 :])
             # Clean up punctuation
-            dialogue_text = dialogue_text.strip('"\'.,?!')
+            dialogue_text = dialogue_text.strip("\"'.,?!")
             return dialogue_text if dialogue_text else None
 
     return None
@@ -149,9 +165,8 @@ async def parse_intent_node(state: MinimalGameState) -> Dict[str, Any]:
     with observability_service.trace_operation(
         operation_name="parse_intent_node_execution",
         node_type="action_parsing",
-        correlation_id=state["correlation_id"]
+        correlation_id=state["correlation_id"],
     ) as node_trace_id:
-
         start_time = time.time()
 
         try:
@@ -160,27 +175,31 @@ async def parse_intent_node(state: MinimalGameState) -> Dict[str, Any]:
             parsed_intent = _parse_action_text(action_text)
 
             # Determine routing category using standardized route mapping #! May need to change and route based on intent
-            routed_node = ROUTE_MAPPING.get(parsed_intent.action_type, "exploration_node")
-
-            
+            routed_node = ROUTE_MAPPING.get(
+                parsed_intent.action_type, "exploration_node"
+            )
 
             execution_time = time.time() - start_time
-            logger.debug("parse_intent_node_completed",
-                        trace_id=node_trace_id,
-                        execution_time=f"{execution_time:.4f}s",
-                        node=routed_node,
-                        action_type=parsed_intent.action_type,
-                        target=parsed_intent.target,
-                        confidence=parsed_intent.confidence)
+            logger.debug(
+                "parse_intent_node_completed",
+                trace_id=node_trace_id,
+                execution_time=f"{execution_time:.4f}s",
+                node=routed_node,
+                action_type=parsed_intent.action_type,
+                target=parsed_intent.target,
+                confidence=parsed_intent.confidence,
+            )
 
             return {"parsed_intent": parsed_intent.__dict__}
 
         except Exception as e:
             execution_time = time.time() - start_time
             error_msg = f"Intent parsing failed: {str(e)}"
-            logger.error("intent_parsing_failed",
-                        error=str(e),
-                        correlation_id=state["correlation_id"],
-                        execution_time=f"{execution_time:.4f}s",
-                        trace_id=node_trace_id)
+            logger.error(
+                "intent_parsing_failed",
+                error=str(e),
+                correlation_id=state["correlation_id"],
+                execution_time=f"{execution_time:.4f}s",
+                trace_id=node_trace_id,
+            )
             return {"error": error_msg}

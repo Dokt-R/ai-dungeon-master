@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Set, TypedDict
 
 class CombatParticipant(TypedDict):
     """Represents a single participant in a combat scenario."""
+
     id: str
     type: str  # 'player', 'enemy', 'npc'
     current_health: int
@@ -27,6 +28,7 @@ class CombatParticipant(TypedDict):
 
 class Effect(TypedDict):
     """Represents a temporary status effect or modifier."""
+
     effect_id: str
     type: str  # e.g., 'poison', 'haste'
     duration: int  # in rounds
@@ -37,6 +39,7 @@ class Effect(TypedDict):
 
 class CombatState(TypedDict):
     """Encapsulates all combat-specific information."""
+
     participants: Dict[str, CombatParticipant]
     current_round: int
     active_turn_participant_id: str

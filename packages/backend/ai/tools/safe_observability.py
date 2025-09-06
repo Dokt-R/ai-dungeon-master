@@ -13,9 +13,8 @@ Features:
 """
 
 import asyncio
-from typing import Any, Dict, Callable, Optional, Union
 from functools import wraps
-import time
+from typing import Any, Callable, Dict
 
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
@@ -36,7 +35,7 @@ class SafeObservabilityWrapper:
         operation_func: Callable,
         *args,
         default_result: Any = None,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Safely execute operation with tracing, falling back gracefully.
@@ -54,30 +53,38 @@ class SafeObservabilityWrapper:
 
         # Check service health first
         if not observability_service.is_initialized():
-            self.logger.debug(f"Observability not initialized - executing {operation_name} without tracing")
+            self.logger.debug(
+                f"Observability not initialized - executing {operation_name} without tracing"
+            )
             return operation_func(*args, **kwargs)
 
         if observability_service.is_circuit_breaker_open():
-            self.logger.warning(f"Observability circuit breaker open - executing {operation_name} without tracing")
+            self.logger.warning(
+                f"Observability circuit breaker open - executing {operation_name} without tracing"
+            )
             return operation_func(*args, **kwargs)
 
         try:
             # Extract tracing parameters from kwargs
-            trace_tags = kwargs.pop('trace_tags', {})
-            correlation_id = kwargs.get('correlation_id', 'none')
+            trace_tags = kwargs.pop("trace_tags", {})
+            correlation_id = kwargs.get("correlation_id", "none")
 
             # Attempt traced execution
             with observability_service.trace_operation(
                 operation_name=operation_name,
                 correlation_id=correlation_id,
-                **trace_tags
+                **trace_tags,
             ) as trace_id:
-                self.logger.debug(f"Traced operation started", operation=operation_name, trace_id=trace_id)
+                self.logger.debug(
+                    "Traced operation started",
+                    operation=operation_name,
+                    trace_id=trace_id,
+                )
                 result = operation_func(*args, **kwargs)
 
                 # Add custom metadata if result is available
-                if isinstance(result, dict) and 'trace_id' not in result:
-                    result['trace_id'] = trace_id
+                if isinstance(result, dict) and "trace_id" not in result:
+                    result["trace_id"] = trace_id
 
                 return result
 
@@ -87,8 +94,13 @@ class SafeObservabilityWrapper:
 
             # Try to notify about circuit breaker opening
             try:
-                if hasattr(observability_service, 'is_circuit_breaker_open') and observability_service.is_circuit_breaker_open():
-                    self.logger.info("Circuit breaker opened - falling back to basic operation")
+                if (
+                    hasattr(observability_service, "is_circuit_breaker_open")
+                    and observability_service.is_circuit_breaker_open()
+                ):
+                    self.logger.info(
+                        "Circuit breaker opened - falling back to basic operation"
+                    )
             except Exception:
                 pass  # Ignore further observability failures
 
@@ -97,7 +109,10 @@ class SafeObservabilityWrapper:
                 result = operation_func(*args, **kwargs)
                 return result if result is not None else default_result
             except Exception as op_error:
-                self.logger.error(f"Operation failed after observability error: {op_error}", operation=operation_name)
+                self.logger.error(
+                    f"Operation failed after observability error: {op_error}",
+                    operation=operation_name,
+                )
                 return default_result
 
     async def trace_async_operation_safe(
@@ -106,7 +121,7 @@ class SafeObservabilityWrapper:
         operation_func: Callable,
         *args,
         default_result: Any = None,
-        **kwargs
+        **kwargs,
     ) -> Any:
         """
         Safely execute async operation with tracing.
@@ -123,30 +138,38 @@ class SafeObservabilityWrapper:
 
         # Check service health first
         if not observability_service.is_initialized():
-            self.logger.debug(f"Observability not initialized - executing {operation_name} without tracing")
+            self.logger.debug(
+                f"Observability not initialized - executing {operation_name} without tracing"
+            )
             return await operation_func(*args, **kwargs)
 
         if observability_service.is_circuit_breaker_open():
-            self.logger.warning(f"Observability circuit breaker open - executing {operation_name} without tracing")
+            self.logger.warning(
+                f"Observability circuit breaker open - executing {operation_name} without tracing"
+            )
             return await operation_func(*args, **kwargs)
 
         try:
             # Extract tracing parameters
-            trace_tags = kwargs.pop('trace_tags', {})
-            correlation_id = kwargs.get('correlation_id', 'none')
+            trace_tags = kwargs.pop("trace_tags", {})
+            correlation_id = kwargs.get("correlation_id", "none")
 
             # Attempt traced execution
             with observability_service.trace_operation(
                 operation_name=operation_name,
                 correlation_id=correlation_id,
-                **trace_tags
+                **trace_tags,
             ) as trace_id:
-                self.logger.debug(f"Traced async operation started", operation=operation_name, trace_id=trace_id)
+                self.logger.debug(
+                    "Traced async operation started",
+                    operation=operation_name,
+                    trace_id=trace_id,
+                )
                 result = await operation_func(*args, **kwargs)
 
                 # Add custom metadata
-                if isinstance(result, dict) and 'trace_id' not in result:
-                    result['trace_id'] = trace_id
+                if isinstance(result, dict) and "trace_id" not in result:
+                    result["trace_id"] = trace_id
 
                 return result
 
@@ -158,7 +181,10 @@ class SafeObservabilityWrapper:
                 result = await operation_func(*args, **kwargs)
                 return result if result is not None else default_result
             except Exception as op_error:
-                self.logger.error(f"Async operation failed after observability error: {op_error}", operation=operation_name)
+                self.logger.error(
+                    f"Async operation failed after observability error: {op_error}",
+                    operation=operation_name,
+                )
                 return default_result
 
     def trace_llm_call_safe(
@@ -167,7 +193,7 @@ class SafeObservabilityWrapper:
         prompt_func: Callable,
         *args,
         default_result: str = "",
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Safely execute LLM call with tracing.
@@ -182,7 +208,10 @@ class SafeObservabilityWrapper:
             LLM response or fallback
         """
 
-        if not observability_service.is_initialized() or observability_service.is_circuit_breaker_open():
+        if (
+            not observability_service.is_initialized()
+            or observability_service.is_circuit_breaker_open()
+        ):
             try:
                 return prompt_func(*args, **kwargs)
             except Exception as e:
@@ -190,15 +219,17 @@ class SafeObservabilityWrapper:
                 return default_result
 
         try:
-            correlation_id = kwargs.get('correlation_id', 'none')
+            correlation_id = kwargs.get("correlation_id", "none")
 
             with observability_service.trace_llm_call(
                 model_name=model_name,
                 prompt="",  # Could optionally extract if needed
-                correlation_id=correlation_id
+                correlation_id=correlation_id,
             ) as trace_id:
                 result = prompt_func(*args, **kwargs)
-                self.logger.debug(f"LLM call traced", model=model_name, trace_id=trace_id)
+                self.logger.debug(
+                    "LLM call traced", model=model_name, trace_id=trace_id
+                )
                 return result
 
         except Exception as e:
@@ -206,14 +237,13 @@ class SafeObservabilityWrapper:
             try:
                 return prompt_func(*args, **kwargs)
             except Exception as op_error:
-                self.logger.error(f"LLM call failed after observability error: {op_error}")
+                self.logger.error(
+                    f"LLM call failed after observability error: {op_error}"
+                )
                 return default_result
 
     def create_resilient_wrapper(
-        self,
-        operation_name: str,
-        default_result: Any = None,
-        is_async: bool = False
+        self, operation_name: str, default_result: Any = None, is_async: bool = False
     ) -> Callable:
         """
         Create a resilient wrapper decorator for functions.
@@ -231,21 +261,13 @@ class SafeObservabilityWrapper:
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 return self.trace_operation_safe(
-                    operation_name,
-                    func,
-                    *args,
-                    default_result=default_result,
-                    **kwargs
+                    operation_name, func, *args, default_result=default_result, **kwargs
                 )
 
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
                 return await self.trace_async_operation_safe(
-                    operation_name,
-                    func,
-                    *args,
-                    default_result=default_result,
-                    **kwargs
+                    operation_name, func, *args, default_result=default_result, **kwargs
                 )
 
             return async_wrapper if is_async else sync_wrapper
@@ -262,7 +284,7 @@ def safe_trace_operation(
     operation_name: str,
     operation_func: Callable,
     default_result: Any = None,
-    **trace_tags
+    **trace_tags,
 ):
     """
     Convenience function for safe operation tracing.
@@ -274,7 +296,7 @@ def safe_trace_operation(
         operation_name,
         operation_func,
         default_result=default_result,
-        trace_tags=trace_tags
+        trace_tags=trace_tags,
     )
 
 
@@ -282,7 +304,7 @@ async def safe_trace_async_operation(
     operation_name: str,
     operation_func: Callable,
     default_result: Any = None,
-    **trace_tags
+    **trace_tags,
 ):
     """
     Convenience function for safe async operation tracing.
@@ -294,11 +316,13 @@ async def safe_trace_async_operation(
         operation_name,
         operation_func,
         default_result=default_result,
-        trace_tags=trace_tags
+        trace_tags=trace_tags,
     )
 
 
-def resilient_trace(operation_name: str, default_result: Any = None, is_async: bool = False):
+def resilient_trace(
+    operation_name: str, default_result: Any = None, is_async: bool = False
+):
     """
     Decorator for making any function observability-resilient.
 
@@ -312,30 +336,28 @@ def resilient_trace(operation_name: str, default_result: Any = None, is_async: b
             return await do_something_async()
     """
     if is_async:
+
         def async_decorator(func):
             @wraps(func)
             async def wrapper(*args, **kwargs):
                 return await safe_observability.trace_async_operation_safe(
-                    operation_name,
-                    func,
-                    default_result=default_result,
-                    *args,
-                    **kwargs
+                    operation_name, func, default_result=default_result, *args, **kwargs
                 )
+
             return wrapper
+
         return async_decorator
     else:
+
         def sync_decorator(func):
             @wraps(func)
             def wrapper(*args, **kwargs):
                 return safe_observability.trace_operation_safe(
-                    operation_name,
-                    func,
-                    default_result=default_result,
-                    *args,
-                    **kwargs
+                    operation_name, func, default_result=default_result, *args, **kwargs
                 )
+
             return wrapper
+
         return sync_decorator
 
 
@@ -349,7 +371,7 @@ def get_service_health() -> Dict[str, Any]:
     health = {
         "observability_initialized": observability_service.is_initialized(),
         "circuit_breaker_open": False,
-        "service_name": "action_resolution_safe_observability"
+        "service_name": "action_resolution_safe_observability",
     }
 
     try:
@@ -378,7 +400,7 @@ async def example_usage():
     result = safe_trace_operation(
         "example_sync_operation",
         risky_operation,
-        trace_tags={"service": "demo", "operation_type": "test"}
+        trace_tags={"service": "demo", "operation_type": "test"},
     )
     print(f"Sync result: {result}")
 
@@ -391,7 +413,7 @@ async def example_usage():
     async_result = await safe_trace_async_operation(
         "example_async_operation",
         risky_async_operation,
-        trace_tags={"service": "demo", "operation_type": "test"}
+        trace_tags={"service": "demo", "operation_type": "test"},
     )
     print(f"Async result: {async_result}")
 

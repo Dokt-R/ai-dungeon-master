@@ -1,6 +1,8 @@
 import pytest
+
 from packages.backend.ai.graphs.action_resolution import route_by_intent
 from packages.shared.models.langgraph_state_models import MinimalGameState
+
 
 @pytest.mark.asyncio
 async def test_route_by_intent_combat():
@@ -21,6 +23,7 @@ async def test_route_by_intent_combat():
     route = await route_by_intent(state)
     assert route == "combat_subgraph"
 
+
 @pytest.mark.asyncio
 async def test_route_by_intent_exploration():
     """Test that exploration intent routes to exploration_node."""
@@ -40,6 +43,7 @@ async def test_route_by_intent_exploration():
     route = await route_by_intent(state)
     assert route == "exploration_node"
 
+
 @pytest.mark.asyncio
 async def test_route_by_intent_interaction():
     """Test that interaction intent routes to interaction_node."""
@@ -58,6 +62,7 @@ async def test_route_by_intent_interaction():
     )
     route = await route_by_intent(state)
     assert route == "interaction_node"
+
 
 @pytest.mark.asyncio
 async def test_route_by_intent_error():

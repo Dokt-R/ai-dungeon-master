@@ -177,7 +177,11 @@ class MemoryService:
         return max(1, total_tokens) + self.config.token_estimation_buffer
 
     async def prepare_memory_context(
-        self, session_id: str, user_prompt: str, correlation_id: str, fast_mode: bool = False
+        self,
+        session_id: str,
+        user_prompt: str,
+        correlation_id: str,
+        fast_mode: bool = False,
     ) -> MemoryContext:
         """
         Prepare memory context for AI prompt generation.
@@ -203,22 +207,28 @@ class MemoryService:
 
                 if fast_mode:
                     # Fast mode: minimal processing for speed
-                    recent_events = self._extract_recent_events(memory_state, user_prompt)
+                    recent_events = self._extract_recent_events(
+                        memory_state, user_prompt
+                    )
                     relevant_memories = []  # Skip expensive relevance search
                     character_knowledge = {}  # Skip character analysis
                     world_state = {}  # Skip world state extraction
                     summary = "Fast mode - minimal context"  # Skip summary generation
                 else:
                     # Full mode: comprehensive context preparation
-                    recent_events = self._extract_recent_events(memory_state, user_prompt)
-                    
+                    recent_events = self._extract_recent_events(
+                        memory_state, user_prompt
+                    )
+
                     # Find relevant memories
                     relevant_memories = await self._find_relevant_memories(
                         memory_state, user_prompt, correlation_id
                     )
 
                     # Prepare character knowledge
-                    character_knowledge = self._extract_character_knowledge(memory_state)
+                    character_knowledge = self._extract_character_knowledge(
+                        memory_state
+                    )
 
                     # Get current world state
                     world_state = self._extract_world_state(memory_state)

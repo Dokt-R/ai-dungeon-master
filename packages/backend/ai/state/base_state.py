@@ -8,13 +8,18 @@ These provide the standardized building blocks for D&D 5e mechanics.
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, TypedDict
+
 from pydantic import BaseModel, Field
 
-from packages.backend.ai.tools.calculators.currency_calculator import Wallet, calculate_coin_weight
+from packages.backend.ai.tools.calculators.currency_calculator import (
+    Wallet,
+    calculate_coin_weight,
+)
 
 
 class DamageType(Enum):
     """D&D 5e damage types"""
+
     SLASHING = "slashing"
     PIERCING = "piercing"
     BLUDGEONING = "bludgeoning"
@@ -32,6 +37,7 @@ class DamageType(Enum):
 
 class Condition(Enum):
     """D&D 5e conditions"""
+
     BLINDED = "blinded"
     CHARMED = "charmed"
     DEAFENED = "deafened"
@@ -50,6 +56,7 @@ class Condition(Enum):
 
 class InteractionType(Enum):
     """Defines extensible types of interactions with objects or the environment."""
+
     EXAMINE = "examine"
     USE = "use"
     ATTACK = "attack"
@@ -67,6 +74,7 @@ class InteractionType(Enum):
 
 class Attack(TypedDict):
     """Standardized attack definition"""
+
     name: str
     bonus: int  # Attack bonus (ability mod + proficiency + magic)
     damage: str  # Dice notation (e.g., "1d8+2")
@@ -76,32 +84,39 @@ class Attack(TypedDict):
 
 class Item(BaseModel):
     """Standardized item definition"""
+
     name: str
     type: str = Field(..., description="e.g., weapon, armor, consumable, key, misc")
     weight: float = Field(..., ge=0)
     value: int = Field(..., ge=0, description="Value in copper pieces")
     description: str
     source: str = Field("SRD", description="Can be SRD, Homebrew or other")
-    
+
     # Gameplay properties
     quantity: int = Field(1, ge=1)
     is_stackable: bool = False
     rarity: str = Field("common", description="e.g., common, uncommon, rare, legendary")
     requires_attunement: bool = False
-    
+
     # Functional properties
-    effects: Dict[str, Any] = Field(default_factory=dict, description="e.g., {'passive': {'ac_bonus': 1}, 'on_use': {'heal': '1d4'}}")
-    interactions: Dict[InteractionType, Dict[str, Any]] = Field(default_factory=dict, description="How the item can be used")
-    properties: Dict[str, Any] = Field(default_factory=dict, description="For miscellaneous data")
-    
+    effects: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="e.g., {'passive': {'ac_bonus': 1}, 'on_use': {'heal': '1d4'}}",
+    )
+    interactions: Dict[InteractionType, Dict[str, Any]] = Field(
+        default_factory=dict, description="How the item can be used"
+    )
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="For miscellaneous data"
+    )
+
     # State
     equipped: Optional[bool] = False
 
 
-
-
 class Character(BaseModel):
     """Comprehensive character/NPC definition following D&D 5e rules"""
+
     name: str
     hp: int
     max_hp: int
@@ -128,7 +143,9 @@ class Character(BaseModel):
     # Inventory
     inventory: List[Item] = Field(default_factory=list)
     equipped_items: Dict[str, Item] = Field(default_factory=dict)
-    wallet: Wallet = Field(default_factory=lambda: {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0})
+    wallet: Wallet = Field(
+        default_factory=lambda: {"cp": 0, "sp": 0, "ep": 0, "gp": 0, "pp": 0}
+    )
 
     # Resources
     spell_slots: Optional[Dict[int, int]] = None
@@ -165,7 +182,9 @@ class Character(BaseModel):
 
     def get_total_weight(self) -> float:
         """Calculates the total weight of all items and coins."""
-        item_weight = sum(item.get("weight", 0.0) * item.get("quantity", 1) for item in self.inventory)
+        item_weight = sum(
+            item.get("weight", 0.0) * item.get("quantity", 1) for item in self.inventory
+        )
         coin_weight = calculate_coin_weight(self.wallet)
         return item_weight + coin_weight
 
@@ -188,16 +207,17 @@ class Character(BaseModel):
 @dataclass
 class ActionResult:
     """Standardized result structure for node operations"""
+
     success: bool
     description: str
     state_changes: Dict[str, Any]
     resolution_details: Optional[Dict[str, Any]] = None
 
 
-
 @dataclass
 class Position:
     """Represents a 3D position in the game world."""
+
     x: int
     y: int
     z: int
@@ -205,6 +225,7 @@ class Position:
 
 class EnvironmentalEffect(TypedDict):
     """Represents an environmental effect."""
+
     name: str
     description: str
     effect_type: str  # e.g., "magical", "weather", "hazard"
@@ -214,6 +235,7 @@ class EnvironmentalEffect(TypedDict):
 
 class InteractiveObject(TypedDict):
     """Represents an object in the environment that can be interacted with."""
+
     name: str
     description: str
     position: Position
@@ -224,6 +246,7 @@ class InteractiveObject(TypedDict):
 
 class Room(TypedDict):
     """Represents a single location in the game world."""
+
     name: str
     description: str
     dimensions: Dict[str, int]  # e.g., {"width": 20, "length": 30, "height": 10}

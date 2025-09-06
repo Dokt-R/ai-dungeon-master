@@ -15,7 +15,9 @@ import json
 from typing import Dict, Any
 
 # Add the project root to the Python path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+project_root = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
@@ -79,14 +81,18 @@ class LangSmithDiagnostic:
             "lan_project": False,
             "lan_endpoint": None,
             "lan_tracing": None,
-            "issues": []
+            "issues": [],
         }
 
         # Check API Key
         api_key = os.getenv("LANGSMITH_API_KEY")
         if api_key:
             status["lan_api_key"] = len(api_key) > 20  # Basic format check
-            print(f"✅ LANGSMITH_API_KEY set: {api_key[:10]}..." if status["lan_api_key"] else f"❌ LANGSMITH_API_KEY invalid")
+            print(
+                f"✅ LANGSMITH_API_KEY set: {api_key[:10]}..."
+                if status["lan_api_key"]
+                else f"❌ LANGSMITH_API_KEY invalid"
+            )
         else:
             status["issues"].append("LANGSMITH_API_KEY not set")
             print("❌ LANGSMITH_API_KEY not set")
@@ -94,7 +100,11 @@ class LangSmithDiagnostic:
         # Check Project
         project = os.getenv("LANGSMITH_PROJECT", "ai-dungeon-master")
         status["lan_project"] = bool(project)
-        print(f"✅ LANGSMITH_PROJECT: {project}" if status["lan_project"] else "❌ LANGSMITH_PROJECT not set")
+        print(
+            f"✅ LANGSMITH_PROJECT: {project}"
+            if status["lan_project"]
+            else "❌ LANGSMITH_PROJECT not set"
+        )
 
         # Check Endpoint
         endpoint = os.getenv("LANGSMITH_ENDPOINT", "https://api.smith.langchain.com")
@@ -107,7 +117,9 @@ class LangSmithDiagnostic:
         if tracing == "true":
             print("✅ LANGSMITH_TRACING: enabled")
         else:
-            status["issues"].append("LANGSMITH_TRACING not set to 'true' (currently disabled)")
+            status["issues"].append(
+                "LANGSMITH_TRACING not set to 'true' (currently disabled)"
+            )
             print("❌ LANGSMITH_TRACING: disabled (set to 'true' to enable)")
 
         return status
@@ -118,7 +130,7 @@ class LangSmithDiagnostic:
             "initialization_attempted": False,
             "initialization_success": False,
             "langgraph_available": False,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -146,7 +158,7 @@ class LangSmithDiagnostic:
             "basic_trace_success": False,
             "ai_operation_tested": False,
             "ai_operation_success": False,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -155,10 +167,12 @@ class LangSmithDiagnostic:
             test_operation = "langsmith_diagnostic_test_operation"
             start_time = time.time()
 
-            with observability_service.trace_operation(test_operation, diagnostic_mode=True) as trace_id:
+            with observability_service.trace_operation(
+                test_operation, diagnostic_mode=True
+            ) as trace_id:
                 time.sleep(0.1)  # Simulate some work
                 execution_time = time.time() - start_time
-                print(".4f"                status["basic_trace_success"] = bool(trace_id)
+                # print(".4f", status["basic_trace_success"] = bool(trace_id))
                 if trace_id:
                     print(f"✅ Trace ID generated: {trace_id}")
                 else:
@@ -175,7 +189,7 @@ class LangSmithDiagnostic:
         status = {
             "workflow_trace_tested": False,
             "workflow_trace_success": False,
-            "errors": []
+            "errors": [],
         }
 
         try:
@@ -183,8 +197,7 @@ class LangSmithDiagnostic:
 
             # Test AI workflow decorator
             @observability_service.trace_ai_workflow_decorator(
-                workflow_name="diagnostic_workflow",
-                workflow_type="diagnostic_test"
+                workflow_name="diagnostic_workflow", workflow_type="diagnostic_test"
             )
             async def test_ai_workflow():
                 await asyncio.sleep(0.05)  # Simulate AI processing
@@ -210,7 +223,7 @@ class LangSmithDiagnostic:
         health = {
             "service_initialized": False,
             "config_details": {},
-            "circut_breaker_state": "unknown"
+            "circut_breaker_state": "unknown",
         }
 
         try:
@@ -224,7 +237,7 @@ class LangSmithDiagnostic:
                 health["config_details"] = health_status
 
             # Check circuit breaker
-            if hasattr(observability_service, 'is_circuit_breaker_open'):
+            if hasattr(observability_service, "is_circuit_breaker_open"):
                 circuit_open = observability_service.is_circuit_breaker_open()
                 health["circuit_breaker_open"] = circuit_open
                 print(f"   Circuit Breaker: {'OPEN' if circuit_open else 'CLOSED'}")
@@ -254,7 +267,9 @@ class LangSmithDiagnostic:
                 print("5s")
 
         # Check initialization
-        init_issues = self.diagnostic_results.get("initialization", {}).get("errors", [])
+        init_issues = self.diagnostic_results.get("initialization", {}).get(
+            "errors", []
+        )
         if init_issues:
             all_good = False
             critical_issues.extend(init_issues)
@@ -295,7 +310,9 @@ class LangSmithDiagnostic:
         print("\n2. Verify API Key:")
         print("   • Get key from https://smith.langchain.com/ (Settings > API Keys)")
         print("   • Key should start with 'ls__' or 'lsv2_'")
-        print("   • Test with curl: curl -H 'x-api-key: YOUR_KEY' https://api.smith.langchain.com/api/v1/runs")
+        print(
+            "   • Test with curl: curl -H 'x-api-key: YOUR_KEY' https://api.smith.langchain.com/api/v1/runs"
+        )
 
         print("\n3. Enable Tracing:")
         print("   • Ensure LANGSMITH_TRACING='true' (not 'false' or unset)")
@@ -306,7 +323,9 @@ class LangSmithDiagnostic:
         print("   • Check firewall/proxy settings")
 
         print("\n5. Test Manually:")
-        print("   • Run this diagnostic script: python packages/backend/diagnose_langsmith.py")
+        print(
+            "   • Run this diagnostic script: python packages/backend/diagnose_langsmith.py"
+        )
         print("   • Check for any error messages or warnings")
 
         print("\n6. LangSmith Dashboard:")

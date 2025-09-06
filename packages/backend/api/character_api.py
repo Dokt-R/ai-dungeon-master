@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from packages.backend.components.character_manager import CharacterManager
 from packages.shared.models import (
     AddCharacterRequest,
+    CreateCharacterRequest,
     ListCharactersRequest,
     RemoveCharacterRequest,
     UpdateCharacterRequest,
@@ -19,6 +20,36 @@ async def add_character(
         player_id=req.player_id,
         name=req.name,
         character_url=req.character_url,
+    )
+    return {
+        "message": "Character created successfully.",
+        "character_id": character.character_id,
+    }
+
+
+@router.post("/create")
+async def create_character(
+    req: CreateCharacterRequest, character_manager: CharacterManager = Depends()
+):
+    character = await character_manager.create_character(
+        player_id=req.player_id,
+        name=req.name,
+        species=req.species,
+        class_field=req.class_field,
+        subclass=req.subclass,
+        background=req.background,
+        strength=req.strength,
+        dexterity=req.dexterity,
+        constitution=req.constitution,
+        intelligence=req.intelligence,
+        wisdom=req.wisdom,
+        charisma=req.charisma,
+        prof_str_save=req.prof_str_save,
+        prof_dex_save=req.prof_dex_save,
+        prof_con_save=req.prof_con_save,
+        prof_int_save=req.prof_int_save,
+        prof_wis_save=req.prof_wis_save,
+        prof_cha_save=req.prof_cha_save,
     )
     return {
         "message": "Character created successfully.",

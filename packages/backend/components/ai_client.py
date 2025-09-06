@@ -350,10 +350,10 @@ class OpenAIProvider(AIProviderInterface):
     ) -> str:
         """Generate text using OpenAI with detailed timing."""
         import time
-        
+
         start_time = time.perf_counter()
         provider_id = f"openai_{int(time.time() * 1000)}"
-        
+
         if not self.client:
             raise ConnectionError("OpenAI client not initialized")
 
@@ -364,48 +364,48 @@ class OpenAIProvider(AIProviderInterface):
                 model=self.config.model,
                 prompt_length=len(prompt),
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
-            
+
             # Stage 1: Parameter preparation
             prep_start = time.perf_counter()
             openai_params = {
                 "model": self.config.model,
                 "messages": [{"role": "user", "content": prompt}],
             }
-            
+
             # Only include temperature if specified and not None
             if temperature is not None:
                 openai_params["temperature"] = temperature
-            
+
             # Only include max_tokens if it's not None
             if max_tokens is not None:
                 openai_params["max_tokens"] = max_tokens
-                
+
             # Include any additional kwargs
             openai_params.update(kwargs)
-            
+
             prep_time = (time.perf_counter() - prep_start) * 1000
-            
+
             self.logger.debug(
                 "openai_params_prepared",
                 provider_id=provider_id,
                 prep_time_ms=round(prep_time, 2),
-                param_count=len(openai_params)
+                param_count=len(openai_params),
             )
 
             # Stage 2: OpenAI API call
             api_start = time.perf_counter()
             response = await self.client.chat.completions.create(**openai_params)
             api_time = (time.perf_counter() - api_start) * 1000
-            
+
             # Stage 3: Response extraction
             extract_start = time.perf_counter()
             result = response.choices[0].message.content
             extract_time = (time.perf_counter() - extract_start) * 1000
-            
+
             total_time = (time.perf_counter() - start_time) * 1000
-            
+
             self.logger.info(
                 "openai_generate_text_completed",
                 provider_id=provider_id,
@@ -417,7 +417,7 @@ class OpenAIProvider(AIProviderInterface):
                 extract_time_ms=round(extract_time, 2),
                 total_time_ms=round(total_time, 2),
                 temperature=temperature,
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
 
             return result
@@ -431,7 +431,7 @@ class OpenAIProvider(AIProviderInterface):
                 prompt_length=len(prompt),
                 total_time_ms=round(total_time, 2),
                 error=str(e),
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
             )
             raise self._map_openai_error(e)
 
@@ -452,15 +452,15 @@ class OpenAIProvider(AIProviderInterface):
                 "model": self.config.model,
                 "messages": messages,
             }
-            
+
             # Only include temperature if specified and not None
             if temperature is not None:
                 openai_params["temperature"] = temperature
-            
+
             # Only include max_tokens if it's not None
             if max_tokens is not None:
                 openai_params["max_tokens"] = max_tokens
-                
+
             # Include any additional kwargs
             openai_params.update(kwargs)
 
@@ -675,10 +675,10 @@ class AIClient:
             AIClientError: If execution fails
         """
         import time
-        
+
         overall_start = time.perf_counter()
         execution_id = f"ai_exec_{int(time.time() * 1000)}"
-        
+
         if not self._circuit_breaker or not self._circuit_breaker.can_execute():
             raise ConnectionError(
                 "Circuit breaker is open, AI service temporarily unavailable"
@@ -686,14 +686,16 @@ class AIClient:
 
         method = getattr(self._provider, method_name)
         delay = self._config.retry_delay
-        
+
         # Extract prompt info for logging
         prompt_info = {}
         if "prompt" in kwargs:
             prompt_info["prompt_length"] = len(kwargs["prompt"])
         elif "messages" in kwargs:
             prompt_info["messages_count"] = len(kwargs["messages"])
-            prompt_info["total_message_length"] = sum(len(msg.get("content", "")) for msg in kwargs["messages"])
+            prompt_info["total_message_length"] = sum(
+                len(msg.get("content", "")) for msg in kwargs["messages"]
+            )
 
         logger.info(
             "ai_client_execution_started",
@@ -702,12 +704,12 @@ class AIClient:
             provider=self._config.provider.value,
             model=self._config.model,
             max_retries=self._config.max_retries,
-            **prompt_info
+            **prompt_info,
         )
 
         for attempt in range(self._config.max_retries + 1):
             attempt_start = time.perf_counter()
-            
+
             try:
                 with observability_service.trace_operation(
                     operation_name=f"ai_{method_name}",
@@ -723,14 +725,14 @@ class AIClient:
                         method=method_name,
                         trace_id=trace_id,
                         attempt=attempt + 1,
-                        **prompt_info
+                        **prompt_info,
                     )
 
                     # Time the actual provider method call
                     provider_start = time.perf_counter()
                     result = await method(**kwargs)
                     provider_time = (time.perf_counter() - provider_start) * 1000
-                    
+
                     attempt_time = (time.perf_counter() - attempt_start) * 1000
                     total_time = (time.perf_counter() - overall_start) * 1000
 
@@ -747,8 +749,10 @@ class AIClient:
                         provider_call_ms=round(provider_time, 2),
                         attempt_total_ms=round(attempt_time, 2),
                         execution_total_ms=round(total_time, 2),
-                        response_length=len(result) if isinstance(result, str) else "unknown",
-                        **prompt_info
+                        response_length=len(result)
+                        if isinstance(result, str)
+                        else "unknown",
+                        **prompt_info,
                     )
 
                     return result

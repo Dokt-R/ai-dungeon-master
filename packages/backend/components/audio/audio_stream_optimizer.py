@@ -21,11 +21,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from packages.backend.components.observability_service import observability_service
 from packages.backend.components.audio.tts_service import tts_service
 from packages.backend.components.audio.voice_performance_monitor import (
     voice_performance_monitor,
 )
+from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 from packages.shared.models import (
     AudioStreamInfo,

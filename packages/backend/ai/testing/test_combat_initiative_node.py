@@ -1,7 +1,8 @@
 """
 Unit tests for the combat_initialization_node module.
 """
-from unittest.mock import AsyncMock, MagicMock
+
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -10,7 +11,6 @@ from packages.backend.ai.nodes.combat.combat_initiative_node import (
 )
 from packages.backend.ai.testing.factories import create_test_state_for_initiative_roll
 from packages.shared.models.langgraph_state_models import (
-    CombatParticipant,
     CombatState,
 )
 
@@ -36,10 +36,8 @@ async def test_initialize_combat_node(mock_game_state_service: MagicMock):
     # Check participants
     assert len(combat_state.participants) == 4
 
-
     # Check active participants
     assert len(combat_state.active_participants) == 4
-
 
     # Check other state properties
     assert combat_state.current_round == 1
@@ -47,6 +45,6 @@ async def test_initialize_combat_node(mock_game_state_service: MagicMock):
     assert combat_state.combat_started is True
     assert combat_state.combat_ended is False
 
-    initiatives = [entry['initiative'] for entry in combat_state.initiative_order]
+    initiatives = [entry["initiative"] for entry in combat_state.initiative_order]
 
     assert initiatives == sorted(initiatives, reverse=True)

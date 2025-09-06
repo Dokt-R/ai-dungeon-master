@@ -16,7 +16,9 @@ from typing import Any, Dict, List, Optional
 
 from packages.backend.components.rules_engine import BaseRuleProvider, RuleProviderType
 from packages.backend.components.srd.srd_audit_service import srd_audit_service
-from packages.backend.components.srd.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd.srd_compliance_service import (
+    srd_compliance_service,
+)
 from packages.backend.components.srd.srd_database_manager import srd_database_manager
 from packages.shared.logging_config import get_logger
 from packages.shared.models import RulesQuery, RulesResponse, Spell

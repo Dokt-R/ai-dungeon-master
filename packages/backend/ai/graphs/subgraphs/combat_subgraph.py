@@ -62,39 +62,39 @@ def get_combat_subgraph():
     workflow.add_conditional_edges(
         "initialize_combat",
         lambda state: combat_check_exit_early(state, "surprise_check"),
-        {"surprise_check": "surprise_check", "__end__": END}
+        {"surprise_check": "surprise_check", "__end__": END},
     )
     workflow.add_conditional_edges(
         "surprise_check",
         lambda state: combat_check_exit_early(state, "roll_initiative"),
-        {"roll_initiative": "roll_initiative", "__end__": END}
+        {"roll_initiative": "roll_initiative", "__end__": END},
     )
     workflow.add_conditional_edges(
         "roll_initiative",
         lambda state: combat_check_exit_early(state, "process_turn"),
-        {"process_turn": "process_turn", "__end__": END}
+        {"process_turn": "process_turn", "__end__": END},
     )
     workflow.add_conditional_edges(
         "process_turn",
         lambda state: combat_check_exit_early(state, "resolve_combat_action"),
-        {"resolve_combat_action": "resolve_combat_action", "__end__": END}
+        {"resolve_combat_action": "resolve_combat_action", "__end__": END},
     )
     workflow.add_conditional_edges(
         "resolve_combat_action",
         lambda state: combat_check_exit_early(state, "death_save"),
-        {"death_save": "death_save", "__end__": END}
+        {"death_save": "death_save", "__end__": END},
     )
     workflow.add_conditional_edges(
         "death_save",
         lambda state: combat_check_exit_early(state, "narrate_combat_event"),
-        {"narrate_combat_event": "narrate_combat_event", "__end__": END}
+        {"narrate_combat_event": "narrate_combat_event", "__end__": END},
     )
     # This node will route to either end_turn (normal flow) or END (early exit)
     # The should_continue_combat function will determine the final end_combat route
     workflow.add_conditional_edges(
         "narrate_combat_event",
         lambda state: combat_check_exit_early(state, "end_turn"),
-        {"end_turn": "end_turn", "__end__": END}
+        {"end_turn": "end_turn", "__end__": END},
     )
 
     # Conditional logic to loop or end combat with exit_early support

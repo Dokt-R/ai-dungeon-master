@@ -1,23 +1,20 @@
 import os
 import time
-from typing import Optional
 from contextlib import asynccontextmanager
+from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
-from langsmith import traceable
 
 from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import (
     AIAPIError,
-    CustomException,
     NotFoundError,
     ValidationError,
 )
-from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 # Create logger for timing and performance tracking
@@ -235,7 +232,7 @@ class TemplateView(discord.ui.View):
 
         embed = discord.Embed(
             title="⚔️ Attack Roll!",
-            description=f"Gandalf swings his staff with magical force!",
+            description="Gandalf swings his staff with magical force!",
             color=discord.Color.red(),
         )
         embed.add_field(

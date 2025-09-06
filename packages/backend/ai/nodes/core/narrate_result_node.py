@@ -5,11 +5,9 @@ This module handles generating narrative descriptions of action results,
 providing engaging storytelling for all action outcomes.
 """
 
-import time
 from typing import Any, Dict
 
 from packages.backend.ai.state.action_resolution_state import ActionResolutionState
-from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -28,7 +26,7 @@ def _generate_attack_success_narrative(attack_result: Dict) -> str:
     narratives = [
         f"Your attack connects! You deal {damage} damage to the {target}.",
         f"A solid hit! The {target} takes {damage} damage.",
-        f"You strike true, dealing {damage} damage to the {target}."
+        f"You strike true, dealing {damage} damage to the {target}.",
     ]
 
     return narratives[damage % len(narratives)]  # Simple variation
@@ -41,7 +39,7 @@ def _generate_attack_miss_narrative(attack_result: Dict) -> str:
     narratives = [
         f"Your attack misses the {target}!",
         f"You swing wide, missing the {target}.",
-        f"The {target} dodges your attack!"
+        f"The {target} dodges your attack!",
     ]
 
     roll = attack_result.get("attack_roll", 1)

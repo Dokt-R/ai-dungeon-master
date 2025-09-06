@@ -50,18 +50,15 @@ __all__ = [
     "Character",
     "ActionResult",
     "calculate_modifier",
-
     # Action resolution
     "ActionResolutionState",
     "ParsedIntent",
-
     # Game world
     "GameObject",
     "Room",
     "GameState",
     "create_micro_adventure_state",
     "create_character",
-
     # Environment State
     "InteractionType",
     "InteractiveObject",
@@ -69,7 +66,6 @@ __all__ = [
     "DynamicRoom",
     "TerrainType",
     "TacticalRoom",
-
     # Combat
     "CombatParticipant",
     "Effect",

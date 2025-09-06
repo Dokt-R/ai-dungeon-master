@@ -7,7 +7,6 @@ from packages.shared.models.core_db_models import (
     DamageType,
     Item,
 )
-from packages.shared.models.langgraph_state_models import MinimalGameState
 from packages.shared.models.langgraph_state_models import (
     CombatParticipant,
     CombatState,
@@ -118,6 +117,7 @@ def create_test_minimal_game_state(
         error=None,
     )
 
+
 def create_test_combat_participant(
     participant_id: int,
     name: str,
@@ -155,6 +155,7 @@ def create_test_combat_state(
         active_participant_id=active_keys[0] if active_keys else None,
     )
 
+
 def create_test_game_state_with_combat() -> MinimalGameState:
     """
     Creates a test game state with a player and a monster in combat.
@@ -179,6 +180,7 @@ def create_test_game_state_with_combat() -> MinimalGameState:
 
     return game_state
 
+
 def create_test_state_for_combat_init() -> (
     MinimalGameState,
     Dict[str, Character],
@@ -196,9 +198,7 @@ def create_test_state_for_combat_init() -> (
     hostile_npc_char = create_test_character(
         character_id=3, name="Hostile NPC", is_hostile=True
     )
-    enemy_char = create_test_character(
-        character_id=4, name="Goblin", is_hostile=True
-    )
+    enemy_char = create_test_character(character_id=4, name="Goblin", is_hostile=True)
 
     # The participant key format is `type_id`
     participants = {
@@ -220,6 +220,7 @@ def create_test_state_for_combat_init() -> (
     )
 
     return game_state, participants
+
 
 def create_test_state_for_initiative_roll() -> MinimalGameState:
     """

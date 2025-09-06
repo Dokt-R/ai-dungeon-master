@@ -34,12 +34,12 @@ def configure_logging(
         structlog.processors.StackInfoRenderer(),
         structlog.contextvars.merge_contextvars,  # merge any bound contextvars into the event dict
         structlog.processors.CallsiteParameterAdder(
-        parameters=[
-            structlog.processors.CallsiteParameter.PATHNAME,
-            structlog.processors.CallsiteParameter.LINENO,
-            structlog.processors.CallsiteParameter.FUNC_NAME,
-        ]
-    ),
+            parameters=[
+                structlog.processors.CallsiteParameter.PATHNAME,
+                structlog.processors.CallsiteParameter.LINENO,
+                structlog.processors.CallsiteParameter.FUNC_NAME,
+            ]
+        ),
     ]
 
     # Pretty human output in dev

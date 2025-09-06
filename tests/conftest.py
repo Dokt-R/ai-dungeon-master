@@ -63,12 +63,14 @@ async def session(engine):
         yield db_session
         await db_session.rollback()  # Ensures test isolation
 
+
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """Create an instance of the default event loop for our test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest_asyncio.fixture
 async def client(engine):

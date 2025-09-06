@@ -8,7 +8,14 @@ from sqlmodel import select
 from packages.shared.db import get_async_session_dependency
 from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
+from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
+
+configure_logging(log_to_file=True, path="logs/character.log", level="DEBUG")
+# configure_logging()
+
+# Create logger instance
+logger = get_logger(__name__)
 
 
 class CharacterManager:
@@ -52,6 +59,90 @@ class CharacterManager:
 
         new_character = Character(
             player_id=player_id, name=name, character_url=character_url
+        )
+        self.session.add(new_character)
+        await self.session.commit()
+        await self.session.refresh(new_character)
+        return new_character
+
+    async def create_character(
+        self,
+        player_id: str,
+        name: str,
+        species: str,
+        class_field: str,
+        subclass: Optional[str],
+        background: str,
+        strength: int,
+        dexterity: int,
+        constitution: int,
+        intelligence: int,
+        wisdom: int,
+        charisma: int,
+        prof_str_save: bool,
+        prof_dex_save: bool,
+        prof_con_save: bool,
+        prof_int_save: bool,
+        prof_wis_save: bool,
+        prof_cha_save: bool,
+    ) -> Character:
+        """
+        Create a new character for a player.
+        """
+        player = await self.session.get(Player, player_id)
+
+        if not player:
+            logger.error("Player not found")
+            raise NotFoundError(
+                ErrorCode.PLAYER_NOT_FOUND, details={"player_id": player_id}
+            )
+
+        statement = select(Character).where(
+            Character.player_id == player_id, Character.name == name
+        )
+        result = await self.session.execute(statement)
+        if result.scalars().first():
+            logger.error("Duplicate character creation")
+            raise ValidationError(
+                ErrorCode.DUPLICATE_CHARACTER,
+                name=name,
+                details={
+                    "player_id": player_id,
+                    "name": name,
+                },
+            )
+
+        logger.debug(
+            "create_character_proficiencies_received",
+            player_id=player_id,
+            name=name,
+            prof_str_save=prof_str_save,
+            prof_dex_save=prof_dex_save,
+            prof_con_save=prof_con_save,
+            prof_int_save=prof_int_save,
+            prof_wis_save=prof_wis_save,
+            prof_cha_save=prof_cha_save,
+        )
+
+        new_character = Character(
+            player_id=player_id,
+            name=name,
+            species=species,
+            class_field=class_field,
+            subclass=subclass,
+            background=background,
+            strength=strength,
+            dexterity=dexterity,
+            constitution=constitution,
+            intelligence=intelligence,
+            wisdom=wisdom,
+            charisma=charisma,
+            prof_str_save=prof_str_save,
+            prof_dex_save=prof_dex_save,
+            prof_con_save=prof_con_save,
+            prof_int_save=prof_int_save,
+            prof_wis_save=prof_wis_save,
+            prof_cha_save=prof_cha_save,
         )
         self.session.add(new_character)
         await self.session.commit()
@@ -144,7 +235,9 @@ class CharacterManager:
             raise NotFoundError(ErrorCode.CHARACTER_NOT_FOUND)
         return result
 
-    async def get_character_by_name(self, name: str, campaign_id: Optional[int] = None) -> Character:
+    async def get_character_by_name(
+        self, name: str, campaign_id: Optional[int] = None
+    ) -> Character:
         """Get a character by name, optionally within a specific campaign."""
         statement = select(Character).where(Character.name == name)
         if campaign_id:

@@ -1,11 +1,11 @@
 """
 Combat Initiative Node
 """
-from typing import Any, Dict
+
+from typing import Dict
 
 from fastapi import Depends
 
-from packages.backend.ai.state.base_state import Character
 from packages.backend.ai.tools import DiceRoller
 
 # from packages.backend.ai.state import ActionResolutionState
@@ -17,7 +17,7 @@ from packages.shared.models.langgraph_state_models import (
 
 
 async def roll_initiative_node(
-            state: MinimalGameState, game_service: GameStateService = Depends()
+    state: MinimalGameState, game_service: GameStateService = Depends()
 ) -> Dict[str, CombatState]:
     """Rolls initiative for all participants and establishes turn order."""
     combat_state = state.get("combat_state")
@@ -27,9 +27,6 @@ async def roll_initiative_node(
 
     dice_roller = DiceRoller()
     participants = combat_state.participants
-
-
-
 
     initiative_order = []
     for participant_key, combat_participant in participants.items():
@@ -48,13 +45,18 @@ async def roll_initiative_node(
         """
 
         roll = dice_roller.roll_initiative(combat_participant.initiative_modifier)
-        initiative_order.append({"participant_key": participant_key,
-                                 "initiative": roll.total})
+        initiative_order.append(
+            {"participant_key": participant_key, "initiative": roll.total}
+        )
         combat_participant.initiative_roll = roll.total
 
     # Sort participants by initiative roll, descending
-    sorted_participants = sorted(participants.items(), key=lambda item: item[1].initiative_roll, reverse=True)
-    sorted_initiative_order = sorted(initiative_order, key=lambda x: x["initiative"], reverse=True)
+    sorted_participants = sorted(
+        participants.items(), key=lambda item: item[1].initiative_roll, reverse=True
+    )
+    sorted_initiative_order = sorted(
+        initiative_order, key=lambda x: x["initiative"], reverse=True
+    )
     combat_state.participants = sorted_participants
     combat_state.initiative_order = sorted_initiative_order
 
@@ -69,19 +71,25 @@ async def roll_initiative_node(
     order if the tie is between a monster and a player 
     character.
     """
-    
+
     if not combat_state.active_participant_id:
         combat_state.active_participant_id = [1]
-    
+
     # TEST MODE: Exit early after initiative roll if test flag is set
     if state.get("test_exit_after_initiative"):
         print("🧪 TEST MODE: Exiting combat early after initiative roll")
         print("🎲 Combat State after Initiative:")
-        print(f"   - Active Turn: {combat_state.get('active_turn_participant_id', 'None')}")
+        print(
+            f"   - Active Turn: {combat_state.get('active_turn_participant_id', 'None')}"
+        )
         print(f"   - Initiative Queue: {combat_state.get('initiative_queue', [])}")
-        for participant_id in combat_state.get('initiative_queue', []):
-            participant_data = combat_state.get('participants', {}).get(participant_id, {})
-            print(f"   - {participant_id}: Initiative {participant_data.get('initiative_score', 'N/A')}")
+        for participant_id in combat_state.get("initiative_queue", []):
+            participant_data = combat_state.get("participants", {}).get(
+                participant_id, {}
+            )
+            print(
+                f"   - {participant_id}: Initiative {participant_data.get('initiative_score', 'N/A')}"
+            )
         print("⚠️  Setting exit_early=True to prevent normal combat progression")
 
         # Update the state with combat results and exit_early flag
@@ -91,7 +99,7 @@ async def roll_initiative_node(
         updated_state["initiative_completed"] = True
 
         return updated_state
-    
+
     # Final State Values
     combat_state.combat_phase = "initiative"
     combat_state.needs_initiative_reroll = False

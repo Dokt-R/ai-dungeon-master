@@ -126,7 +126,9 @@ class CampaignManager:
 
         return campaign.players
 
-    async def update_campaign_state(self, campaign_id: int, state: MinimalGameState) -> Campaign:
+    async def update_campaign_state(
+        self, campaign_id: int, state: MinimalGameState
+    ) -> Campaign:
         """
         Update the state of a campaign using MinimalGameState.
         """

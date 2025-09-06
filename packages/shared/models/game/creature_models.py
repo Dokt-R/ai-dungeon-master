@@ -14,27 +14,25 @@ from sqlalchemy import (  # Import Integer and DateTime
 )
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import (
-    Mapped,
-)
-from sqlmodel import Field as SQLField, Relationship, SQLModel
-
-from packages.shared.models.core_db_models import Campaign
+from sqlmodel import Field as SQLField, SQLModel
 
 
 class BaseCreature(SQLModel):
     """Base class for all D&D creatures with common stats"""
+
     model_config = ConfigDict(ignored_types=(hybrid_property,))
-    
+
     # Basic identity
     name: str = SQLField(..., min_length=1, max_length=50)
-    campaign_id: Optional[int] = SQLField(default=None, foreign_key="campaigns.campaign_id")
-    
+    campaign_id: Optional[int] = SQLField(
+        default=None, foreign_key="campaigns.campaign_id"
+    )
+
     # Core combat stats
     hp: int = SQLField(default=10, ge=0)
     max_hp: int = SQLField(default=10, ge=1)
     ac: int = SQLField(default=10, ge=1, le=30)
-    
+
     # Core D&D ability scores
     strength: int = SQLField(default=10, ge=1, le=30)
     dexterity: int = SQLField(default=10, ge=1, le=30)
@@ -42,7 +40,7 @@ class BaseCreature(SQLModel):
     intelligence: int = SQLField(default=10, ge=1, le=30)
     wisdom: int = SQLField(default=10, ge=1, le=30)
     charisma: int = SQLField(default=10, ge=1, le=30)
-    
+
     # Common computed modifiers
     str_modifier: int = SQLField(
         sa_column=Column("str_modifier", Integer, Computed("((strength - 10) / 2)"))
@@ -62,27 +60,27 @@ class BaseCreature(SQLModel):
     cha_modifier: int = SQLField(
         sa_column=Column("cha_modifier", Integer, Computed("((charisma - 10) / 2)"))
     )
-    
+
     # Common JSON fields
     conditions: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
-    
+
     # Common status fields
     is_alive: bool = SQLField(default=True)
     is_hostile: bool = SQLField(default=False)
     in_combat: bool = SQLField(default=False)
-    
+
     # Common hybrid properties
     @hybrid_property
     def hp_percentage(self) -> float:
         if self.max_hp == 0:
             return 0.0
         return (self.hp / self.max_hp) * 100
-    
+
     @hybrid_property
     def is_conscious(self) -> bool:
         return self.hp > 0
-    
-    @hybrid_property  
+
+    @hybrid_property
     def initiative_modifier(self) -> int:
         """Initiative is always DEX modifier in D&D"""
         return self.dex_modifier
@@ -91,7 +89,7 @@ class BaseCreature(SQLModel):
     def is_unconscious(self) -> bool:
         return self.hp <= 0 and self.hp > -self.max_hp
 
-    @hybrid_property  
+    @hybrid_property
     def is_dead(self) -> bool:
         return self.hp <= -self.max_hp
 
@@ -99,19 +97,21 @@ class BaseCreature(SQLModel):
     def death_threshold(self) -> int:
         """HP threshold for instant death"""
         return -self.max_hp
-    
+
     @hybrid_property
     def participant_key(self) -> str:
         """Return a unique key for combat participant lookup"""
         return f"{self.__class__.__name__.lower()}_{self.id}"
 
-
     def get_ability_modifier(self, ability: str) -> int:
         """Get modifier for any ability score"""
         ability_map = {
-            'str': self.str_modifier, 'dex': self.dex_modifier, 
-            'con': self.con_modifier, 'int': self.int_modifier,
-            'wis': self.wis_modifier, 'cha': self.cha_modifier
+            "str": self.str_modifier,
+            "dex": self.dex_modifier,
+            "con": self.con_modifier,
+            "int": self.int_modifier,
+            "wis": self.wis_modifier,
+            "cha": self.cha_modifier,
         }
         return ability_map.get(ability.lower(), 0)
 
@@ -120,27 +120,32 @@ class BaseCreature(SQLModel):
         modifier = self.get_ability_modifier(ability)
         bonus = self.proficiency_bonus if proficient else 0
         return modifier + bonus
-    
+
     # Common helper methods
     def get_conditions(self) -> List[str]:
         """Get conditions as Python list"""
         if not self.conditions:
             return []
-        return json.loads(self.conditions) if isinstance(self.conditions, str) else self.conditions
-    
+        return (
+            json.loads(self.conditions)
+            if isinstance(self.conditions, str)
+            else self.conditions
+        )
+
     def add_condition(self, condition: str):
         """Add a condition"""
         conditions = self.get_conditions()
         if condition not in conditions:
             conditions.append(condition)
             self.conditions = json.dumps(conditions)
-    
+
     def remove_condition(self, condition: str):
         """Remove a condition"""
         conditions = self.get_conditions()
         if condition in conditions:
             conditions.remove(condition)
             self.conditions = json.dumps(conditions)
+
 
 class NPC(BaseCreature, table=True):
     """Minimal NPC model for D&D gameplay"""
@@ -157,9 +162,7 @@ class NPC(BaseCreature, table=True):
 
     proficiency_bonus: int = SQLField(
         sa_column=Column(
-            "proficiency_bonus",
-            Integer,
-            Computed("((level - 1) / 4 + 2)")
+            "proficiency_bonus", Integer, Computed("((level - 1) / 4 + 2)")
         )
     )
 

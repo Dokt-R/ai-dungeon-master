@@ -231,7 +231,7 @@ async def _process_action_with_dm_graph(
             correlation_id=correlation_id,
             campaign_context=action_request.campaign_context,
         )
-        
+
         return result["narrative"]
     except Exception as e:
         logger.error(

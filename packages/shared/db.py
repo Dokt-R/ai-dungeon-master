@@ -7,7 +7,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from packages.shared.models import *  # noqa: F403
 from packages.shared.models.not_utilized import *  # noqa: F403
 
-
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
 
 

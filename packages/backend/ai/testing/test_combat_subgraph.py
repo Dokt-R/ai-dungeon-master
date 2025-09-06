@@ -11,16 +11,18 @@ def test_should_continue_combat_continue():
     result = should_continue_combat(state)
     assert result == "process_turn"
 
+
 def test_should_continue_combat_exit_early():
     """Test that combat ends when exit_early is true."""
     state = create_test_minimal_game_state(exit_early=True)
     result = should_continue_combat(state)
     assert result == "end_combat"
 
+
 def test_get_combat_subgraph_structure():
     """Test the structure of the compiled combat subgraph."""
     combat_subgraph = get_combat_subgraph()
-    
+
     # Check that all expected nodes are present
     expected_nodes = [
         "initialize_combat",

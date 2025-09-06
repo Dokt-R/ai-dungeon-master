@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from typing import Generator
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 import pytest_asyncio
@@ -19,6 +19,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest.fixture(scope="session")
 def shared_mem_uri():
@@ -39,6 +40,7 @@ async def engine(shared_mem_uri):
     db_engine = get_async_engine(shared_mem_uri)
     await initialize_schema(db_engine)
     return db_engine
+
 
 @pytest_asyncio.fixture
 async def session(engine):
@@ -75,12 +77,15 @@ async def mock_game_state_service(session) -> MagicMock:
     game_service = GameStateService(session=session)
     return game_service
 
+
 @pytest_asyncio.fixture
 async def mock_populated_state(mock_game_state_service, minimal_game_state):
     game_service = mock_game_state_service
     player_char = create_test_character(character_id=1, name="Tester")
     await game_service.create_character(character=player_char)
-    await game_service.add_combat_participant(state=minimal_game_state,character=player_char)
+    await game_service.add_combat_participant(
+        state=minimal_game_state, character=player_char
+    )
     # enemy_char = create_test_character(character_id=2, name="goblin_1", is_hostile=True)
     # final_state = await game_service.create_character(enemy_char)
     # return final_state

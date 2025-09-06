@@ -47,6 +47,29 @@ class AddCharacterRequest(BaseModel):
     character_url: str | None = None
 
 
+class CreateCharacterRequest(BaseModel):
+    player_id: str = PydanticField(
+        ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
+    )
+    name: str = PydanticField(..., min_length=1, max_length=32, pattern=r"^[\w\- ]+$")
+    species: str = PydanticField(..., min_length=1, max_length=32)
+    class_field: str = PydanticField(..., min_length=1, max_length=32)
+    subclass: str | None = None
+    background: str = PydanticField(..., min_length=1, max_length=1024)
+    strength: int = PydanticField(..., ge=1, le=30)
+    dexterity: int = PydanticField(..., ge=1, le=30)
+    constitution: int = PydanticField(..., ge=1, le=30)
+    intelligence: int = PydanticField(..., ge=1, le=30)
+    wisdom: int = PydanticField(..., ge=1, le=30)
+    charisma: int = PydanticField(..., ge=1, le=30)
+    prof_str_save: bool = PydanticField(default=False)
+    prof_dex_save: bool = PydanticField(default=False)
+    prof_con_save: bool = PydanticField(default=False)
+    prof_int_save: bool = PydanticField(default=False)
+    prof_wis_save: bool = PydanticField(default=False)
+    prof_cha_save: bool = PydanticField(default=False)
+
+
 class UpdateCharacterRequest(BaseModel):
     character_id: int
     name: str | None = PydanticField(

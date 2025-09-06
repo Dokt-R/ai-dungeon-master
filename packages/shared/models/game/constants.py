@@ -3,16 +3,18 @@ from enum import Enum
 
 class CreatureSize(str, Enum):
     TINY = "tiny"
-    SMALL = "small" 
+    SMALL = "small"
     MEDIUM = "medium"
     LARGE = "large"
     HUGE = "huge"
     GARGANTUAN = "gargantuan"
 
+
 class Alignment(str, Enum):
     LAWFUL_GOOD = "lawful_good"
     NEUTRAL_GOOD = "neutral_good"
     # ... etc
+
 
 # Enums for D&D 5e
 class DamageType(Enum):

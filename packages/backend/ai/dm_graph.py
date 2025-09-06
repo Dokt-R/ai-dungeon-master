@@ -21,11 +21,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, TypedDict
 
 try:
+    from operator import add
+
     from langgraph.checkpoint.memory import MemorySaver
     from langgraph.graph import END, StateGraph
     from langgraph.prebuilt import ToolNode
     from typing_extensions import Annotated
-    from operator import add
 
     LANGGRAPH_AVAILABLE = True
 except ImportError:
@@ -329,7 +330,10 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Prompt processing failed: {str(e)}", "processing_stage": "prompt_error"}
+            return {
+                "error": f"Prompt processing failed: {str(e)}",
+                "processing_stage": "prompt_error",
+            }
 
     async def _compile_context_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Compile context including system prompt and memory using memory service."""
@@ -454,7 +458,10 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Context compilation failed: {str(e)}", "processing_stage": "context_error"}
+            return {
+                "error": f"Context compilation failed: {str(e)}",
+                "processing_stage": "context_error",
+            }
 
     async def _ai_interaction_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Handle AI interaction with proper error handling."""
@@ -467,12 +474,12 @@ class DMGraphService:
             messages = [
                 {"role": "system", "content": system_prompt},
             ]
-            
+
             # Add context messages from memory
             context_messages = state.get("context_messages", [])
             if context_messages:
                 messages.extend(context_messages)
-            
+
             # Add current user prompt
             messages.append({"role": "user", "content": user_prompt})
 
@@ -523,7 +530,10 @@ class DMGraphService:
                 narrative_length=len(narrative_response),
             )
 
-            return {"narrative_response": narrative_response, "processing_stage": "response_generated"}
+            return {
+                "narrative_response": narrative_response,
+                "processing_stage": "response_generated",
+            }
 
         except Exception as e:
             self.logger.error(
@@ -531,7 +541,10 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Response generation failed: {str(e)}", "processing_stage": "response_error"}
+            return {
+                "error": f"Response generation failed: {str(e)}",
+                "processing_stage": "response_error",
+            }
 
     async def _update_memory_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Update memory state with the interaction results using memory service (async background)."""
@@ -571,7 +584,10 @@ class DMGraphService:
                 correlation_id=state["correlation_id"],
                 error=str(e),
             )
-            return {"error": f"Memory update failed: {str(e)}", "processing_stage": "memory_error"}
+            return {
+                "error": f"Memory update failed: {str(e)}",
+                "processing_stage": "memory_error",
+            }
 
     async def _handle_error_node(self, state: DMGraphState) -> Dict[str, Any]:
         """Handle errors and provide fallback responses."""
@@ -585,10 +601,14 @@ class DMGraphService:
         # Generate fallback response if no narrative exists
         if not state.get("narrative_response"):
             fallback_narrative = self.config.fallback_responses.get(
-                "processing_error", "The DM encountered an issue processing your request."
+                "processing_error",
+                "The DM encountered an issue processing your request.",
             )
-            return {"narrative_response": fallback_narrative, "processing_stage": "error_handled"}
-        
+            return {
+                "narrative_response": fallback_narrative,
+                "processing_stage": "error_handled",
+            }
+
         # If we already have a narrative, just mark as handled
         return {"processing_stage": "error_handled"}
 
@@ -604,7 +624,7 @@ class DMGraphService:
                 ai_response=ai_response,
                 correlation_id=correlation_id,
             )
-            
+
             # Also prepare comprehensive memory context for next interaction (pre-cache)
             await memory_service.prepare_memory_context(
                 session_id=session_id,
@@ -612,13 +632,13 @@ class DMGraphService:
                 correlation_id=f"{correlation_id}_precache",
                 fast_mode=False,  # Full analysis in background
             )
-            
+
             self.logger.debug(
                 "background_memory_operations_completed",
                 correlation_id=correlation_id,
                 session_id=session_id,
             )
-            
+
         except Exception as e:
             # Log error but don't fail - memory update is non-critical for immediate response
             self.logger.warning(

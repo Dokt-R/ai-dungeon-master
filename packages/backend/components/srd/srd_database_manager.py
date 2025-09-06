@@ -71,7 +71,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from packages.backend.components.srd.srd_compliance_service import srd_compliance_service
+from packages.backend.components.srd.srd_compliance_service import (
+    srd_compliance_service,
+)
 from packages.shared.logging_config import get_logger
 from packages.shared.models import DataSource, Monster, Spell, SRDCompliance, Weapon
 

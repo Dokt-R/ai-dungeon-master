@@ -5,6 +5,7 @@ from packages.shared.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+
 def error_handler_node(state: ActionResolutionState) -> dict:
     """
     Handles errors in the action resolution graph using the centralized error system.

@@ -21,7 +21,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from packages.backend.components.audio.audio_processor import AudioChunk, audio_processor
+from packages.backend.components.audio.audio_processor import (
+    AudioChunk,
+    audio_processor,
+)
 from packages.backend.components.audio.audio_utils import audio_utils
 from packages.backend.components.observability_service import observability_service
 from packages.shared.logging_config import get_logger

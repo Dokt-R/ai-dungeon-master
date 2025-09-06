@@ -127,29 +127,31 @@ class MemoryState(BaseModel):
         if "last_activity" in data:
             instance.last_activity = datetime.fromisoformat(data["last_activity"])
         return instance
-    
+
 
 #! UNDER DEVELOPMENT
 class CampaignGameState(SQLModel, table=True):
     __tablename__ = "campaign_game_state"
-    
+
     id: Optional[int] = SQLField(default=None, primary_key=True)
     campaign_id: int = SQLField(foreign_key="campaigns.campaign_id")
-    
+
     # Current session state
     current_room_id: Optional[str] = SQLField(default=None)
     current_turn: int = SQLField(default=1)
     in_combat: bool = SQLField(default=False)
     round_order: Optional[str] = SQLField(default=None)  # JSON array of character IDs
-    current_character_turn: Optional[int] = SQLField(default=None, foreign_key="characters.character_id")
-    
+    current_character_turn: Optional[int] = SQLField(
+        default=None, foreign_key="characters.character_id"
+    )
+
     # Action context
     last_action: Optional[str] = SQLField(default=None)
     pending_actions: Optional[str] = SQLField(default=None)  # JSON for queued actions
-    
+
     # Metadata
     updated_at: datetime = SQLField(default_factory=datetime.utcnow)
-    
+
     # Relationships
     campaign: "Campaign" = Relationship()
     current_character: Optional["Character"] = Relationship()

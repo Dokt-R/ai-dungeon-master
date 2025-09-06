@@ -6,10 +6,12 @@ tactical positioning. It is designed for immediate gameplay benefits and
 future extensibility.
 """
 
-from typing import Dict, List, Optional, Set, Tuple, Any
-from enum import Enum
-from pydantic import BaseModel, Field
 import random
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from pydantic import BaseModel, Field
+
 from .base_state import InteractionType
 
 # ============================================
@@ -22,45 +24,53 @@ class InteractiveObject(BaseModel):
     Represents objects that respond to player actions, with multiple states
     and reactions.
     """
+
     name: str
     description: Dict[str, str]  # state -> description mapping
     current_state: str = "default"
-    
+
     # Defines what happens when interacted with
     interactions: Dict[InteractionType, Dict[str, Any]] = Field(default_factory=dict)
-    
+
     # Defines state transitions: {current_state: {trigger: next_state}}
     state_transitions: Dict[str, Dict[str, str]] = Field(default_factory=dict)
-    
+
     # Gameplay-affecting properties
     properties: Dict[str, Any] = Field(default_factory=dict)
-    
+
     def interact(self, action: InteractionType, **kwargs) -> Dict:
         """Processes an interaction and returns the result."""
         if action not in self.interactions:
-            return {"success": False, "message": f"You can't {action.value} the {self.name}"}
-        
+            return {
+                "success": False,
+                "message": f"You can't {action.value} the {self.name}",
+            }
+
         interaction = self.interactions[action]
         results = {"success": True, "effects": []}
-        
+
         # Check requirements for the interaction
         if "requires" in interaction:
             for req_type, req_value in interaction["requires"].items():
                 if req_type == "item" and req_value not in kwargs.get("inventory", []):
                     return {"success": False, "message": f"You need {req_value}"}
                 elif req_type == "state" and self.current_state != req_value:
-                    return {"success": False, "message": interaction.get("fail_message", "Nothing happens")}
-        
+                    return {
+                        "success": False,
+                        "message": interaction.get("fail_message", "Nothing happens"),
+                    }
+
         # Apply effects of the interaction
         if "effects" in interaction:
             results["effects"] = interaction["effects"]
-        
+
         # Transition to a new state if defined
         if "next_state" in interaction:
             self.current_state = interaction["next_state"]
             results["new_description"] = self.description.get(self.current_state)
-        
+
         return results
+
 
 """
 # Example: Multi-state puzzle object
@@ -96,40 +106,44 @@ class EnvironmentalEffect(BaseModel):
     Represents ongoing environmental effects that can trigger automatically,
     adding dynamic challenges and tactical depth.
     """
+
     name: str
     trigger_condition: str  # e.g., "turn_start", "on_enter", "every_n_turns"
     trigger_frequency: int = 1
-    
+
     effect_type: str  # e.g., "damage", "condition", "spawn", "change_state"
     effect_data: Dict[str, Any]
-    
+
     # Warnings to telegraph the effect to players
     warning_signs: List[str]
     current_warning_index: int = 0
-    
+
     active: bool = True
     turns_until_trigger: int = 0
-    
+
     def tick(self) -> Optional[Dict]:
         """Processes one turn, returning an effect if triggered."""
         if not self.active:
             return None
-            
+
         self.turns_until_trigger -= 1
-        
+
         # Provide a warning before the effect triggers
-        if self.turns_until_trigger > 0 and self.current_warning_index < len(self.warning_signs):
+        if self.turns_until_trigger > 0 and self.current_warning_index < len(
+            self.warning_signs
+        ):
             warning = self.warning_signs[self.current_warning_index]
             self.current_warning_index += 1
             return {"type": "warning", "message": warning}
-        
+
         # Trigger the effect
         if self.turns_until_trigger <= 0:
             self.turns_until_trigger = self.trigger_frequency
             self.current_warning_index = 0
             return {"type": "effect", "data": self.effect_data}
-        
+
         return None
+
 
 """
 # Example: Collapsing ceiling trap
@@ -152,64 +166,72 @@ ceiling_trap = EnvironmentalEffect(
 # DYNAMIC ROOMS
 # ============================================
 
+
 class DynamicRoom(BaseModel):
     """
     Represents rooms that change based on state and player actions, creating a
     more immersive and replayable experience.
     """
+
     name: str
     base_description: str
-    
+
     # Conditional description additions: [(condition, description)]
     conditional_descriptions: List[Tuple[str, str]] = Field(default_factory=list)
-    
+
     # Environmental attributes
     lighting: str = "normal"  # e.g., dark, dim, normal, bright
     atmosphere: Dict[str, Any] = Field(default_factory=dict)  # e.g., smoke, fog
     sounds: List[str] = Field(default_factory=list)
     smells: List[str] = Field(default_factory=list)
-    
+
     # Contents of the room
     objects: List[InteractiveObject] = Field(default_factory=list)
     environmental_effects: List[EnvironmentalEffect] = Field(default_factory=list)
-    
+
     # State flags for tracking changes
     flags: Set[str] = Field(default_factory=set)
-    
+
     def get_description(self, player_state: Dict) -> str:
         """Generates a dynamic description based on the current state."""
         parts = [self.base_description]
-        
+
         # Add conditional descriptions
         for condition, desc in self.conditional_descriptions:
             if self._check_condition(condition, player_state):
                 parts.append(desc)
-        
+
         # Add sensory details
-        if self.lighting == "dark" and "darkvision" not in player_state.get("abilities", []):
+        if self.lighting == "dark" and "darkvision" not in player_state.get(
+            "abilities", []
+        ):
             parts.append("It's too dark to see clearly.")
         elif self.lighting == "dim":
             parts.append("The dim light makes it hard to see details.")
-        
+
         if self.sounds:
             parts.append(f"You hear {random.choice(self.sounds)}.")
-        
+
         if self.smells:
             parts.append(f"You smell {random.choice(self.smells)}.")
-        
+
         # Describe visible objects
-        visible_objects = [obj for obj in self.objects if self._can_see_object(obj, player_state)]
+        visible_objects = [
+            obj for obj in self.objects if self._can_see_object(obj, player_state)
+        ]
         if visible_objects:
-            obj_descriptions = [self._describe_object(obj) for obj in visible_objects[:3]]
+            obj_descriptions = [
+                self._describe_object(obj) for obj in visible_objects[:3]
+            ]
             parts.append("You notice " + ", ".join(obj_descriptions) + ".")
-        
+
         # Describe active environmental effects
         for effect in self.environmental_effects:
             if effect.active and effect.turns_until_trigger <= 1:
                 parts.append(f"⚠️ {effect.warning_signs[-1]}")
-        
+
         return " ".join(parts)
-    
+
     def _check_condition(self, condition: str, player_state: Dict) -> bool:
         """Evaluates condition strings against room and player state."""
         if condition in self.flags:
@@ -219,13 +241,14 @@ class DynamicRoom(BaseModel):
             return item in player_state.get("inventory", [])
         if condition.startswith("hp"):
             import re
+
             match = re.match(r"hp([<>=])(\d+)", condition)
             if match:
                 op, value = match.groups()
                 hp = player_state.get("hp", 0)
                 return eval(f"{hp}{op}{value}")
         return False
-    
+
     def _can_see_object(self, obj: InteractiveObject, player_state: Dict) -> bool:
         """Determines if an object is visible to the player."""
         if obj.properties.get("hidden", False):
@@ -233,17 +256,20 @@ class DynamicRoom(BaseModel):
         if self.lighting == "dark":
             return "darkvision" in player_state.get("abilities", [])
         return True
-    
+
     def _describe_object(self, obj: InteractiveObject) -> str:
         """Gets the appropriate description for an object."""
         return obj.description.get(obj.current_state, f"a {obj.name}")
+
 
 # ============================================
 # TACTICAL POSITIONING
 # ============================================
 
+
 class TerrainType(Enum):
     """Defines terrain types that affect movement and combat."""
+
     NORMAL = "normal"
     DIFFICULT = "difficult"  # Half movement
     HAZARDOUS = "hazardous"  # Damage on enter
@@ -260,22 +286,24 @@ class TerrainType(Enum):
     UNDERGROUND = "underground"
     URBAN = "urban"
 
+
 class TacticalRoom(DynamicRoom):
     """
     Extends DynamicRoom with tactical positioning for combat encounters.
     """
+
     # Zone-based positioning system
     zones: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     # Format: {zone_name: {"terrain": TerrainType, "cover": "none|half|full", "elevation": 0}}
-    
+
     # Character positions within zones
     positions: Dict[str, str] = Field(default_factory=dict)  # character_id -> zone_name
-    
+
     def get_distance(self, char1_id: str, char2_id: str) -> int:
         """Calculates the distance between two characters based on zones."""
         zone1 = self.positions.get(char1_id, "center")
         zone2 = self.positions.get(char2_id, "center")
-        
+
         # Simple zone distance map for tactical calculations
         distance_map = {
             ("center", "center"): 0,
@@ -286,22 +314,23 @@ class TacticalRoom(DynamicRoom):
             ("north", "south"): 30,
             ("east", "west"): 30,
         }
-        
+
         key = tuple(sorted([zone1, zone2]))
         return distance_map.get(key, 20)  # Default distance
-    
+
     def get_cover_bonus(self, defender_id: str, attacker_id: str) -> int:
         """Calculates AC bonus from cover based on zone properties."""
         defender_zone = self.positions.get(defender_id, "center")
         zone_data = self.zones.get(defender_zone, {})
-        
+
         cover = zone_data.get("cover", "none")
         cover_bonus = {"none": 0, "half": 2, "three_quarters": 5, "full": 999}
-        
+
         return cover_bonus.get(cover, 0)
-    
 
     # ============================================
+
+
 # FUTURE ENHANCEMENT OPTIONS
 # ============================================
 

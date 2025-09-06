@@ -5,15 +5,14 @@ This module contains standardized game state structures following D&D 5e mechani
 Replaces generic dictionaries with proper TypedDict structures for type safety and consistency.
 """
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, TypedDict
 
-from packages.shared.models.core_db_models import Attack, Character, Item, DamageType
-from .base_state import calculate_modifier
+from packages.shared.models.core_db_models import Attack, Character, DamageType, Item
 
 
 class GameObject(TypedDict):
     """Interactive object in the game world"""
+
     name: str
     description: str
     state: Dict[str, Any]  # Flexible state (locked, open, hidden, etc.)
@@ -23,6 +22,7 @@ class GameObject(TypedDict):
 
 class Room(TypedDict):
     """Room/Location definition"""
+
     name: str
     description: str
     description_explored: Optional[str]  # After investigation
@@ -37,6 +37,7 @@ class Room(TypedDict):
 
 class GameState(TypedDict):
     """Complete game state following D&D 5e standards"""
+
     # Core entities
     player: Character
     npcs: Dict[str, Character]  # id -> character
@@ -65,6 +66,7 @@ class GameState(TypedDict):
 # Legacy compatibility structures (for migration)
 class GenericGameState(TypedDict):
     """Legacy structure for backward compatibility."""
+
     player: Dict[str, Any]
     npcs: List[Dict[str, Any]]
     room_description: str
@@ -80,7 +82,7 @@ def create_character(
     ac: int,
     abilities: Dict[str, int],
     attacks: List[Attack],
-    is_hostile: bool = False
+    is_hostile: bool = False,
 ) -> Character:
     """Factory function to create a properly formatted character following D&D 5e rules."""
     return Character(
@@ -89,22 +91,18 @@ def create_character(
         max_hp=hp,
         ac=ac,
         speed=30,  # Standard human speed
-
         strength=abilities.get("strength", 10),
         dexterity=abilities.get("dexterity", 10),
         constitution=abilities.get("constitution", 10),
         intelligence=abilities.get("intelligence", 10),
         wisdom=abilities.get("wisdom", 10),
         charisma=abilities.get("charisma", 10),
-
         attacks=attacks,
         proficiency_bonus=2,  # Standard for levels 1-4
-
         # JSON fields for conditions, features, etc.
         conditions="[]",  # JSON string for empty list
         features=None,
         spells_known=None,
-
         is_alive=True,
         is_hostile=is_hostile,
     )
@@ -118,8 +116,12 @@ def create_micro_adventure_state() -> GameState:
         hp=12,
         ac=14,
         abilities={
-            "strength": 14, "dexterity": 13, "constitution": 14,
-            "intelligence": 10, "wisdom": 12, "charisma": 8
+            "strength": 14,
+            "dexterity": 13,
+            "constitution": 14,
+            "intelligence": 10,
+            "wisdom": 12,
+            "charisma": 8,
         },
         attacks=[
             Attack(
@@ -127,9 +129,9 @@ def create_micro_adventure_state() -> GameState:
                 bonus=4,  # +2 str mod, +2 proficiency
                 damage="1d6+2",
                 damage_type=DamageType.PIERCING,
-                range=5
+                range=5,
             )
-        ]
+        ],
     )
 
     # Add starting inventory items
@@ -143,7 +145,7 @@ def create_micro_adventure_state() -> GameState:
             description="A simple iron shortsword.",
             effects=None,
             interactions=None,
-            equipped=False
+            equipped=False,
         ),
         Item(
             name="Shield",
@@ -154,7 +156,7 @@ def create_micro_adventure_state() -> GameState:
             description="A stout wooden shield.",
             effects=None,
             interactions=None,
-            equipped=False
+            equipped=False,
         ),
         Item(
             name="Healing Potion",
@@ -165,7 +167,7 @@ def create_micro_adventure_state() -> GameState:
             description="A red potion that restores health.",
             effects={"on_use": {"heal": "2d4+2"}},
             interactions={"use": {"effect": "heal"}},
-            equipped=False
+            equipped=False,
         ),
         Item(
             name="Key",
@@ -176,8 +178,8 @@ def create_micro_adventure_state() -> GameState:
             description="A simple iron key.",
             effects=None,
             interactions=None,
-            equipped=False
-        )
+            equipped=False,
+        ),
     ]
 
     goblin = create_character(
@@ -185,8 +187,12 @@ def create_micro_adventure_state() -> GameState:
         hp=7,
         ac=15,
         abilities={
-            "strength": 8, "dexterity": 14, "constitution": 10,
-            "intelligence": 10, "wisdom": 8, "charisma": 8
+            "strength": 8,
+            "dexterity": 14,
+            "constitution": 10,
+            "intelligence": 10,
+            "wisdom": 8,
+            "charisma": 8,
         },
         attacks=[
             Attack(
@@ -194,10 +200,10 @@ def create_micro_adventure_state() -> GameState:
                 bonus=4,
                 damage="1d6+2",
                 damage_type=DamageType.SLASHING,
-                range=5
+                range=5,
             )
         ],
-        is_hostile=True
+        is_hostile=True,
     )
 
     chest = GameObject(
@@ -215,7 +221,7 @@ def create_micro_adventure_state() -> GameState:
                 description="An ornate golden key that looks important.",
                 effects=None,
                 interactions=None,
-                equipped=False
+                equipped=False,
             ),
             Item(
                 name="Healing Potion",
@@ -226,9 +232,9 @@ def create_micro_adventure_state() -> GameState:
                 description="A red potion that restores health.",
                 effects={"on_use": {"heal": "2d4+2"}},
                 interactions=None,
-                equipped=False
-            )
-        ]
+                equipped=False,
+            ),
+        ],
     )
 
     # Add some items to the room for interaction testing
@@ -242,7 +248,7 @@ def create_micro_adventure_state() -> GameState:
             description="A shiny silver coin.",
             effects=None,
             interactions=None,
-            equipped=False
+            equipped=False,
         ),
         Item(
             name="Iron Key",
@@ -253,8 +259,8 @@ def create_micro_adventure_state() -> GameState:
             description="A rusted iron key.",
             effects=None,
             interactions=None,
-            equipped=False
-        )
+            equipped=False,
+        ),
     ]
 
     starting_room = Room(
@@ -267,7 +273,7 @@ def create_micro_adventure_state() -> GameState:
         npcs=["goblin_1"],
         light_level="dim",
         hazards=None,
-        explored=False
+        explored=False,
     )
 
     return GameState(
@@ -284,5 +290,5 @@ def create_micro_adventure_state() -> GameState:
         narrative_tone="heroic",
         turn_count=0,
         session_id="std_micro_adventure",
-        difficulty="medium"
+        difficulty="medium",
     )

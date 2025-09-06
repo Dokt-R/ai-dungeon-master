@@ -12,10 +12,8 @@ from pydantic import ConfigDict, SecretStr
 from sqlalchemy import (  # Import Integer and DateTime
     Column,
     Computed,
-    DateTime,
     Integer,
     String,
-    text,
 )
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -62,29 +60,35 @@ class Condition(Enum):
 
 # Attack Model
 class Attack(SQLModel, table=True):
-    model_config = ConfigDict(ignored_types=(hybrid_property,)) # Ignore hybrid properties as fields
+    model_config = ConfigDict(
+        ignored_types=(hybrid_property,)
+    )  # Ignore hybrid properties as fields
 
     id: Optional[int] = SQLField(default=None, primary_key=True)
     name: str = SQLField(..., min_length=1, max_length=100)
     bonus: int = SQLField(default=0)
-    damage: str = SQLField(..., max_length=50, description="Dice notation, e.g., '1d8+2'")
+    damage: str = SQLField(
+        ..., max_length=50, description="Dice notation, e.g., '1d8+2'"
+    )
     damage_type: DamageType
     range: int = SQLField(default=5, ge=0, description="Range in feet (5 for melee)")
 
-    character_id: Optional[int] = SQLField(default=None, foreign_key="characters.character_id")
+    character_id: Optional[int] = SQLField(
+        default=None, foreign_key="characters.character_id"
+    )
     character: Mapped[Optional["Character"]] = Relationship(back_populates="attacks")
 
     @hybrid_property
     def average_damage(self) -> float:
         # Simple parser for "XdY+Z" or "XdY"
-        parts = self.damage.split('+')
+        parts = self.damage.split("+")
         dice_part = parts[0]
         modifier = int(parts[1]) if len(parts) > 1 else 0
 
-        if 'd' in dice_part:
-            num_dice, die_type = map(int, dice_part.split('d'))
+        if "d" in dice_part:
+            num_dice, die_type = map(int, dice_part.split("d"))
             return (num_dice * (die_type + 1) / 2) + modifier
-        return float(modifier) # If no dice, just the modifier
+        return float(modifier)  # If no dice, just the modifier
 
     @hybrid_property
     def is_ranged(self) -> bool:
@@ -92,12 +96,18 @@ class Attack(SQLModel, table=True):
 
     def model_dump_clean(self) -> Dict[str, Any]:
         """Dump model without relationship fields that could cause circular references."""
-        return {k: v for k, v in self.model_dump().items() if k not in ['character', 'character_id']}
+        return {
+            k: v
+            for k, v in self.model_dump().items()
+            if k not in ["character", "character_id"]
+        }
 
 
 # Item Model
 class Item(SQLModel, table=True):
-    model_config = ConfigDict(ignored_types=(hybrid_property,)) # Ignore hybrid properties as fields
+    model_config = ConfigDict(
+        ignored_types=(hybrid_property,)
+    )  # Ignore hybrid properties as fields
 
     id: Optional[int] = SQLField(default=None, primary_key=True)
     name: str = SQLField(..., min_length=1, max_length=100)
@@ -111,11 +121,17 @@ class Item(SQLModel, table=True):
     rarity: str = SQLField(default="common", max_length=50)
     requires_attunement: bool = SQLField(default=False)
     effects: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(JSON))
-    interactions: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(JSON))
-    properties: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(JSON))
+    interactions: Optional[Dict[str, Any]] = SQLField(
+        default=None, sa_column=Column(JSON)
+    )
+    properties: Optional[Dict[str, Any]] = SQLField(
+        default=None, sa_column=Column(JSON)
+    )
     equipped: Optional[bool] = SQLField(default=False)
 
-    character_id: Optional[int] = SQLField(default=None, foreign_key="characters.character_id")
+    character_id: Optional[int] = SQLField(
+        default=None, foreign_key="characters.character_id"
+    )
     character: Mapped[Optional["Character"]] = Relationship(back_populates="inventory")
 
     @hybrid_property
@@ -137,7 +153,11 @@ class Item(SQLModel, table=True):
 
     def model_dump_clean(self) -> Dict[str, Any]:
         """Dump model without relationship fields that could cause circular references."""
-        return {k: v for k, v in self.model_dump().items() if k not in ['character', 'character_id']}
+        return {
+            k: v
+            for k, v in self.model_dump().items()
+            if k not in ["character", "character_id"]
+        }
 
 
 # Server Configuration Model
@@ -184,23 +204,34 @@ class Player(SQLModel, table=True):
 # Character Model
 class Character(SQLModel, table=True):
     """Enhanced Character with computed columns and advanced patterns"""
-    model_config = ConfigDict(ignored_types=(hybrid_property,)) # Ignore hybrid properties as fields
+
+    model_config = ConfigDict(
+        ignored_types=(hybrid_property,)
+    )  # Ignore hybrid properties as fields
 
     __tablename__ = "characters"
-    
+
     # Your existing fields
     character_id: Optional[int] = SQLField(default=None, primary_key=True)
     name: str = SQLField(..., min_length=1, max_length=50)
     character_url: Optional[str] = SQLField(default=None)
     player_id: Optional[str] = SQLField(default=None, foreign_key="players.player_id")
-    campaign_id: Optional[int] = SQLField(default=None, foreign_key="campaigns.campaign_id")
-    
+    campaign_id: Optional[int] = SQLField(
+        default=None, foreign_key="campaigns.campaign_id"
+    )
+
+    # Creation Fields
+    species: Optional[str] = SQLField(default=None, max_length=50)
+    class_field: Optional[str] = SQLField(default=None, max_length=50)
+    subclass: Optional[str] = SQLField(default=None, max_length=50)
+    background: Optional[str] = SQLField(default=None, max_length=1024)
+
     # Core D&D Stats
     level: int = SQLField(default=1, ge=1, le=20)
     hp: int = SQLField(default=10, ge=0)
     max_hp: int = SQLField(default=10, ge=1)
     ac: int = SQLField(default=10, ge=1, le=30)
-    
+
     # Ability Scores
     strength: int = SQLField(default=10, ge=1, le=30)
     dexterity: int = SQLField(default=10, ge=1, le=30)
@@ -208,7 +239,15 @@ class Character(SQLModel, table=True):
     intelligence: int = SQLField(default=10, ge=1, le=30)
     wisdom: int = SQLField(default=10, ge=1, le=30)
     charisma: int = SQLField(default=10, ge=1, le=30)
-    
+
+    # Saving Throw Proficiencies
+    prof_str_save: bool = SQLField(default=False)
+    prof_dex_save: bool = SQLField(default=False)
+    prof_con_save: bool = SQLField(default=False)
+    prof_int_save: bool = SQLField(default=False)
+    prof_wis_save: bool = SQLField(default=False)
+    prof_cha_save: bool = SQLField(default=False)
+
     # COMPUTED COLUMNS - Stored in DB for performance!
     str_modifier: int = SQLField(
         sa_column=Column(
@@ -252,7 +291,7 @@ class Character(SQLModel, table=True):
             Computed("((charisma - 10) / 2)"),
         )
     )
-    
+
     proficiency_bonus: int = SQLField(
         sa_column=Column(
             "proficiency_bonus",
@@ -261,19 +300,75 @@ class Character(SQLModel, table=True):
             Computed("((level - 1) / 4 + 2)"),
         )
     )
-    
+
+    # Computed Saving Throw Modifiers (including proficiency)
+    str_save_modifier: int = SQLField(
+        sa_column=Column(
+            "str_save_modifier",
+            Integer,
+            Computed(
+                "((strength - 10) / 2) + (CASE WHEN prof_str_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    dex_save_modifier: int = SQLField(
+        sa_column=Column(
+            "dex_save_modifier",
+            Integer,
+            Computed(
+                "((dexterity - 10) / 2) + (CASE WHEN prof_dex_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    con_save_modifier: int = SQLField(
+        sa_column=Column(
+            "con_save_modifier",
+            Integer,
+            Computed(
+                "((constitution - 10) / 2) + (CASE WHEN prof_con_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    int_save_modifier: int = SQLField(
+        sa_column=Column(
+            "int_save_modifier",
+            Integer,
+            Computed(
+                "((intelligence - 10) / 2) + (CASE WHEN prof_int_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    wis_save_modifier: int = SQLField(
+        sa_column=Column(
+            "wis_save_modifier",
+            Integer,
+            Computed(
+                "((wisdom - 10) / 2) + (CASE WHEN prof_wis_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+    cha_save_modifier: int = SQLField(
+        sa_column=Column(
+            "cha_save_modifier",
+            Integer,
+            Computed(
+                "((charisma - 10) / 2) + (CASE WHEN prof_cha_save THEN proficiency_bonus ELSE 0 END)"
+            ),
+        )
+    )
+
     # Advanced JSON Fields
     conditions: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
     features: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
     spells_known: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
-    
+
     # Currency (using individual fields)
     copper_pieces: int = SQLField(default=0, ge=0)
     silver_pieces: int = SQLField(default=0, ge=0)
     electrum_pieces: int = SQLField(default=0, ge=0)
     gold_pieces: int = SQLField(default=0, ge=0)
     platinum_pieces: int = SQLField(default=0, ge=0)
-    
+
     # Computed total wealth in copper (for easy comparison)
     total_wealth_cp: int = SQLField(
         sa_column=Column(
@@ -288,7 +383,7 @@ class Character(SQLModel, table=True):
             """),
         )
     )
-    
+
     # Encumbrance tracking
     carrying_capacity: int = SQLField(
         sa_column=Column(
@@ -297,13 +392,12 @@ class Character(SQLModel, table=True):
             Computed("strength * 15"),  # D&D rule: STR * 15 lbs
         )
     )
-    
+
     # Status tracking
     in_game: bool = SQLField(default=False)
     current_location: Optional[str] = SQLField(default=None)
     last_action_time: Optional[datetime] = SQLField(default=None)
     is_hostile: bool = SQLField(default=False)
-
 
     player: Mapped[Optional["Player"]] = Relationship(
         back_populates="characters", sa_relationship_kwargs={"lazy": "selectin"}
@@ -315,7 +409,9 @@ class Character(SQLModel, table=True):
 
     attacks: Mapped[List["Attack"]] = Relationship(back_populates="character")
     inventory: Mapped[List["Item"]] = Relationship(back_populates="character")
-    action_history: Mapped[List["ActionHistory"]] = Relationship(back_populates="character")
+    action_history: Mapped[List["ActionHistory"]] = Relationship(
+        back_populates="character"
+    )
 
     # Computed properties for encumbrance
     @hybrid_property
@@ -334,46 +430,50 @@ class Character(SQLModel, table=True):
         return self.total_carried_weight > self.strength * 10
 
     # Validation methods
-    @validates('hp')
+    @validates("hp")
     def validate_hp(self, key, hp):
         """Ensure HP never exceeds max_hp"""
-        max_hp_value = getattr(self, 'max_hp', None)
+        max_hp_value = getattr(self, "max_hp", None)
         if max_hp_value is not None and hp > max_hp_value:
             return max_hp_value
         return max(0, hp)
-    
+
     # Hybrid properties (work in both Python and SQL queries)
     @hybrid_property
     def is_alive(self) -> bool:
         return self.hp > 0
-    
+
     @hybrid_property
     def hp_percentage(self) -> float:
         if self.max_hp == 0:
             return 0.0
         return (self.hp / self.max_hp) * 100
-    
+
     # JSON field helper methods
     def get_conditions(self) -> List[str]:
         """Get conditions as Python list"""
         if not self.conditions:
             return []
-        return json.loads(self.conditions) if isinstance(self.conditions, str) else self.conditions
-    
+        return (
+            json.loads(self.conditions)
+            if isinstance(self.conditions, str)
+            else self.conditions
+        )
+
     def add_condition(self, condition: str):
         """Add a condition"""
         conditions = self.get_conditions()
         if condition not in conditions:
             conditions.append(condition)
             self.conditions = json.dumps(conditions)
-    
+
     def remove_condition(self, condition: str):
         """Remove a condition"""
         conditions = self.get_conditions()
         if condition in conditions:
             conditions.remove(condition)
             self.conditions = json.dumps(conditions)
-    
+
     def get_total_wealth_gp(self) -> float:
         """Get total wealth in gold pieces"""
         return self.total_wealth_cp / 100.0
@@ -381,13 +481,17 @@ class Character(SQLModel, table=True):
 
 # Campaign Model
 class Campaign(SQLModel, table=True):
-    model_config = ConfigDict(ignored_types=(hybrid_property,)) # Ignore hybrid properties as fields
+    model_config = ConfigDict(
+        ignored_types=(hybrid_property,)
+    )  # Ignore hybrid properties as fields
 
     __tablename__ = "campaigns"
     campaign_id: Optional[int] = SQLField(default=None, primary_key=True)
     campaign_name: str = SQLField(..., min_length=1, max_length=100)
     owner_id: str = SQLField(..., foreign_key="players.player_id")
-    state: Optional[str] = SQLField(default=None, sa_column=Column(JSON)) # JSON serialized game state
+    state: Optional[str] = SQLField(
+        default=None, sa_column=Column(JSON)
+    )  # JSON serialized game state
     created_at: datetime = SQLField(default_factory=datetime.utcnow)
     last_save: datetime = SQLField(default_factory=datetime.utcnow)
 
@@ -404,7 +508,9 @@ class Campaign(SQLModel, table=True):
     characters: Mapped[List["Character"]] = Relationship(
         back_populates="campaign", sa_relationship_kwargs={"lazy": "selectin"}
     )
-    action_history: Mapped[List["ActionHistory"]] = Relationship(back_populates="campaign")
+    action_history: Mapped[List["ActionHistory"]] = Relationship(
+        back_populates="campaign"
+    )
 
     @hybrid_property
     def is_active(self) -> bool:
@@ -425,7 +531,9 @@ class Campaign(SQLModel, table=True):
 
 # Memory State Model for Database Persistence
 class MemoryStateModel(SQLModel, table=True):
-    model_config = ConfigDict(ignored_types=(hybrid_property,)) # Ignore hybrid properties as fields
+    model_config = ConfigDict(
+        ignored_types=(hybrid_property,)
+    )  # Ignore hybrid properties as fields
 
     __tablename__ = "memory_states"
     memory_id: Optional[int] = SQLField(default=None, primary_key=True)
@@ -458,17 +566,27 @@ class MemoryStateModel(SQLModel, table=True):
     def get_messages(self) -> List[Dict[str, Any]]:
         if not self.messages:
             return []
-        return json.loads(self.messages) if isinstance(self.messages, str) else self.messages
+        return (
+            json.loads(self.messages)
+            if isinstance(self.messages, str)
+            else self.messages
+        )
 
     def get_context(self) -> Dict[str, Any]:
         if not self.context:
             return {}
-        return json.loads(self.context) if isinstance(self.context, str) else self.context
+        return (
+            json.loads(self.context) if isinstance(self.context, str) else self.context
+        )
 
     def get_scratchpad(self) -> Dict[str, Any]:
         if not self.scratchpad:
             return {}
-        return json.loads(self.scratchpad) if isinstance(self.scratchpad, str) else self.scratchpad
+        return (
+            json.loads(self.scratchpad)
+            if isinstance(self.scratchpad, str)
+            else self.scratchpad
+        )
 
 
 # Action History Model
@@ -476,13 +594,15 @@ class ActionHistory(SQLModel, table=True):
     __tablename__ = "action_history"
     id: Optional[int] = SQLField(default=None, primary_key=True)
     campaign_id: int = SQLField(foreign_key="campaigns.campaign_id")
-    character_id: Optional[int] = SQLField(default=None, foreign_key="characters.character_id")
-    
+    character_id: Optional[int] = SQLField(
+        default=None, foreign_key="characters.character_id"
+    )
+
     # Context
     discord_user_id: str = SQLField(max_length=255)
     discord_channel_id: str = SQLField(max_length=255)
     timestamp: datetime = SQLField(default_factory=datetime.utcnow)
-    
+
     # Action Details
     action_text: str = SQLField(sa_column=Column(String(1000)))
     parsed_intent: Optional[str] = SQLField(default=None, sa_column=Column(JSON))
@@ -491,4 +611,6 @@ class ActionHistory(SQLModel, table=True):
 
     # Relationships
     campaign: Mapped["Campaign"] = Relationship(back_populates="action_history")
-    character: Mapped[Optional["Character"]] = Relationship(back_populates="action_history")
+    character: Mapped[Optional["Character"]] = Relationship(
+        back_populates="action_history"
+    )

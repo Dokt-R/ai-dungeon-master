@@ -25,6 +25,7 @@ from .api_request_models import (
     CampaignEndRequest,
     CampaignStateRequest,
     ContinueCampaignRequest,
+    CreateCharacterRequest,
     CreatePlayerRequest,
     JoinCampaignRequest,
     LeaveCampaignRequest,
@@ -82,7 +83,7 @@ from .enum_models import CharacterSheetMode, DMVisibility, PlayerRollMode
 from .langgraph_state_models import MinimalGameState
 from .memory_management_models import (
     CreateMemoryEventRequest,
-    CreateMemoryFactRequest, 
+    CreateMemoryFactRequest,
     MemoryContext,
     MemoryEvent,
     MemoryFact,
@@ -111,25 +112,18 @@ from .srd_compliance_models import (
 __all__ = [
     # Base
     # "BaseModel", "TimestampMixin", "SoftDeleteMixin",
-
     # # User models
     # "User", "UserProfile", "UserSettings", "UserSession",
-
     # # Campaign models
     # "Campaign", "CampaignSettings", "CampaignMember",
-
     # # Character models
     # "Character", "CharacterSheet", "CharacterStats", "CharacterSkill",
-
     # # Game models
     # "GameSession", "GameEvent", "DiceRoll", "GameLog",
-
     # # Inventory models
     # "Item", "Equipment", "Inventory", "ItemCategory",
-
     # # Audit models
     # "AuditLog", "SystemLog", "UserAction",
-
     # STT and TTS
     "AudioProcessingConfig",
     "AudioTranscriptionRequest",
@@ -139,14 +133,12 @@ __all__ = [
     "TextToSpeechRequest",
     "TranscriptionResult",
     "TTSServiceStatus",
-
     # Advanced Voice Features
     "AudioMixConfiguration",
     "ConversationIntelligenceData",
     "MultiUserConversation",
     "VoiceActivitySegment",
     "SpeakerProfile",
-
     # Core Database Models
     "Campaign",
     "CampaignPlayerLink",
@@ -154,7 +146,6 @@ __all__ = [
     "MemoryStateModel",
     "Player",
     "Server",
-
     # API Request/Response Models
     "AddCharacterRequest",
     "CampaignCreateRequest",
@@ -162,6 +153,7 @@ __all__ = [
     "CampaignEndRequest",
     "CampaignStateRequest",
     "ContinueCampaignRequest",
+    "CreateCharacterRequest",
     "CreatePlayerRequest",
     "JoinCampaignRequest",
     "LeaveCampaignRequest",
@@ -169,30 +161,24 @@ __all__ = [
     "RemoveCharacterRequest",
     "ServerConfigModel",
     "UpdateCharacterRequest",
-
     # AI Action Models
     "ActionRequest",
     "ActionResponse",
-
     # Enum Models
     "CharacterSheetMode",
     "DMVisibility",
     "PlayerRollMode",
-
     # LangGraph State Models
     # "MemoryState",
     # "ActionHistory", #! EXPERIMENTAL
     # "CampaignGameState", #! EXPERIMENTAL
-    "MinimalGameState", #! EXPERIMENTAL
-
-
+    "MinimalGameState",  #! EXPERIMENTAL
     # SRD Compliance Models
     "DataSource",
     "Monster",
     "Spell",
     "SRDCompliance",
     "Weapon",
-
     # Memory Management Models
     "CreateMemoryEventRequest",
     "CreateMemoryFactRequest",
@@ -202,7 +188,6 @@ __all__ = [
     "MemoryOperation",
     "UpdateMemoryEventRequest",
     "UpdateMemoryFactRequest",
-
     # Voice Integration Models
     "AudioStreamInfo",
     "MemoryQueryRequest",
@@ -215,7 +200,6 @@ __all__ = [
     "VoicePermission",
     "VoiceSession",
     "VoiceStatusResponse",
-
     # Performance Models
     "AudioQualityMetrics",
     "PerformanceAlert",
@@ -223,18 +207,15 @@ __all__ = [
     "PrivacyComplianceRecord",
     "VoiceLatencyMetrics",
     "VoiceSessionConfig",
-
     # Voice Command Models
     "CommandExecutionResult",
     "CommandFeedback",
     "CommandHistory",
     "CommandPattern",
     "VoiceCommandIntent",
-
     # Rules Engine Models
     "RulesQuery",
     "RulesResponse",
-
     # AI Integration Models
     "AccuracyValidation",
     "ToolCall",

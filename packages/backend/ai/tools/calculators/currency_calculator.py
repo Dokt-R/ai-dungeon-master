@@ -4,11 +4,12 @@ This module provides definitions and utility functions for handling D&D 5e curre
 """
 
 from enum import Enum
-from typing import Dict, TypedDict
+from typing import TypedDict
 
 
 class CoinType(Enum):
     """D&D 5e coin denominations"""
+
     COPPER = "cp"
     SILVER = "sp"
     ELECTRUM = "ep"
@@ -27,6 +28,7 @@ COIN_CONVERSIONS = {
 
 class Wallet(TypedDict):
     """Represents a character's currency holdings."""
+
     cp: int
     sp: int
     ep: int

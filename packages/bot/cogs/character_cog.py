@@ -9,10 +9,13 @@ from packages.shared.api_client import ApiClient
 from packages.shared.error_handler import discord_error_handler
 from packages.shared.models import (
     AddCharacterRequest,
+    CreateCharacterRequest,
     ListCharactersRequest,
     RemoveCharacterRequest,
     UpdateCharacterRequest,
 )
+
+from .views.character_views import CharacterCreationView
 
 
 class CharacterCog(commands.Cog):
@@ -25,6 +28,14 @@ class CharacterCog(commands.Cog):
     character = app_commands.Group(
         name="character", description="Manage your characters"
     )
+
+    @character.command(name="create", description="Create a new character.")
+    @discord_error_handler()
+    async def create(self, interaction: discord.Interaction):
+        view = CharacterCreationView(self)
+        await interaction.response.send_message(
+            "Begin creating your character:", view=view, ephemeral=True
+        )
 
     @character.command(name="add", description="Add a new character to your account.")
     @app_commands.describe(
@@ -58,6 +69,38 @@ class CharacterCog(commands.Cog):
             f"Character '{name}' added successfully! (ID: {data.get('character_id')})",
             ephemeral=True,
         )
+
+    async def _handle_character_create(
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        species: str,
+        class_field: str,
+        subclass: Optional[str],
+        background: str,
+    ):
+        """Create a new character for the user."""
+        req = CreateCharacterRequest(
+            player_id=str(interaction.user.id),
+            name=name,
+            species=species,
+            class_field=class_field,
+            subclass=subclass,
+            background=background,
+        )
+
+        data = await self.api_client.create_character(req)
+        await interaction.followup.send(
+            f"Character '{name}' created successfully! (ID: {data.get('character_id')})",
+            ephemeral=True,
+        )
+
+    async def _handle_character_create_from_view(
+        self, interaction: discord.Interaction, character_data: dict
+    ):
+        """Create a new character for the user from the view."""
+        req = CreateCharacterRequest(**character_data)
+        await self.api_client.create_character(req)
 
     @character.command(name="update", description="Update an existing character.")
     @app_commands.describe(

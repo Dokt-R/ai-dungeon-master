@@ -1,6 +1,7 @@
 """
 Combat Narrative Node
 """
+
 from typing import Any, Dict
 
 from packages.backend.ai.state import ActionResolutionState
@@ -15,7 +16,7 @@ async def narrate_combat_event_node(state: ActionResolutionState) -> Dict[str, A
     # This is a placeholder for more sophisticated narrative generation.
     # In a real implementation, an LLM would be used to craft dynamic descriptions
     # based on the combat_state, recent actions, and game_state.
-    
+
     narrative_events = []
 
     # Example: Narrate turn start

@@ -15,16 +15,17 @@ from packages.backend.api.player_api import router as player_router
 from packages.backend.api.server_api import router as server_config_router
 from packages.backend.api.utility_api import router as utility_router
 from packages.backend.api.voice_api import router as voice_router
+
 # from packages.backend.ai.dm_graph import dm_graph_service
 from packages.backend.components.ai_client import ai_client
+from packages.backend.components.audio.speaker_identification_service import (
+    speaker_identification_service,
+)
 from packages.backend.components.campaign_memory_service import campaign_memory_service
 from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
 from packages.backend.components.observability_service import observability_service
-from packages.backend.components.audio.speaker_identification_service import (
-    speaker_identification_service,
-)
 from packages.shared.correlation import (
     clear_correlation_id,
     set_correlation_id,
@@ -73,7 +74,7 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "ai_client_initialization_error", error=str(e), service="ai_client"
         )
-    
+
     # Initialize DM Graph service
     # logger.info("dm_graph_service_initialization_started")
     # try:

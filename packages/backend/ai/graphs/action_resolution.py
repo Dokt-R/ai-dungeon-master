@@ -14,21 +14,19 @@ This module implements a LangGraph-based action resolution system that:
 Architecture follows patterns from dm_graph.py and combat_graph.py.
 """
 
-import asyncio
-import json # Added for json.dumps
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 from packages.backend.ai.constants.actions import ROUTE_MAPPING
-from packages.backend.ai.state import ParsedIntent
-from packages.backend.ai.testing.game_state_utils import create_example_game_state
+from packages.backend.components.game_state_manager import GameStateService
 from packages.shared.models.langgraph_state_models import MinimalGameState
 from packages.shared.models.state_adapters import StateAdapter
-from packages.backend.components.game_state_manager import GameStateService
+
 # from packages.backend.components.database import get_db_session
 
 # LangGraph imports
 try:
     from langgraph.graph import END, StateGraph
+
     LANGGRAPH_AVAILABLE = True
 except ImportError:
     LANGGRAPH_AVAILABLE = False
@@ -37,7 +35,6 @@ except ImportError:
     # Fallback types if imports fail
 
 # Node imports
-import random  # For dynamic room descriptions
 
 from packages.backend.ai.graphs.subgraphs.combat_subgraph import get_combat_subgraph
 from packages.backend.ai.nodes.core import (
@@ -55,7 +52,6 @@ from packages.backend.ai.nodes.social.interaction_resolution_node import (
 
 # Dice roller integration
 from packages.backend.ai.tools import DiceRoller
-from packages.backend.components.observability_service import observability_service
 from packages.shared.errors import ErrorCode
 from packages.shared.logging_config import configure_logging, get_logger
 
@@ -85,11 +81,15 @@ async def route_by_intent(state: MinimalGameState) -> str:
     # Use standardized routing mapping from constants
     routing_map = ROUTE_MAPPING
 
-    route_target = routing_map.get(action_type, "exploration_node")  # Default to exploration
-    logger.debug("routing_decision",
-                action_type=action_type,
-                route_target=route_target,
-                correlation_id=state["correlation_id"])
+    route_target = routing_map.get(
+        action_type, "exploration_node"
+    )  # Default to exploration
+    logger.debug(
+        "routing_decision",
+        action_type=action_type,
+        route_target=route_target,
+        correlation_id=state["correlation_id"],
+    )
 
     return route_target
 
@@ -100,7 +100,9 @@ async def check_exit_early(state: MinimalGameState, next_node: str) -> str:
     If exit_early is set, returns END, otherwise returns the next_node.
     """
     if state.get("exit_early"):
-        logger.debug("exit_early_detected_mid_flow", correlation_id=state["correlation_id"])
+        logger.debug(
+            "exit_early_detected_mid_flow", correlation_id=state["correlation_id"]
+        )
         return END
     return next_node
 
@@ -111,10 +113,11 @@ def check_exit_early_sync(state: MinimalGameState, next_node: str) -> str:
     If exit_early is set, returns END, otherwise returns the next_node.
     """
     if state.get("exit_early"):
-        logger.debug("exit_early_detected_mid_flow", correlation_id=state["correlation_id"])
+        logger.debug(
+            "exit_early_detected_mid_flow", correlation_id=state["correlation_id"]
+        )
         return END
     return next_node
-
 
 
 class ActionResolutionService:
@@ -150,12 +153,13 @@ class ActionResolutionService:
         combat_subgraph = get_combat_subgraph()
         workflow.add_node("combat_subgraph", combat_subgraph)
         workflow.add_node("exploration_node", exploration_node)
-        workflow.add_node("interaction_node", interaction_node)  # New node for interactions
+        workflow.add_node(
+            "interaction_node", interaction_node
+        )  # New node for interactions
         workflow.add_node("update_state", update_state_node)
         workflow.add_node("narrate_result", narrate_result_node)
         workflow.add_node("error_handler", error_handler_node)
 
-        
         # Set Entry Point
         workflow.set_entry_point("parse_intent")
 
@@ -172,7 +176,7 @@ class ActionResolutionService:
                 "error_handler": "error_handler",
                 END: END,  # Added for exit_early routing
                 # MAYBE: Add Social Node and Error Handler specific routes
-            }
+            },
         )
 
         # All action nodes converge to update_state with exit_early check
@@ -182,22 +186,22 @@ class ActionResolutionService:
         workflow.add_conditional_edges(
             "combat_subgraph",
             route_to_update_or_end,
-            {"update_state": "update_state", END: END}
+            {"update_state": "update_state", END: END},
         )
         workflow.add_conditional_edges(
             "exploration_node",
             route_to_update_or_end,
-            {"update_state": "update_state", END: END}
+            {"update_state": "update_state", END: END},
         )
         workflow.add_conditional_edges(
             "interaction_node",
             route_to_update_or_end,
-            {"update_state": "update_state", END: END}
+            {"update_state": "update_state", END: END},
         )
         workflow.add_conditional_edges(
             "error_handler",
             route_to_update_or_end,
-            {"update_state": "update_state", END: END}
+            {"update_state": "update_state", END: END},
         )
 
         # Final edges with exit_early check
@@ -210,13 +214,9 @@ class ActionResolutionService:
         workflow.add_conditional_edges(
             "update_state",
             route_to_narrate_or_end,
-            {"narrate_result": "narrate_result", END: END}
+            {"narrate_result": "narrate_result", END: END},
         )
-        workflow.add_conditional_edges(
-            "narrate_result",
-            route_to_end_only,
-            {END: END}
-        )
+        workflow.add_conditional_edges("narrate_result", route_to_end_only, {END: END})
 
         return workflow.compile()
 
@@ -224,7 +224,9 @@ class ActionResolutionService:
     #     workflow_name="action_resolution_workflow",
     #     workflow_type="game_action_processing"
     # )
-    async def resolve_action(self, player_action: str, game_state: Dict[str, Any], correlation_id: str) -> Dict[str, Any]:
+    async def resolve_action(
+        self, player_action: str, game_state: Dict[str, Any], correlation_id: str
+    ) -> Dict[str, Any]:
         """
         Resolve a player action and return updated game state with narrative.
 
@@ -241,6 +243,7 @@ class ActionResolutionService:
 
         # Initialize performance tracking
         import time
+
         start_time = time.time()
 
         # Use StateAdapter to convert the incoming game_state dict to MinimalGameState
@@ -250,7 +253,7 @@ class ActionResolutionService:
             campaign_id=game_state.get("campaign_id"),
             discord_user_id=game_state.get("discord_user_id"),
             discord_channel_id=game_state.get("discord_channel_id"),
-            correlation_id=correlation_id
+            correlation_id=correlation_id,
         )
         initial_minimal_state["player_action"] = player_action
 
@@ -259,14 +262,20 @@ class ActionResolutionService:
         print("--------> resolve_action after aiinvoke")
 
         if result.get("error"):
-            logger.error("action_resolution_failed", correlation_id=correlation_id, error=result["error"])
+            logger.error(
+                "action_resolution_failed",
+                correlation_id=correlation_id,
+                error=result["error"],
+            )
 
         # Calculate performance metrics
         execution_time = time.time() - start_time
         performance_data = {
             "execution_time": execution_time,
             "node_count": 6,  # Based on our 6 nodes
-            "action_type": result.get("parsed_intent", {}).get("action_type", "unknown")
+            "action_type": result.get("parsed_intent", {}).get(
+                "action_type", "unknown"
+            ),
         }
 
         # Extract narrative from action result if available
@@ -275,9 +284,13 @@ class ActionResolutionService:
             # Generate narrative from action result if available
             action_result = result.get("action_result", {})
             if action_result.get("success"):
-                narrative = action_result.get("description", "Action completed successfully.")
+                narrative = action_result.get(
+                    "description", "Action completed successfully."
+                )
             else:
-                narrative = action_result.get("description", "Action could not be resolved.")
+                narrative = action_result.get(
+                    "description", "Action could not be resolved."
+                )
                 error = action_result.get("description", "Unknown error occurred")
 
         # Get updated game state from the result
@@ -295,25 +308,30 @@ class ActionResolutionService:
         action_type = result.get("parsed_intent", {}).get("action_type", "unknown")
         performance_data = {
             "execution_time": execution_time,
-            "node_count": len(["parse_intent", "combat_subgraph", "exploration_node", "interaction_node", "update_state", "narrate_result"]),  # Accurate count
+            "node_count": len(
+                [
+                    "parse_intent",
+                    "combat_subgraph",
+                    "exploration_node",
+                    "interaction_node",
+                    "update_state",
+                    "narrate_result",
+                ]
+            ),  # Accurate count
             "action_type": action_type,
-            "routing_path": ROUTE_MAPPING.get(action_type, "exploration_node")
+            "routing_path": ROUTE_MAPPING.get(action_type, "exploration_node"),
         }
 
         return {
             "narrative": narrative,
-            "updated_game_state": updated_game_state_dict, # Return the dict representation
+            "updated_game_state": updated_game_state_dict,  # Return the dict representation
             "correlation_id": correlation_id,
             "error": result.get("error"),
-            "performance": performance_data
+            "performance": performance_data,
         }
-
-
 
     # Game state creation moved to packages.backend.ai.testing.game_state_utils
     # Test function moved to testing module as well
-
-
 
 
 # Global service instance
@@ -321,4 +339,3 @@ action_resolution_service = ActionResolutionService()
 
 
 # Test function moved to packages.backend.ai.testing.game_state_utils
-

@@ -15,6 +15,7 @@ async def test_parse_intent_node_combat():
     assert result_state["parsed_intent"]["action_type"] == "attack"
     assert result_state["parsed_intent"]["target"] == "goblin"
 
+
 async def test_parse_intent_node_exploration():
     """Test that parse_intent_node correctly identifies exploration intent."""
     state = create_test_minimal_game_state("I search the room for traps")
@@ -23,6 +24,7 @@ async def test_parse_intent_node_exploration():
     assert result_state["parsed_intent"]["intent"] == "exploration"
     assert result_state["parsed_intent"]["action_type"] == "search"
     assert result_state["parsed_intent"]["target"] == "room"
+
 
 async def test_parse_intent_node_interaction():
     """Test that parse_intent_node correctly identifies interaction intent."""

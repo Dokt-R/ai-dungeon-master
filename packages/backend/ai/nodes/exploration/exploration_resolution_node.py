@@ -15,4 +15,9 @@ logger = get_logger(__name__)
 
 async def exploration_node(state: ActionResolutionState) -> Dict[str, Any]:
     """Handle exploration actions (not implemented yet)."""
-    return {"action_result": {"type": "exploration", "description": "Exploration not implemented"}}
+    return {
+        "action_result": {
+            "type": "exploration",
+            "description": "Exploration not implemented",
+        }
+    }

@@ -13,16 +13,16 @@ from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import (
     CustomException,
 )
+from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import (
     AddCharacterRequest,
+    CreateCharacterRequest,
     ListCharactersRequest,
     RemoveCharacterRequest,
     ServerConfigModel,
     UpdateCharacterRequest,
 )
 from packages.shared.routes import ROUTES
-
-from packages.shared.logging_config import configure_logging, get_logger
 
 configure_logging(level="DEBUG", log_to_file=True, path="logs/api_client.log")
 
@@ -100,7 +100,9 @@ class ApiClient:
                 logger.debug(
                     "api_response_success",
                     status_code=response.status_code,
-                    response_keys=list(json_data.keys()) if isinstance(json_data, dict) else "not_dict",
+                    response_keys=list(json_data.keys())
+                    if isinstance(json_data, dict)
+                    else "not_dict",
                 )
                 return json_data
             except Exception as e:
@@ -153,7 +155,7 @@ class ApiClient:
                     data["narrative"] = "The DM is thinking... Please try again."
                 if not data.get("status"):
                     data["status"] = "success"
-                
+
                 logger.debug(
                     "ai_response_success",
                     status_code=response.status_code,
@@ -172,7 +174,7 @@ class ApiClient:
                 return {
                     "narrative": "The DM encountered an issue processing your request. Please try again.",
                     "status": "error",
-                    "error": f"Response parsing failed: {str(e)}"
+                    "error": f"Response parsing failed: {str(e)}",
                 }
 
         # Handle error responses with AI-specific fallbacks
@@ -180,20 +182,20 @@ class ApiClient:
             data = response.json()
             error_info = data.get("error", {})
             error_message = error_info.get("message", "Unknown error occurred")
-            
+
             logger.warning(
                 "ai_response_error",
                 status_code=response.status_code,
                 error_code=error_info.get("error_code", "UNKNOWN"),
                 error_message=error_message,
             )
-            
+
             # Return a user-friendly error response instead of raising an exception
             return {
                 "narrative": f"The DM encountered an issue: {error_message}. Please try again.",
                 "status": "error",
                 "error": error_message,
-                "error_code": error_info.get("error_code", "UNKNOWN")
+                "error_code": error_info.get("error_code", "UNKNOWN"),
             }
         except Exception as e:
             logger.error(
@@ -205,9 +207,9 @@ class ApiClient:
             # If we can't parse the error response, return a generic fallback
             return {
                 "narrative": "The DM is currently unavailable. Please try again in a moment.",
-                "status": "error", 
+                "status": "error",
                 "error": f"HTTP {response.status_code}: Unable to process request",
-                "error_code": "CONNECTION_ERROR"
+                "error_code": "CONNECTION_ERROR",
             }
 
     # ---------------------------
@@ -286,6 +288,12 @@ class ApiClient:
     async def add_character(self, req: AddCharacterRequest) -> Dict[str, Any]:
         """Add a new character."""
         url = "/api/v1/characters/add"
+        resp = await self._request("POST", url, json=req.model_dump())
+        return await self._handle_response(resp)
+
+    async def create_character(self, req: CreateCharacterRequest) -> Dict[str, Any]:
+        """Create a new character."""
+        url = "/api/v1/characters/create"
         resp = await self._request("POST", url, json=req.model_dump())
         return await self._handle_response(resp)
 
@@ -431,45 +439,45 @@ class ApiClient:
     async def test_llm(self, prompt: str) -> Dict[str, Any]:
         """Test LLM with a simple prompt with detailed timing."""
         import time
-        
+
         start_time = time.perf_counter()
         logger.debug(
             "api_client_llm_test_started",
             prompt_length=len(prompt),
-            base_url=self.base_url
+            base_url=self.base_url,
         )
-        
+
         try:
             # Stage 1: Prepare request
             request_start = time.perf_counter()
             url = ROUTES.utility_llm_test()
             request_data = {"prompt": prompt}
             request_prep_time = (time.perf_counter() - request_start) * 1000
-            
+
             logger.debug(
                 "api_client_request_prepared",
                 url=url,
-                request_prep_time_ms=round(request_prep_time, 2)
+                request_prep_time_ms=round(request_prep_time, 2),
             )
-            
+
             # Stage 2: HTTP request
             http_start = time.perf_counter()
             resp = await self._request("POST", url, json=request_data)
             http_time = (time.perf_counter() - http_start) * 1000
-            
+
             logger.debug(
                 "api_client_http_completed",
                 status_code=resp.status_code,
-                http_time_ms=round(http_time, 2)
+                http_time_ms=round(http_time, 2),
             )
-            
+
             # Stage 3: Response handling
             response_start = time.perf_counter()
             result = await self._handle_response(resp)
             response_time = (time.perf_counter() - response_start) * 1000
-            
+
             total_time = (time.perf_counter() - start_time) * 1000
-            
+
             logger.info(
                 "api_client_llm_test_completed",
                 prompt_length=len(prompt),
@@ -478,27 +486,29 @@ class ApiClient:
                 http_time_ms=round(http_time, 2),
                 response_time_ms=round(response_time, 2),
                 total_time_ms=round(total_time, 2),
-                status=result.get("status", "unknown")
+                status=result.get("status", "unknown"),
             )
-            
+
             # Add timing metadata to response
             if isinstance(result, dict):
-                result.setdefault("timing", {}).update({
-                    "api_client_total_ms": round(total_time, 2),
-                    "request_prep_ms": round(request_prep_time, 2),
-                    "http_request_ms": round(http_time, 2),
-                    "response_processing_ms": round(response_time, 2)
-                })
-            
+                result.setdefault("timing", {}).update(
+                    {
+                        "api_client_total_ms": round(total_time, 2),
+                        "request_prep_ms": round(request_prep_time, 2),
+                        "http_request_ms": round(http_time, 2),
+                        "response_processing_ms": round(response_time, 2),
+                    }
+                )
+
             return result
-            
+
         except Exception as e:
             total_time = (time.perf_counter() - start_time) * 1000
             logger.error(
                 "api_client_llm_test_failed",
                 prompt_length=len(prompt),
                 total_time_ms=round(total_time, 2),
-                error=str(e)
+                error=str(e),
             )
             raise
 

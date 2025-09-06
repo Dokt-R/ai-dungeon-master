@@ -21,3 +21,12 @@ class PlayerRollMode(str, Enum):
 class CharacterSheetMode(str, Enum):
     digital_sheet = "digital_sheet"
     physical_sheet = "physical_sheet"
+
+
+class AbilityName(str, Enum):
+    STRENGTH = "str"
+    DEXTERITY = "dex"
+    CONSTITUTION = "con"
+    INTELLIGENCE = "int"
+    WISDOM = "wis"
+    CHARISMA = "cha"
