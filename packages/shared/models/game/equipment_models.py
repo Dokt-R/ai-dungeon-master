@@ -7,6 +7,11 @@ from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, Relationship, SQLModel
 
+from packages.shared.models.game.base_models import (
+    BaseGameElement,
+    BaseGameElementWithDesc,
+)
+
 
 class EquipmentSlot(Enum):
     MAIN_HAND = "main_hand"
