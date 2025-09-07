@@ -26,11 +26,14 @@ from packages.backend.components.multi_user_conversation_manager import (
     multi_user_conversation_manager,
 )
 from packages.backend.components.observability_service import observability_service
+
+# SRD data loading
+from packages.backend.scripts.srd_loaders import load_srd_data
 from packages.shared.correlation import (
     clear_correlation_id,
     set_correlation_id,
 )
-from packages.shared.db import get_async_engine, initialize_schema
+from packages.shared.db import get_async_engine, get_async_session, initialize_schema
 from packages.shared.exceptions import CustomException
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.routes import API_PREFIX
@@ -50,6 +53,28 @@ async def lifespan(app: FastAPI):
     engine = get_async_engine()
     await initialize_schema(engine)
     logger.info("database_initialization_completed")
+
+    # Load SRD data if not already loaded
+    logger.info("srd_data_loading_started")
+    try:
+        async with get_async_session() as session:
+            # Check if SRD data is already loaded by checking if any damage types exist
+            from sqlalchemy import select
+
+            from packages.shared.models.game.equipment_models import DamageType
+
+            result = await session.execute(select(DamageType).limit(1))
+            damage_type = result.scalar_one_or_none()
+
+            if damage_type is None:
+                # No SRD data found, load it
+                await load_srd_data(session, "srd/json_files")
+                await session.commit()
+                logger.info("srd_data_loading_completed")
+            else:
+                logger.info("srd_data_already_loaded")
+    except Exception as e:
+        logger.warning("srd_data_loading_failed", error=str(e))
 
     # Initialize observability service
     logger.info("observability_service_initialization_started")

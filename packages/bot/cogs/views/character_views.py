@@ -1,11 +1,12 @@
 import discord
-from ..modals.character_modals import CharacterCreationModal
+
 from packages.shared.logging_config import get_logger
 from packages.shared.models.enum_models import (
     AbilityName,
     SkillName,
-    SKILL_TO_ABILITY_MAP,
 )
+
+from ..modals.character_modals import CharacterCreationModal
 
 logger = get_logger(__name__)
 

@@ -23,22 +23,23 @@ from sqlalchemy.orm import (
 )
 from sqlmodel import Field as SQLField, Relationship, SQLModel
 
+from packages.shared.models.game.equipment_models import DamageType
 
-# Enums for D&D 5e
-class DamageType(Enum):
-    SLASHING = "slashing"
-    PIERCING = "piercing"
-    BLUDGEONING = "bludgeoning"
-    FIRE = "fire"
-    COLD = "cold"
-    ACID = "acid"
-    POISON = "poison"
-    PSYCHIC = "psychic"
-    NECROTIC = "necrotic"
-    RADIANT = "radiant"
-    LIGHTNING = "lightning"
-    THUNDER = "thunder"
-    FORCE = "force"
+# # Enums for D&D 5e
+# class DamageType(Enum):
+#     SLASHING = "slashing"
+#     PIERCING = "piercing"
+#     BLUDGEONING = "bludgeoning"
+#     FIRE = "fire"
+#     COLD = "cold"
+#     ACID = "acid"
+#     POISON = "poison"
+#     PSYCHIC = "psychic"
+#     NECROTIC = "necrotic"
+#     RADIANT = "radiant"
+#     LIGHTNING = "lightning"
+#     THUNDER = "thunder"
+#     FORCE = "force"
 
 
 class Condition(Enum):
@@ -70,7 +71,10 @@ class Attack(SQLModel, table=True):
     damage: str = SQLField(
         ..., max_length=50, description="Dice notation, e.g., '1d8+2'"
     )
-    damage_type: DamageType
+    damage_type_index: Optional[str] = SQLField(
+        default=None, foreign_key="damage_types.index"
+    )
+    damage_type: Mapped[Optional["DamageType"]] = Relationship()
     range: int = SQLField(default=5, ge=0, description="Range in feet (5 for melee)")
 
     character_id: Optional[int] = SQLField(

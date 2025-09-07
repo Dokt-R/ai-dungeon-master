@@ -7,12 +7,12 @@ helping identify why traces might not be appearing in the dashboard.
 Run this script to diagnose LangSmith integration issues.
 """
 
+import asyncio
+import json
 import os
 import sys
-import asyncio
 import time
-import json
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Add the project root to the Python path
 project_root = os.path.dirname(
@@ -91,7 +91,7 @@ class LangSmithDiagnostic:
             print(
                 f"✅ LANGSMITH_API_KEY set: {api_key[:10]}..."
                 if status["lan_api_key"]
-                else f"❌ LANGSMITH_API_KEY invalid"
+                else "❌ LANGSMITH_API_KEY invalid"
             )
         else:
             status["issues"].append("LANGSMITH_API_KEY not set")

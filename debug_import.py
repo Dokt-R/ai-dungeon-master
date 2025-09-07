@@ -1,37 +1,25 @@
-#!/usr/bin/env python3
-"""Debug the exact import issue"""
+import asyncio
+import os
+import sys
 
-print("🔍 DEBUGGING IMPORT ISSUE")
+# Add the packages directory to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "packages"))
 
-try:
-    print("Testing GameState import...")
-    from packages.backend.ai.state.game_state import (
-        create_micro_adventure_state,
-    )
+from packages.backend.scripts.srd_loaders import load_srd_data
+from packages.shared.db import get_async_session
 
-    print("✅ GameState import successful")
 
-    print("Testing LangGraph imports...")
-    from langgraph.graph import StateGraph
+async def test_load():
+    try:
+        async with get_async_session() as session:
+            load_srd_data(session, "srd/json_files")
+            print("SRD data loaded successfully!")
+    except Exception as e:
+        print(f"Error loading SRD data: {e}")
+        import traceback
 
-    print("✅ LangGraph imports successful")
+        traceback.print_exc()
 
-    print("Testing ActionResolutionState...")
-    from packages.backend.ai.state import ActionResolutionState
 
-    print("✅ ActionResolutionState import successful")
-
-    print("Testing create_micro_adventure_state() call...")
-    game_state = create_micro_adventure_state()
-    print("✅ Game state creation successful")
-
-    print("Testing StateGraph construction...")
-    workflow = StateGraph(ActionResolutionState)
-    print("✅ StateGraph construction successful")
-    print("✅ ALL IMPORTS WORKING!")
-
-except Exception as e:
-    print(f"❌ IMPORT ERROR: {e}")
-    import traceback
-
-    traceback.print_exc()
+if __name__ == "__main__":
+    asyncio.run(test_load())
