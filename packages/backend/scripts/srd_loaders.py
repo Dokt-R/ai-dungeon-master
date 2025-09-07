@@ -103,7 +103,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                 if item_data.get("damage") and item_data["damage"].get("damage_type")
                 else None
             )
-            damage_dice = item_data["damage"].get("damage_dice")
+            damage_dice = (
+                item_data["damage"]["damage_dice"]
+                if item_data.get("damage") and item_data["damage"].get("damage_dice")
+                else None
+            )
 
             # Handle versatile damage
             versatile_damage_data = item_data.get("two_handed_damage")
@@ -187,6 +191,7 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
 
         elif equipment_category_index == "armor":
+            print("INSIDE ARMOR")
             armor_class_data = item_data.get("armor_class", {})
             armor = Armor(
                 equipment_index=equipment.index,
@@ -258,7 +263,7 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                 capacity=item_data.get("capacity"),
                 crew_min=item_data.get("crew_min"),
                 crew_max=item_data.get("crew_max"),
-                engers=item_data.get("engers"),
+                passengers=item_data.get("passengers"),
                 ac=item_data.get("ac"),
                 hp=item_data.get("hp"),
                 damage_threshold=item_data.get("damage_threshold"),

@@ -68,7 +68,7 @@ class Attack(SQLModel, table=True):
     id: Optional[int] = SQLField(default=None, primary_key=True)
     name: str = SQLField(..., min_length=1, max_length=100)
     bonus: int = SQLField(default=0)
-    damage: str = SQLField(
+    damage_dice: str = SQLField(
         ..., max_length=50, description="Dice notation, e.g., '1d8+2'"
     )
     damage_type_index: Optional[str] = SQLField(
@@ -85,7 +85,7 @@ class Attack(SQLModel, table=True):
     @hybrid_property
     def average_damage(self) -> float:
         # Simple parser for "XdY+Z" or "XdY"
-        parts = self.damage.split("+")
+        parts = self.damage_dice.split("+")
         dice_part = parts[0]
         modifier = int(parts[1]) if len(parts) > 1 else 0
 
