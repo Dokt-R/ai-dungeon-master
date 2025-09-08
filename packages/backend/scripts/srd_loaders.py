@@ -4,6 +4,7 @@ from typing import Dict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from packages.shared.db import get_async_session
+from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models.game.equipment_models import (
     Armor,
     DamageType,
@@ -24,10 +25,9 @@ from packages.shared.models.game.gameplay_models import (
     AbilitySkill,
     Alignment,
     Condition,
+    Language,
     Skill,
 )
-
-from packages.shared.logging_config import configure_logging, get_logger
 
 configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
 
@@ -57,6 +57,8 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         conditions_data = json.load(f)
     with open(f"{srd_json_path}/alignment.json", "r") as f:
         alignment_data = json.load(f)
+    with open(f"{srd_json_path}/languages.json", "r") as f:
+        languages_data = json.load(f)
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -145,6 +147,16 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         alignment_map[alignment.index] = alignment
     await session.commit()
     print(f"Loaded {len(alignment_map)} alignments.")
+
+    # --- Load Languages ---
+    language_map: Dict[str, Language] = {}
+    for lang_data in languages_data:
+        # The 'typical_speakers' field is a list of strings, which is handled by JSON column
+        language = Language(**lang_data)
+        session.add(language)
+        language_map[language.index] = language
+    await session.commit()
+    print(f"Loaded {len(language_map)} languages.")
 
     # --- Load Equipment and its specific types ---
     for item_data in equipment_data:

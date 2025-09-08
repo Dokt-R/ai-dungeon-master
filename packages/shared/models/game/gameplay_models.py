@@ -65,3 +65,18 @@ class Alignment(SQLModel, table=True):
     abbreviation: str = Field(description="Short abbreviation like 'LG', 'CE'")
     desc: str = Field(description="Description explaining the alignment")
     url: str = Field(description="API endpoint URL for this alignment")
+
+
+class Language(SQLModel, table=True):
+    """SQLModel for D&D languages"""
+    index: str = Field(primary_key=True, description="Unique identifier like 'common', 'elvish'")
+    name: str = Field(description="Language name like 'Common', 'Elvish'")
+    desc: Optional[str] = Field(default=None, description="Description of the language",
+        sa_column=Column(JSON),
+    )
+    type: str = Field(description="Type of language (e.g., 'Standard', 'Exotic')")
+    typical_speakers: List[str] = Field(description="List of typical speakers of the language",
+        sa_column=Column(JSON),
+    )
+    script: Optional[str] = Field(default=None, description="Script used for the language")
+    url: str = Field(description="API endpoint URL for this language")
