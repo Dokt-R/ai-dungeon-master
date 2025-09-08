@@ -26,7 +26,11 @@ from packages.shared.models.game.gameplay_models import (
     Alignment,
     Condition,
     Language,
+    MagicSchool,
+    Proficiency,
     Skill,
+    Trait,
+    TraitProficiency,
 )
 
 configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
@@ -59,6 +63,12 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         alignment_data = json.load(f)
     with open(f"{srd_json_path}/languages.json", "r") as f:
         languages_data = json.load(f)
+    with open(f"{srd_json_path}/magic_schools.json", "r") as f:
+        magic_schools_data = json.load(f)
+    with open(f"{srd_json_path}/proficiencies.json", "r") as f:
+        proficiencies_data = json.load(f)
+    with open(f"{srd_json_path}/traits.json", "r") as f:
+        traits_data = json.load(f)
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -157,6 +167,56 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         language_map[language.index] = language
     await session.commit()
     print(f"Loaded {len(language_map)} languages.")
+
+    # --- Load Magic Schools ---
+    magic_school_map: Dict[str, MagicSchool] = {}
+    for ms_data in magic_schools_data:
+        magic_school = MagicSchool(**ms_data)
+        session.add(magic_school)
+        magic_school_map[magic_school.index] = magic_school
+    await session.commit()
+    print(f"Loaded {len(magic_school_map)} magic schools.")
+
+    # --- Load Proficiencies ---
+    proficiency_map: Dict[str, Proficiency] = {}
+    for prof_data in proficiencies_data:
+        # Exclude 'classes', 'races', and 'reference' as they are relationships or complex objects
+        prof_dict = {k: v for k, v in prof_data.items() if k not in ["classes", "races", "reference"]}
+        proficiency = Proficiency(**prof_dict)
+        session.add(proficiency)
+        proficiency_map[proficiency.index] = proficiency
+    await session.commit()
+    print(f"Loaded {len(proficiency_map)} proficiencies.")
+
+    # --- Load Traits ---
+    trait_map: Dict[str, Trait] = {}
+    for trait_data in traits_data:
+        # Handle complex JSON fields directly; exclude 'proficiencies' for relationship
+        trait_dict = {k: v for k, v in trait_data.items() if k != "proficiencies"}
+        trait = Trait(**trait_dict)
+        session.add(trait)
+        trait_map[trait.index] = trait
+    await session.commit()
+    print(f"Loaded {len(trait_map)} traits.")
+
+    # --- Load TraitProficiency Junction Table ---
+    for trait_index, trait_obj in trait_map.items():
+        # Assuming traits.json has a 'proficiencies' list of proficiency indices
+        # This would need adjustment based on actual JSON structure
+        trait_data = next((td for td in traits_data if td["index"] == trait_index), None)
+        if trait_data and "proficiencies" in trait_data:
+            for prof_obj in trait_data["proficiencies"]:
+                prof_index = prof_obj["index"]
+                if prof_index in proficiency_map:
+                    trait_prof = TraitProficiency(
+                        trait_index=trait_index,
+                        proficiency_index=prof_index,
+                    )
+                    session.add(trait_prof)
+                else:
+                    print(f"Warning: Proficiency '{prof_index}' not found for trait '{trait_index}'.")
+    await session.commit()
+    print("Loaded TraitProficiency relationships.")
 
     # --- Load Equipment and its specific types ---
     for item_data in equipment_data:
