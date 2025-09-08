@@ -13,11 +13,11 @@ class RaceTraitLink(SQLModel, table=True):
     race_index: str = Field(foreign_key="races.index", primary_key=True)
 
 
-# class SubraceTraitLink(SQLModel, table=True):
-#     """Junction table for trait to subrace many-to-many relationship"""
-#     __tablename__ = "subrace_trait_link"
-#     trait_index: str = Field(foreign_key="traits.index", primary_key=True)
-#     subrace_index: str = Field(foreign_key="subraces.index", primary_key=True)
+class SubraceTraitLink(SQLModel, table=True):
+    """Junction table for trait to subrace many-to-many relationship"""
+    __tablename__ = "subrace_trait_link"
+    trait_index: str = Field(foreign_key="traits.index", primary_key=True)
+    subrace_index: str = Field(foreign_key="subraces.index", primary_key=True)
 
 
 class ProficiencyTraitLink(SQLModel, table=True):
@@ -142,7 +142,7 @@ class Trait(SQLModel, table=True):
     # Relationships
     proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="traits", link_model=ProficiencyTraitLink)
     races: Mapped[List["Race"]] = Relationship(back_populates="traits", link_model=RaceTraitLink)
-    # subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=SubraceTraitLink)
+    subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=SubraceTraitLink)
 
 
 class Proficiency(SQLModel, table=True):
@@ -181,16 +181,19 @@ class Race(SQLModel, table=True):
     url: str = Field(description="API endpoint URL for this race")
     # Relationships
     languages: Mapped[List["Language"]] = Relationship(back_populates="races", link_model=LanguageRaceLink)
+    subraces: List["Subrace"] = Relationship(back_populates="race")
     traits: Mapped[List["Trait"]] = Relationship(back_populates="races", link_model=RaceTraitLink)
 
 
-# class Subrace(SQLModel, table=True):
-#     """SQLModel for D&D subraces"""
-#     __tablename__ = "subraces"
-#     index: str = Field(primary_key=True, description="Unique identifier like 'hill-dwarf'")
-#     race_index: str = Field(foreign_key="races.index", description="Parent race")
-#     name: str = Field(description="Subrace name like 'Hill Dwarf'")
-#     desc: str = Field(description="Description")
-#     ability_bonuses: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON), description="Ability score bonuses")
-#     url: str = Field(description="API endpoint URL for this subrace")
-#     traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=SubraceTraitLink)
+class Subrace(SQLModel, table=True):
+    """SQLModel for D&D subraces"""
+    __tablename__ = "subraces"
+    index: str = Field(primary_key=True, description="Unique identifier like 'hill-dwarf'")
+    race_index: str = Field(foreign_key="races.index", description="Parent race")
+    name: str = Field(description="Subrace name like 'Hill Dwarf'")
+    desc: str = Field(description="Description")
+    ability_bonuses: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON), description="Ability score bonuses")
+    url: str = Field(description="API endpoint URL for this subrace")
+    # Relationships
+    race: Optional["Race"] = Relationship(back_populates="subraces")
+    traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=SubraceTraitLink)
