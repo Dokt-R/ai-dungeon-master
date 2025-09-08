@@ -55,6 +55,27 @@ class ClassSavingThrowLink(SQLModel, table=True):
     ability_index: str = Field(foreign_key="abilities.index", primary_key=True)
 
 
+class SpellClassLink(SQLModel, table=True):
+    """Junction table for spell to class many-to-many relationship"""
+    __tablename__ = "spell_class_link"
+    spell_index: str = Field(foreign_key="spells.index", primary_key=True)
+    class_index: str = Field(foreign_key="classes.index", primary_key=True)
+
+
+class SpellSubclassLink(SQLModel, table=True):
+    """Junction table for spell to subclass many-to-many relationship"""
+    __tablename__ = "spell_subclass_link"
+    spell_index: str = Field(foreign_key="spells.index", primary_key=True)
+    subclass_index: str = Field(foreign_key="subclasses.index", primary_key=True)
+
+
+class LevelFeatureLink(SQLModel, table=True):
+    """Junction table for level to feature many-to-many relationship"""
+    __tablename__ = "level_feature_link"
+    level_index: str = Field(foreign_key="levels.index", primary_key=True)
+    feature_index: str = Field(foreign_key="features.index", primary_key=True)
+
+
 class Ability(SQLModel, table=True):
     """SQLModel for D&D ability scores (STR, DEX, CON, INT, WIS, CHA)"""
     __tablename__ = "abilities"
@@ -103,6 +124,7 @@ class Alignment(SQLModel, table=True):
 
 class MagicSchool(SQLModel, table=True):
     """SQLModel for D&D magic schools"""
+    __tablename__ = "magicschools"
     index: str = Field(primary_key=True, description="Unique identifier like 'abjuration', 'conjuration'")
     name: str = Field(description="Magic school name like 'Abjuration', 'Conjuration'")
     desc: str = Field(description="Description of the magic school")
@@ -248,6 +270,8 @@ class Class(SQLModel, table=True):
     proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="classes", link_model=ClassProficiencyLink)
     saving_throws: Mapped[List["Ability"]] = Relationship(link_model=ClassSavingThrowLink)
     subclasses: List["Subclass"] = Relationship(back_populates="parent_class")
+    features: List["Feature"] = Relationship(back_populates="dnd_class")
+    levels: List["Level"] = Relationship(back_populates="dnd_class")
 
 
 class Subclass(SQLModel, table=True):
@@ -265,3 +289,87 @@ class Subclass(SQLModel, table=True):
 
     # Relationships
     parent_class: Optional["Class"] = Relationship(back_populates="subclasses")
+    features: List["Feature"] = Relationship(back_populates="subclass")
+    levels: List["Level"] = Relationship(back_populates="subclass")
+
+
+class Spell(SQLModel, table=True):
+    """SQLModel for D&D spells"""
+    __tablename__ = "spells"
+    index: str = Field(primary_key=True)
+    name: str
+    desc: List[str] = Field(sa_column=Column(JSON))
+    higher_level: Optional[List[str]] = Field(default=None, sa_column=Column(JSON))
+    range: str
+    components: List[str] = Field(sa_column=Column(JSON))
+    material: Optional[str] = Field(default=None)
+    ritual: bool
+    duration: str
+    concentration: bool
+    casting_time: str
+    level: int
+    attack_type: Optional[str] = Field(default=None)
+    school_index: str = Field(foreign_key="magicschools.index")
+    url: str
+
+    # JSON blobs for nested objects
+    damage: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    dc: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    area_of_effect: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    heal_at_slot_level: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+
+
+    # Relationships
+    school: "MagicSchool" = Relationship()
+    classes: Mapped[List["Class"]] = Relationship(link_model=SpellClassLink)
+    subclasses: Mapped[List["Subclass"]] = Relationship(link_model=SpellSubclassLink)
+
+
+class Feat(SQLModel, table=True):
+    """SQLModel for D&D feats"""
+    __tablename__ = "feats"
+    index: str = Field(primary_key=True)
+    name: str
+    prerequisites: List[Dict] = Field(sa_column=Column(JSON))
+    desc: List[str] = Field(sa_column=Column(JSON))
+    url: str
+
+
+class Feature(SQLModel, table=True):
+    """SQLModel for D&D features"""
+    __tablename__ = "features"
+    index: str = Field(primary_key=True)
+    name: str
+    level: int
+    desc: List[str] = Field(sa_column=Column(JSON))
+    class_index: str = Field(foreign_key="classes.index")
+    subclass_index: Optional[str] = Field(default=None, foreign_key="subclasses.index")
+    # The feature_specific field can hold complex JSON data for choices
+    feature_specific: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    url: str
+
+    # Relationships
+    dnd_class: "Class" = Relationship(back_populates="features")
+    subclass: Optional["Subclass"] = Relationship(back_populates="features")
+    levels: Mapped[List["Level"]] = Relationship(back_populates="features", link_model=LevelFeatureLink)
+
+
+class Level(SQLModel, table=True):
+    """SQLModel for D&D class/subclass level progression"""
+    __tablename__ = "levels"
+    index: str = Field(primary_key=True)
+    level: int
+    ability_score_bonuses: Optional[int] = Field(default=None, nullable=True)
+    prof_bonus: Optional[int] = Field(default=None, nullable=True)
+    class_index: str = Field(foreign_key="classes.index")
+    subclass_index: Optional[str] = Field(default=None, foreign_key="subclasses.index", nullable=True)
+    url: str
+
+    # JSON blobs for complex data
+    class_specific: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+    spellcasting: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
+
+    # Relationships
+    dnd_class: "Class" = Relationship(back_populates="levels")
+    subclass: Optional["Subclass"] = Relationship(back_populates="levels")
+    features: Mapped[List["Feature"]] = Relationship(back_populates="levels", link_model=LevelFeatureLink)

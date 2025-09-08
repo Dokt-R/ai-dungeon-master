@@ -15,6 +15,9 @@ from packages.shared.models.game.equipment_models import (
     EquipmentSlotRequirement,
     EquipmentWeaponProperty,  # Added this import
     Gear,
+    MagicItem,
+    MagicItemRarity,
+    MagicItemVariant,
     MountAndVehicle,
     Tool,
     Weapon,
@@ -28,6 +31,10 @@ from packages.shared.models.game.gameplay_models import (
     Class,
     ClassProficiencyLink,
     ClassSavingThrowLink,
+    Level,
+    LevelFeatureLink,
+    Feature,
+    Feat,
     Condition,
     Language,
     LanguageRaceLink,
@@ -41,6 +48,9 @@ from packages.shared.models.game.gameplay_models import (
     Subrace,
     SubraceTraitLink,
     Trait,
+    Spell,
+    SpellClassLink,
+    SpellSubclassLink,
 )
 
 configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
@@ -89,6 +99,14 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         classes_data = json.load(f)
     with open(f"{srd_json_path}/subclasses.json", "r") as f:
         subclasses_data = json.load(f)
+    with open(f"{srd_json_path}/magic_items.json", "r") as f:
+        magic_items_data = json.load(f)
+    with open(f"{srd_json_path}/feats.json", "r") as f:
+        feats_data = json.load(f)
+    with open(f"{srd_json_path}/features.json", "r") as f:
+        features_data = json.load(f)
+    with open(f"{srd_json_path}/levels.json", "r") as f:
+        levels_data = json.load(f)
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -118,6 +136,48 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         equipment_category_map[equipment_category.index] = equipment_category
     await session.commit()
     print(f"Loaded {len(equipment_category_map)} equipment categories.")
+
+
+    # --- Load Magic Item Rarities ---
+    magic_item_rarity_map: Dict[str, MagicItemRarity] = {}
+    for item_data in magic_items_data:
+        rarity_name = item_data["rarity"]["name"]
+        if rarity_name not in magic_item_rarity_map:
+            rarity = MagicItemRarity(name=rarity_name)
+            session.add(rarity)
+            magic_item_rarity_map[rarity_name] = rarity
+    await session.commit()
+    print(f"Loaded {len(magic_item_rarity_map)} magic item rarities.")
+
+    # --- Load Magic Items ---
+    magic_item_map: Dict[str, MagicItem] = {}
+    for item_data in magic_items_data:
+        magic_item = MagicItem(
+            index=item_data["index"],
+            name=item_data["name"],
+            desc=json.dumps(item_data["desc"]),
+            rarity_name=item_data["rarity"]["name"],
+            equipment_category_index=item_data["equipment_category"]["index"],
+            variant=item_data["variant"],
+            image=item_data.get("image"),
+        )
+        session.add(magic_item)
+        magic_item_map[magic_item.index] = magic_item
+    await session.commit()
+    print(f"Loaded {len(magic_item_map)} magic items.")
+
+    # --- Load Magic Item Variants ---
+    for item_data in magic_items_data:
+        if "variants" in item_data and item_data["variants"]:
+            for variant_data in item_data["variants"]:
+                variant = MagicItemVariant(
+                    index=variant_data["index"],
+                    name=variant_data["name"],
+                    magic_item_index=item_data["index"],
+                )
+                session.add(variant)
+    await session.commit()
+    print("Loaded magic item variants.")
 
     # --- Load Abilities ---
     ability_map: Dict[str, Ability] = {}
@@ -603,6 +663,112 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         subclass_map[subclass.index] = subclass
     await session.commit()
     print(f"Loaded {len(subclass_map)} subclasses.")
+
+    # --- Load Spells ---
+    with open(f"{srd_json_path}/spells.json", "r") as f:
+        spells_data = json.load(f)
+
+    spell_map: Dict[str, Spell] = {}
+    for spell_data in spells_data:
+        spell_dict = {k: v for k, v in spell_data.items() if k not in ["school", "classes", "subclasses"]}
+        spell_dict["school_index"] = spell_data["school"]["index"]
+        spell = Spell(**spell_dict)
+        session.add(spell)
+        spell_map[spell.index] = spell
+    await session.commit()
+    print(f"Loaded {len(spell_map)} spells.")
+
+    # --- Load SpellClassLink Junction Table ---
+    for spell_index, spell in spell_map.items():
+        spell_data = next((sd for sd in spells_data if sd["index"] == spell_index), None)
+        if spell_data and "classes" in spell_data:
+            for class_obj in spell_data["classes"]:
+                class_index = class_obj["index"]
+                if class_index in class_map:
+                    spell_class = SpellClassLink(
+                        spell_index=spell_index,
+                        class_index=class_index,
+                    )
+                    session.add(spell_class)
+                else:
+                    print(f"Warning: Class '{class_index}' not found for spell '{spell_index}'.")
+    await session.commit()
+    print("Loaded SpellClassLink relationships.")
+
+    # --- Load SpellSubclassLink Junction Table ---
+    for spell_index, spell in spell_map.items():
+        spell_data = next((sd for sd in spells_data if sd["index"] == spell_index), None)
+        if spell_data and "subclasses" in spell_data:
+            for subclass_obj in spell_data["subclasses"]:
+                subclass_index = subclass_obj["index"]
+                if subclass_index in subclass_map:
+                    spell_subclass = SpellSubclassLink(
+                        spell_index=spell_index,
+                        subclass_index=subclass_index,
+                    )
+                    session.add(spell_subclass)
+                else:
+                    print(f"Warning: Subclass '{subclass_index}' not found for spell '{spell_index}'.")
+    await session.commit()
+    print("Loaded SpellSubclassLink relationships.")
+
+    # --- Load Features ---
+    feature_map: Dict[str, Feature] = {}
+    for feature_data in features_data:
+        feature_dict = feature_data.copy()
+        feature_dict["class_index"] = feature_data["class"]["index"]
+        if "subclass" in feature_data:
+            feature_dict["subclass_index"] = feature_data["subclass"]["index"]
+
+        # Remove the nested objects as they are now foreign keys
+        feature_dict.pop("class", None)
+        feature_dict.pop("subclass", None)
+        # The 'prerequisites' field is not used in the model, so we can pop it
+        feature_dict.pop("prerequisites", None)
+
+        feature = Feature(**feature_dict)
+        session.add(feature)
+        feature_map[feature.index] = feature
+    await session.commit()
+    print(f"Loaded {len(feature_map)} features.")
+
+    # --- Load Levels ---
+    level_map: Dict[str, Level] = {}
+    for level_data in levels_data:
+        level_dict = level_data.copy()
+
+        # Pop relationship fields that are handled by links or are not direct columns
+        features_to_link = level_dict.pop("features", [])
+        level_dict.pop("class", None)
+        subclass_data = level_dict.pop("subclass", None)
+
+        # Set foreign keys
+        level_dict["class_index"] = level_data["class"]["index"]
+        if subclass_data:
+            level_dict["subclass_index"] = subclass_data["index"]
+
+        level = Level(**level_dict)
+        session.add(level)
+        level_map[level.index] = level
+
+        # Create LevelFeatureLink objects
+        for feature_ref in features_to_link:
+            feature_index = feature_ref["index"]
+            if feature_index in feature_map:
+                link = LevelFeatureLink(level_index=level.index, feature_index=feature_index)
+                session.add(link)
+    await session.commit()
+    print(f"Loaded {len(level_map)} levels and their feature links.")
+
+    # --- Load Feats ---
+    feat_map: Dict[str, Feat] = {}
+    for feat_data in feats_data:
+        # The prerequisites and desc fields are JSON, so they can be directly unpacked
+        feat = Feat(**feat_data)
+        session.add(feat)
+        feat_map[feat.index] = feat
+    await session.commit()
+    print(f"Loaded {len(feat_map)} feats.")
 
     print("SRD data loading complete.")
 
