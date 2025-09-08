@@ -31,6 +31,11 @@ from packages.shared.models.game.gameplay_models import (
     Skill,
     Trait,
     TraitProficiency,
+    Race,
+    # Subrace,
+    # TraitRace,
+    # TraitSubrace,
+    LanguageRace,
 )
 
 configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
@@ -69,6 +74,10 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         proficiencies_data = json.load(f)
     with open(f"{srd_json_path}/traits.json", "r") as f:
         traits_data = json.load(f)
+    with open(f"{srd_json_path}/races.json", "r") as f:
+        races_data = json.load(f)
+    with open(f"{srd_json_path}/subraces.json", "r") as f:
+        subraces_data = json.load(f)
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -193,6 +202,7 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     for trait_data in traits_data:
         # Handle complex JSON fields directly; exclude 'proficiencies' for relationship
         trait_dict = {k: v for k, v in trait_data.items() if k != "proficiencies"}
+        # trait_dict = {k: v for k, v in trait_data.items() if k not in ["proficiencies", "races", "subraces"]}
         trait = Trait(**trait_dict)
         session.add(trait)
         trait_map[trait.index] = trait
@@ -217,6 +227,101 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     print(f"Warning: Proficiency '{prof_index}' not found for trait '{trait_index}'.")
     await session.commit()
     print("Loaded TraitProficiency relationships.")
+
+    # --- Load Races ---
+    race_map: Dict[str, Race] = {}
+    for race_data in races_data:
+        race_dict = race_data.copy()
+        race_dict['ability_bonuses'] = race_data.get('ability_bonuses', [])
+        print(race_data)
+        # Populate languages via junction instead of JSON
+        try:
+            race = Race(
+                index=race_data["index"],
+                name=race_data["name"],
+                speed=race_data["speed"],
+                alignment=race_data["alignment"],
+                age=race_data["age"],
+                size=race_data["size"],
+                size_description=race_data["size_description"],
+                language_desc=race_data.get("language_desc"),
+                language_options=race_data.get("language_options"),
+                desc=race_data.get("desc"),
+                ability_bonuses=race_data.get('ability_bonuses', []),
+                traits=race_data.get("traits"),
+                url=race_data["url"],
+            )
+            print(race_map)
+            session.add(race)
+            race_map[race.index] = race
+        except Exception as e:
+            print(e, str(e))
+        print("added race")
+    await session.commit()
+    print(f"Loaded {len(race_map)} races.")
+
+    # --- Load RaceLanguage Junction Table ---
+    for race_index, race_obj in race_map.items():
+        race_data = next((rd for rd in races_data if rd["index"] == race_index), None)
+        if race_data and "languages" in race_data:
+            for lang_obj in race_data["languages"]:
+                lang_index = lang_obj["index"]
+                if lang_index in language_map:
+                    race_lang = LanguageRace(
+                        race_index=race_index,
+                        language_index=lang_index,
+                    )
+                    session.add(race_lang)
+                else:
+                    print(f"Warning: Language '{lang_index}' not found for race '{race_index}'.")
+    await session.commit()
+    print("Loaded RaceLanguage relationships.")
+
+    # # --- Load Subraces ---
+    # subrace_map: Dict[str, Subrace] = {}
+    # for subrace_data in subraces_data:
+    #     subrace_dict = subrace_data.copy()
+    #     subrace_dict['ability_bonuses'] = subrace_data.get('ability_bonuses', [])
+    #     subrace_dict['race_index'] = subrace_data['race']['index']
+    #     subrace = Subrace(**subrace_dict)
+    #     session.add(subrace)
+    #     subrace_map[subrace.index] = subrace
+    # await session.commit()
+    # print(f"Loaded {len(subrace_map)} subraces.")
+
+    # # --- Load TraitRace Junction Table ---
+    # for race_index, race_obj in race_map.items():
+    #     race_data = next((rd for rd in races_data if rd["index"] == race_index), None)
+    #     if race_data and "traits" in race_data:
+    #         for trait_obj in race_data["traits"]:
+    #             trait_index = trait_obj["index"]
+    #             if trait_index in trait_map:
+    #                 trait_race = TraitRace(
+    #                     trait_index=trait_index,
+    #                     race_index=race_index,
+    #                 )
+    #                 session.add(trait_race)
+    #             else:
+    #                 print(f"Warning: Trait '{trait_index}' not found for race '{race_index}'.")
+    # await session.commit()
+    # print("Loaded TraitRace relationships.")
+
+    # # --- Load TraitSubrace Junction Table ---
+    # for subrace_index, subrace_obj in subrace_map.items():
+    #     subrace_data = next((sd for sd in subraces_data if sd["index"] == subrace_index), None)
+    #     if subrace_data and "racial_traits" in subrace_data:
+    #         for trait_obj in subrace_data["racial_traits"]:
+    #             trait_index = trait_obj["index"]
+    #             if trait_index in trait_map:
+    #                 trait_subrace = TraitSubrace(
+    #                     trait_index=trait_index,
+    #                     subrace_index=subrace_index,
+    #                 )
+    #                 session.add(trait_subrace)
+    #             else:
+    #                 print(f"Warning: Trait '{trait_index}' not found for subrace '{subrace_index}'.")
+    # await session.commit()
+    # print("Loaded TraitSubrace relationships.")
 
     # --- Load Equipment and its specific types ---
     for item_data in equipment_data:
