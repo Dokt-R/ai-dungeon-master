@@ -24,7 +24,7 @@ from packages.shared.models import (
 )
 from packages.shared.routes import ROUTES
 
-configure_logging(level="DEBUG", log_to_file=True, path="logs/api_client.log")
+configure_logging(level="INFO", log_to_file=True, path="logs/api_client.log")
 
 # Create logger instance
 logger = get_logger(__name__)

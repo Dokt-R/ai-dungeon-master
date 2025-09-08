@@ -11,7 +11,7 @@ from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
 
-configure_logging(log_to_file=True, path="logs/character.log", level="DEBUG")
+configure_logging(log_to_file=True, path="logs/character.log", level="ERROR")
 # configure_logging()
 
 # Create logger instance

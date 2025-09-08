@@ -55,7 +55,7 @@ from packages.backend.ai.tools import DiceRoller
 from packages.shared.errors import ErrorCode
 from packages.shared.logging_config import configure_logging, get_logger
 
-configure_logging(level="DEBUG")
+configure_logging(level="INFO")
 logger = get_logger(__name__)
 
 

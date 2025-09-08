@@ -39,7 +39,7 @@ from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.routes import API_PREFIX
 
 load_dotenv()
-configure_logging(log_to_file=True, path="logs/backend.log", level="INFO")
+configure_logging(log_to_file=True, path="logs/backend.log", level="ERROR")
 # configure_logging()
 
 # Create logger instance
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
     # Load SRD data if not already loaded
     logger.info("srd_data_loading_started")
     try:
-        async with get_async_session() as session:
+        async for session in get_async_session():
             # Check if SRD data is already loaded by checking if any damage types exist
             from sqlalchemy import select
 
