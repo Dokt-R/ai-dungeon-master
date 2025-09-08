@@ -6,36 +6,37 @@ from sqlmodel import Column, Field, Relationship, SQLModel
 
 # Links
 
-# class TraitRace(SQLModel, table=True):
-#     """Junction table for trait to race many-to-many relationship"""
-#     __tablename__ = "trait_races"
-#     trait_index: str = Field(foreign_key="traits.index", primary_key=True)
-#     race_index: str = Field(foreign_key="races.index", primary_key=True)
+class RaceTraitLink(SQLModel, table=True):
+    """Junction table for trait to race many-to-many relationship"""
+    __tablename__ = "race_trait_link"
+    trait_index: str = Field(foreign_key="traits.index", primary_key=True)
+    race_index: str = Field(foreign_key="races.index", primary_key=True)
 
 
-# class TraitSubrace(SQLModel, table=True):
+# class SubraceTraitLink(SQLModel, table=True):
 #     """Junction table for trait to subrace many-to-many relationship"""
-#     __tablename__ = "trait_subraces"
+#     __tablename__ = "subrace_trait_link"
 #     trait_index: str = Field(foreign_key="traits.index", primary_key=True)
 #     subrace_index: str = Field(foreign_key="subraces.index", primary_key=True)
 
 
-class TraitProficiency(SQLModel, table=True):
+class ProficiencyTraitLink(SQLModel, table=True):
     """Junction table for trait to proficiency many-to-many relationship"""
-    __tablename__ = "trait_proficiencies"
+    __tablename__ = "proficiency_trait_link"
     trait_index: str = Field(foreign_key="traits.index", primary_key=True)
     proficiency_index: str = Field(foreign_key="proficiencies.index", primary_key=True)
 
 
-class AbilitySkill(SQLModel, table=True):
+class AbilitySkillLink(SQLModel, table=True):
     """Junction table for ability score to skill relationships"""
+    __tablename__ = "ability_skill_link"
     abilities_index: str = Field(foreign_key="abilities.index", primary_key=True)
     skill_index: str = Field(foreign_key="skills.index", primary_key=True)
     
 
-class LanguageRace(SQLModel, table=True):
+class LanguageRaceLink(SQLModel, table=True):
     """Junction table for race to language many-to-many relationship"""
-    __tablename__ = "language_race"
+    __tablename__ = "language_race_link"
     race_index: str = Field(foreign_key="races.index", primary_key=True)
     language_index: str = Field(foreign_key="languages.index", primary_key=True)
 
@@ -50,7 +51,7 @@ class Ability(SQLModel, table=True):
         sa_column=Column(JSON),
     )
     url: str = Field(description="API endpoint URL for this ability score")
-    skills: Mapped[List['Skill']] = Relationship(back_populates="ability", link_model=AbilitySkill)
+    skills: Mapped[List['Skill']] = Relationship(back_populates="ability", link_model=AbilitySkillLink)
 
 
 class Skill(SQLModel, table=True):
@@ -62,7 +63,7 @@ class Skill(SQLModel, table=True):
         sa_column=Column(JSON),
     )
     abilities_index: str = Field(foreign_key="abilities.index", description="Which ability score this skill uses")
-    ability: Mapped['Ability'] = Relationship(back_populates="skills", link_model=AbilitySkill)
+    ability: Mapped['Ability'] = Relationship(back_populates="skills", link_model=AbilitySkillLink)
     url: str = Field(description="API endpoint URL for this skill")
 
 
@@ -108,7 +109,7 @@ class Language(SQLModel, table=True):
     )
     script: Optional[str] = Field(default=None, description="Script used for the language")
     url: str = Field(description="API endpoint URL for this language")
-    races: Mapped[List["Race"]] = Relationship(back_populates="languages", link_model=LanguageRace)
+    races: Mapped[List["Race"]] = Relationship(back_populates="languages", link_model=LanguageRaceLink)
 
 
 class Trait(SQLModel, table=True):
@@ -120,10 +121,6 @@ class Trait(SQLModel, table=True):
         sa_column=Column(JSON),
     )
     url: str = Field(description="API endpoint URL for this trait")
-    # relationships to be implemented later:
-    # races: Mapped[List["Race"]] = Relationship(back_populates="traits", link_model=TraitRace)
-    # subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=TraitSubrace)
-    proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="traits", link_model=TraitProficiency)
 
     # Complex JSON fields for various options
     proficiency_choices: Optional[Dict] = Field(default=None, description="Choices for proficiencies granted by the trait",
@@ -142,6 +139,11 @@ class Trait(SQLModel, table=True):
         sa_column=Column(JSON),
     )
 
+    # Relationships
+    proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="traits", link_model=ProficiencyTraitLink)
+    races: Mapped[List["Race"]] = Relationship(back_populates="traits", link_model=RaceTraitLink)
+    # subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=SubraceTraitLink)
+
 
 class Proficiency(SQLModel, table=True):
     """SQLModel for D&D proficiencies"""
@@ -154,7 +156,7 @@ class Proficiency(SQLModel, table=True):
     # races: Mapped[List["Race"] = Relationship(back_populates="proficiencies") # To be implemented later
     # reference: Optional[str] = Field(default=None, description="Reference to the item/category this proficiency applies to") # To be implemented later
 
-    traits: Mapped[List["Trait"]] = Relationship(back_populates="proficiencies", link_model=TraitProficiency)
+    traits: Mapped[List["Trait"]] = Relationship(back_populates="proficiencies", link_model=ProficiencyTraitLink)
 
 
 class Race(SQLModel, table=True):
@@ -167,18 +169,19 @@ class Race(SQLModel, table=True):
     age: str = Field(description="Age description")
     size: str = Field(description="Size category like 'Medium'")
     size_description: str = Field(description="Detailed size description")
-    # languages: List[Dict] = Field(sa_column=Column(JSON), description="List of languages")
     language_desc: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     language_options: Optional[Dict] = Field(default=None, sa_column=Column(JSON))
     desc: Optional[List[str]] = Field(description="Description paragraphs",
         sa_column=Column(JSON),
     )
     ability_bonuses: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON), description="Ability score bonuses")
-    traits: List[str] = Field(description="Description paragraphs",
-        sa_column=Column(JSON),
-    )
+    # traits: List[str] = Field(description="Description paragraphs",
+    #     sa_column=Column(JSON),
+    # )
     url: str = Field(description="API endpoint URL for this race")
-    languages: Mapped[List["Language"]] = Relationship(back_populates="races", link_model=LanguageRace)
+    # Relationships
+    languages: Mapped[List["Language"]] = Relationship(back_populates="races", link_model=LanguageRaceLink)
+    traits: Mapped[List["Trait"]] = Relationship(back_populates="races", link_model=RaceTraitLink)
 
 
 # class Subrace(SQLModel, table=True):
@@ -190,4 +193,4 @@ class Race(SQLModel, table=True):
 #     desc: str = Field(description="Description")
 #     ability_bonuses: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON), description="Ability score bonuses")
 #     url: str = Field(description="API endpoint URL for this subrace")
-#     traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=TraitSubrace)
+#     traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=SubraceTraitLink)
