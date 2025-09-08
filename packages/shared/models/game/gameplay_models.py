@@ -41,6 +41,20 @@ class LanguageRaceLink(SQLModel, table=True):
     language_index: str = Field(foreign_key="languages.index", primary_key=True)
 
 
+class ClassProficiencyLink(SQLModel, table=True):
+    """Junction table for class to proficiency many-to-many relationship"""
+    __tablename__ = "class_proficiency_link"
+    class_index: str = Field(foreign_key="classes.index", primary_key=True)
+    proficiency_index: str = Field(foreign_key="proficiencies.index", primary_key=True)
+
+
+class ClassSavingThrowLink(SQLModel, table=True):
+    """Junction table for class to saving throw many-to-many relationship"""
+    __tablename__ = "class_saving_throw_link"
+    class_index: str = Field(foreign_key="classes.index", primary_key=True)
+    ability_index: str = Field(foreign_key="abilities.index", primary_key=True)
+
+
 class Ability(SQLModel, table=True):
     """SQLModel for D&D ability scores (STR, DEX, CON, INT, WIS, CHA)"""
     __tablename__ = "abilities"
@@ -152,10 +166,9 @@ class Proficiency(SQLModel, table=True):
     type: str = Field(description="Type of proficiency (e.g., 'Armor', 'Weapons', 'Skills')")
     name: str = Field(description="Proficiency name like 'Light Armor', 'Simple Weapons'")
     url: str = Field(description="API endpoint URL for this proficiency")
-    # classes: List["Class"] = Relationship(back_populates="proficiencies") # To be implemented later
     # races: Mapped[List["Race"] = Relationship(back_populates="proficiencies") # To be implemented later
     # reference: Optional[str] = Field(default=None, description="Reference to the item/category this proficiency applies to") # To be implemented later
-
+    classes: Mapped[List["Class"]] = Relationship(back_populates="proficiencies", link_model=ClassProficiencyLink)
     traits: Mapped[List["Trait"]] = Relationship(back_populates="proficiencies", link_model=ProficiencyTraitLink)
 
 
@@ -175,9 +188,6 @@ class Race(SQLModel, table=True):
         sa_column=Column(JSON),
     )
     ability_bonuses: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON), description="Ability score bonuses")
-    # traits: List[str] = Field(description="Description paragraphs",
-    #     sa_column=Column(JSON),
-    # )
     url: str = Field(description="API endpoint URL for this race")
     # Relationships
     languages: Mapped[List["Language"]] = Relationship(back_populates="races", link_model=LanguageRaceLink)
@@ -197,3 +207,61 @@ class Subrace(SQLModel, table=True):
     # Relationships
     race: Optional["Race"] = Relationship(back_populates="subraces")
     traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=SubraceTraitLink)
+
+
+class Background(SQLModel, table=True):
+    """SQLModel for D&D backgrounds"""
+    __tablename__ = "backgrounds"
+    index: str = Field(primary_key=True, description="Unique identifier like 'acolyte'")
+    name: str = Field(description="Background name like 'Acolyte'")
+    starting_proficiencies: List[Dict] = Field(description="List of starting proficiencies",
+        sa_column=Column(JSON),
+    )
+    language_options: Dict = Field(description="Options for starting languages",
+        sa_column=Column(JSON),
+    )
+    starting_equipment: List[Dict] = Field(description="List of starting equipment",
+        sa_column=Column(JSON),
+    )
+    feature: Dict = Field(description="Background feature",
+        sa_column=Column(JSON),
+    )
+    url: str = Field(description="API endpoint URL for this background")
+
+
+class Class(SQLModel, table=True):
+    """SQLModel for D&D classes"""
+    __tablename__ = "classes"
+    index: str = Field(primary_key=True, description="Unique identifier like 'barbarian', 'wizard'")
+    name: str = Field(description="Class name like 'Barbarian', 'Wizard'")
+    hit_die: int = Field(description="Hit die for the class")
+    proficiency_choices: List[Dict] = Field(description="Choices for starting proficiencies",
+        sa_column=Column(JSON),
+    )
+    starting_equipment: List[Dict] = Field(description="List of starting equipment options",
+        sa_column=Column(JSON),
+    )
+    class_levels: str = Field(description="API endpoint for class levels")
+    url: str = Field(description="API endpoint URL for this class")
+
+    # Relationships
+    proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="classes", link_model=ClassProficiencyLink)
+    saving_throws: Mapped[List["Ability"]] = Relationship(link_model=ClassSavingThrowLink)
+    subclasses: List["Subclass"] = Relationship(back_populates="parent_class")
+
+
+class Subclass(SQLModel, table=True):
+    """SQLModel for D&D subclasses"""
+    __tablename__ = "subclasses"
+    index: str = Field(primary_key=True, description="Unique identifier like 'berserker', 'evocation'")
+    class_index: str = Field(foreign_key="classes.index", description="Parent class")
+    name: str = Field(description="Subclass name like 'Berserker', 'Evocation'")
+    subclass_flavor: str = Field(description="Flavor text for the subclass")
+    desc: List[str] = Field(description="Description of the subclass",
+        sa_column=Column(JSON),
+    )
+    subclass_levels: str = Field(description="API endpoint for subclass levels")
+    url: str = Field(description="API endpoint URL for this subclass")
+
+    # Relationships
+    parent_class: Optional["Class"] = Relationship(back_populates="subclasses")

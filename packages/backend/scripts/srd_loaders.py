@@ -24,17 +24,22 @@ from packages.shared.models.game.gameplay_models import (
     Ability,
     AbilitySkillLink,
     Alignment,
+    Background,
+    Class,
+    ClassProficiencyLink,
+    ClassSavingThrowLink,
     Condition,
     Language,
-    SubraceTraitLink,
     LanguageRaceLink,
     MagicSchool,
     Proficiency,
     ProficiencyTraitLink,
     Race,
-    Subrace,
     RaceTraitLink,
     Skill,
+    Subclass,
+    Subrace,
+    SubraceTraitLink,
     Trait,
 )
 
@@ -78,6 +83,12 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         races_data = json.load(f)
     with open(f"{srd_json_path}/subraces.json", "r") as f:
         subraces_data = json.load(f)
+    with open(f"{srd_json_path}/backgrounds.json", "r") as f:
+        backgrounds_data = json.load(f)
+    with open(f"{srd_json_path}/classes.json", "r") as f:
+        classes_data = json.load(f)
+    with open(f"{srd_json_path}/subclasses.json", "r") as f:
+        subclasses_data = json.load(f)
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -528,6 +539,70 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
             session.add(mount_vehicle)
 
         await session.commit()  # Commit each equipment item and its related data
+
+    # --- Load Backgrounds ---
+    background_map: Dict[str, Background] = {}
+    for bg_data in backgrounds_data:
+        background = Background(**bg_data)
+        session.add(background)
+        background_map[background.index] = background
+    await session.commit()
+    print(f"Loaded {len(background_map)} backgrounds.")
+
+    # --- Load Classes ---
+    class_map: Dict[str, Class] = {}
+    for class_data in classes_data:
+        class_dict = {k: v for k, v in class_data.items() if k not in ["proficiencies", "saving_throws", "subclasses"]}
+        dnd_class = Class(**class_dict)
+        session.add(dnd_class)
+        class_map[dnd_class.index] = dnd_class
+    await session.commit()
+    print(f"Loaded {len(class_map)} classes.")
+
+    # --- Load ClassProficiencyLink Junction Table ---
+    for class_index, dnd_class in class_map.items():
+        class_data = next((cd for cd in classes_data if cd["index"] == class_index), None)
+        if class_data and "proficiencies" in class_data:
+            for prof_obj in class_data["proficiencies"]:
+                prof_index = prof_obj["index"]
+                if prof_index in proficiency_map:
+                    class_prof = ClassProficiencyLink(
+                        class_index=class_index,
+                        proficiency_index=prof_index,
+                    )
+                    session.add(class_prof)
+                else:
+                    print(f"Warning: Proficiency '{prof_index}' not found for class '{class_index}'.")
+    await session.commit()
+    print("Loaded ClassProficiencyLink relationships.")
+
+    # --- Load ClassSavingThrowLink Junction Table ---
+    for class_index, dnd_class in class_map.items():
+        class_data = next((cd for cd in classes_data if cd["index"] == class_index), None)
+        if class_data and "saving_throws" in class_data:
+            for st_obj in class_data["saving_throws"]:
+                ability_index = st_obj["index"]
+                if ability_index in ability_map:
+                    class_st = ClassSavingThrowLink(
+                        class_index=class_index,
+                        ability_index=ability_index,
+                    )
+                    session.add(class_st)
+                else:
+                    print(f"Warning: Ability '{ability_index}' not found for class '{class_index}'.")
+    await session.commit()
+    print("Loaded ClassSavingThrowLink relationships.")
+
+    # --- Load Subclasses ---
+    subclass_map: Dict[str, Subclass] = {}
+    for subclass_data in subclasses_data:
+        subclass_dict = {k: v for k, v in subclass_data.items() if k not in ["class"]}
+        subclass_dict["class_index"] = subclass_data["class"]["index"]
+        subclass = Subclass(**subclass_dict)
+        session.add(subclass)
+        subclass_map[subclass.index] = subclass
+    await session.commit()
+    print(f"Loaded {len(subclass_map)} subclasses.")
 
     print("SRD data loading complete.")
 
