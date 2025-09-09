@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped
@@ -76,6 +76,13 @@ class LevelFeatureLink(SQLModel, table=True):
     feature_index: str = Field(foreign_key="features.index", primary_key=True)
 
 
+class MonsterConditionImmunityLink(SQLModel, table=True):
+    """Junction table for monster to condition immunity many-to-many relationship"""
+    __tablename__ = "monster_condition_immunity_link"
+    monster_index: str = Field(foreign_key="monsters.index", primary_key=True)
+    condition_index: str = Field(foreign_key="conditions.index", primary_key=True)
+
+
 class Ability(SQLModel, table=True):
     """SQLModel for D&D ability scores (STR, DEX, CON, INT, WIS, CHA)"""
     __tablename__ = "abilities"
@@ -111,6 +118,7 @@ class Condition(SQLModel, table=True):
         sa_column=Column(JSON),
     )
     url: str = Field(description="API endpoint URL for this condition")
+    monsters: Mapped[List["Monster"]] = Relationship(back_populates="condition_immunities", link_model=MonsterConditionImmunityLink)
 
     
 class Alignment(SQLModel, table=True):
@@ -373,3 +381,46 @@ class Level(SQLModel, table=True):
     dnd_class: "Class" = Relationship(back_populates="levels")
     subclass: Optional["Subclass"] = Relationship(back_populates="levels")
     features: Mapped[List["Feature"]] = Relationship(back_populates="levels", link_model=LevelFeatureLink)
+
+
+class Monster(SQLModel, table=True):
+    """SQLModel for D&D monsters"""
+    __tablename__ = "monsters"
+    index: str = Field(primary_key=True)
+    name: str
+    desc: Optional[str] = None
+    size: str
+    type: str
+    subtype: Optional[str] = None
+    alignment: str
+    hit_points: int
+    hit_dice: str
+    hit_points_roll: str
+    strength: int
+    dexterity: int
+    constitution: int
+    intelligence: int
+    wisdom: int
+    charisma: int
+    challenge_rating: float
+    proficiency_bonus: int
+    xp: int
+    languages: str
+    url: str
+    image: Optional[str] = None
+
+    # JSON fields for complex data
+    armor_class: List[Dict] = Field(sa_column=Column(JSON))
+    speed: Dict[str, Any] = Field(sa_column=Column(JSON))
+    senses: Dict[str, Any] = Field(sa_column=Column(JSON))
+    proficiencies: List[Dict] = Field(sa_column=Column(JSON))
+    damage_vulnerabilities: List[str] = Field(sa_column=Column(JSON))
+    damage_resistances: List[str] = Field(sa_column=Column(JSON))
+    damage_immunities: List[str] = Field(sa_column=Column(JSON))
+    special_abilities: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
+    actions: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
+    legendary_actions: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
+    forms: Optional[List[Dict]] = Field(default=None, sa_column=Column(JSON))
+
+    # Relationships
+    condition_immunities: Mapped[List["Condition"]] = Relationship(back_populates="monsters", link_model=MonsterConditionImmunityLink)

@@ -16708,9 +16708,9 @@
         "url": "/api/2014/conditions/charmed"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "frightened",
@@ -29178,9 +29178,9 @@
         "url": "/api/2014/conditions/charmed"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "exhaustion",
@@ -32921,9 +32921,9 @@
         "url": "/api/2014/conditions/charmed"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "frightened",
@@ -34128,9 +34128,9 @@
         "url": "/api/2014/conditions/blinded"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "exhaustion",
@@ -34346,9 +34346,9 @@
         "url": "/api/2014/conditions/blinded"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "frightened",
@@ -39757,9 +39757,9 @@
         "url": "/api/2014/conditions/blinded"
       },
       {
-        "index": "blinded",
-        "name": "Blinded",
-        "url": "/api/2014/conditions/blinded"
+        "index": "deafened",
+        "name": "Deafened",
+        "url": "/api/2014/conditions/deafened"
       },
       {
         "index": "frightened",

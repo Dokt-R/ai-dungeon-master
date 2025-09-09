@@ -31,26 +31,28 @@ from packages.shared.models.game.gameplay_models import (
     Class,
     ClassProficiencyLink,
     ClassSavingThrowLink,
-    Level,
-    LevelFeatureLink,
-    Feature,
-    Feat,
     Condition,
+    Feat,
+    Feature,
     Language,
     LanguageRaceLink,
+    Level,
+    LevelFeatureLink,
     MagicSchool,
+    Monster,
+    MonsterConditionImmunityLink,
     Proficiency,
     ProficiencyTraitLink,
     Race,
     RaceTraitLink,
     Skill,
+    Spell,
+    SpellClassLink,
+    SpellSubclassLink,
     Subclass,
     Subrace,
     SubraceTraitLink,
     Trait,
-    Spell,
-    SpellClassLink,
-    SpellSubclassLink,
 )
 
 configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
@@ -107,6 +109,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         features_data = json.load(f)
     with open(f"{srd_json_path}/levels.json", "r") as f:
         levels_data = json.load(f)
+    with open(f"{srd_json_path}/monsters.json", "r") as f:
+        monsters_data = json.load(f)
+    with open(f"{srd_json_path}/spells.json", "r") as f:
+        spells_data = json.load(f)
+
 
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
@@ -665,9 +672,6 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     print(f"Loaded {len(subclass_map)} subclasses.")
 
     # --- Load Spells ---
-    with open(f"{srd_json_path}/spells.json", "r") as f:
-        spells_data = json.load(f)
-
     spell_map: Dict[str, Spell] = {}
     for spell_data in spells_data:
         spell_dict = {k: v for k, v in spell_data.items() if k not in ["school", "classes", "subclasses"]}
@@ -769,6 +773,48 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         feat_map[feat.index] = feat
     await session.commit()
     print(f"Loaded {len(feat_map)} feats.")
+
+    # --- Load Monsters ---
+    monster_map: Dict[str, Monster] = {}
+    for monster_data in monsters_data:
+        monster_dict = monster_data.copy()
+
+        # Pop relationships to handle them separately
+        monster_dict.pop("condition_immunities", [])
+
+        # Convert challenge_rating to float, handling fractions
+        cr_str = str(monster_dict["challenge_rating"])
+        try:
+            if "/" in cr_str:
+                num, den = cr_str.split("/")
+                monster_dict["challenge_rating"] = float(num) / float(den)
+            else:
+                monster_dict["challenge_rating"] = float(cr_str)
+        except (ValueError, ZeroDivisionError):
+            print(f"Warning: Could not parse challenge_rating '{cr_str}' for monster '{monster_dict['name']}'. Defaulting to 0.")
+            monster_dict["challenge_rating"] = 0.0
+
+        monster = Monster(**monster_dict)
+        session.add(monster)
+        monster_map[monster.index] = monster
+    await session.commit()
+    print(f"Loaded {len(monster_map)} monsters.")
+
+    # --- Load MonsterConditionImmunityLink Junction Table ---
+    for monster_data in monsters_data:
+        monster_index = monster_data["index"]
+        if monster_data.get("condition_immunities"):
+            added_conditions = set()
+            for cond_obj in monster_data["condition_immunities"]:
+                cond_index = cond_obj["index"]
+                if cond_index in condition_map and cond_index not in added_conditions:
+                    link = MonsterConditionImmunityLink(monster_index=monster_index, condition_index=cond_index)
+                    session.add(link)    
+                    added_conditions.add(cond_index)   
+                else:
+                    print(f"Double link {cond_index}")        
+    await session.commit()
+    print("Loaded MonsterConditionImmunityLink relationships.")
 
     print("SRD data loading complete.")
 
