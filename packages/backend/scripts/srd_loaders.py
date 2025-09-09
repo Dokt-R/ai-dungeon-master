@@ -60,6 +60,7 @@ configure_logging(level="INFO", log_to_file=True, path="logs/srd.log")
 # Create logger instance
 logger = get_logger(__name__)
 
+
 async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_files"):
     """
     Loads SRD equipment data from JSON files into the database.
@@ -114,7 +115,6 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     with open(f"{srd_json_path}/spells.json", "r") as f:
         spells_data = json.load(f)
 
-
     # --- Load Damage Types ---
     damage_type_map: Dict[str, DamageType] = {}
     for dt_data in damage_types_data:
@@ -143,7 +143,6 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         equipment_category_map[equipment_category.index] = equipment_category
     await session.commit()
     print(f"Loaded {len(equipment_category_map)} equipment categories.")
-
 
     # --- Load Magic Item Rarities ---
     magic_item_rarity_map: Dict[str, MagicItemRarity] = {}
@@ -268,7 +267,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     proficiency_map: Dict[str, Proficiency] = {}
     for prof_data in proficiencies_data:
         # Exclude 'classes', 'races', and 'reference' as they are relationships or complex objects
-        prof_dict = {k: v for k, v in prof_data.items() if k not in ["classes", "races", "reference"]}
+        prof_dict = {
+            k: v
+            for k, v in prof_data.items()
+            if k not in ["classes", "races", "reference"]
+        }
         proficiency = Proficiency(**prof_dict)
         session.add(proficiency)
         proficiency_map[proficiency.index] = proficiency
@@ -279,7 +282,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     trait_map: Dict[str, Trait] = {}
     for trait_data in traits_data:
         # Handle complex JSON fields directly; exclude 'proficiencies' for relationship
-        trait_dict = {k: v for k, v in trait_data.items() if k not in ["proficiencies", "races", "subraces"]}
+        trait_dict = {
+            k: v
+            for k, v in trait_data.items()
+            if k not in ["proficiencies", "races", "subraces"]
+        }
         trait = Trait(**trait_dict)
         session.add(trait)
         trait_map[trait.index] = trait
@@ -290,7 +297,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     for trait_index, trait_obj in trait_map.items():
         # Assuming traits.json has a 'proficiencies' list of proficiency indices
         # This would need adjustment based on actual JSON structure
-        trait_data = next((td for td in traits_data if td["index"] == trait_index), None)
+        trait_data = next(
+            (td for td in traits_data if td["index"] == trait_index), None
+        )
         if trait_data and "proficiencies" in trait_data:
             for prof_obj in trait_data["proficiencies"]:
                 prof_index = prof_obj["index"]
@@ -301,7 +310,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(trait_prof)
                 else:
-                    print(f"Warning: Proficiency '{prof_index}' not found for trait '{trait_index}'.")
+                    print(
+                        f"Warning: Proficiency '{prof_index}' not found for trait '{trait_index}'."
+                    )
     await session.commit()
     print("Loaded ProficiencyTraitLink relationships.")
 
@@ -310,7 +321,7 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     race_map: Dict[str, Race] = {}
     for race_data in races_data:
         race_dict = race_data.copy()
-        race_dict['ability_bonuses'] = race_data.get('ability_bonuses', [])
+        race_dict["ability_bonuses"] = race_data.get("ability_bonuses", [])
         # Populate languages via junction instead of JSON
         try:
             race = Race(
@@ -324,7 +335,7 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                 language_desc=race_data.get("language_desc"),
                 language_options=race_data.get("language_options"),
                 desc=race_data.get("desc"),
-                ability_bonuses=race_data.get('ability_bonuses', []),
+                ability_bonuses=race_data.get("ability_bonuses", []),
                 url=race_data["url"],
             )
             session.add(race)
@@ -348,10 +359,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(race_lang)
                 else:
-                    print(f"Warning: Language '{lang_index}' not found for race '{race_index}'.")
+                    print(
+                        f"Warning: Language '{lang_index}' not found for race '{race_index}'."
+                    )
     await session.commit()
     print("Loaded RaceLanguage relationships.")
-
 
     # --- Load RaceTraitLink Junction Table ---
     for race_index, race_obj in race_map.items():
@@ -366,7 +378,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(trait_race)
                 else:
-                    print(f"Warning: Trait '{trait_index}' not found for race '{race_index}'.")
+                    print(
+                        f"Warning: Trait '{trait_index}' not found for race '{race_index}'."
+                    )
     await session.commit()
     print("Loaded RaceTraitLink relationships.")
 
@@ -374,20 +388,23 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     subrace_map: Dict[str, Subrace] = {}
     for subrace_data in subraces_data:
         # Handle complex JSON fields directly; exclude 'proficiencies' for relationship
-        subrace_dict = {k: v for k, v in subrace_data.items() if k not in ["racial_traits", "race"]}
+        subrace_dict = {
+            k: v for k, v in subrace_data.items() if k not in ["racial_traits", "race"]
+        }
         # subrace_dict = subrace_data.copy()
-        subrace_dict['ability_bonuses'] = subrace_data.get('ability_bonuses', [])
-        subrace_dict['race_index'] = subrace_data['race']['index']
+        subrace_dict["ability_bonuses"] = subrace_data.get("ability_bonuses", [])
+        subrace_dict["race_index"] = subrace_data["race"]["index"]
         subrace = Subrace(**subrace_dict)
         session.add(subrace)
         subrace_map[subrace.index] = subrace
     await session.commit()
     print(f"Loaded {len(subrace_map)} subraces.")
 
-
     # --- Load SubraceTraitLink Junction Table ---
     for subrace_index, subrace_obj in subrace_map.items():
-        subrace_data = next((sd for sd in subraces_data if sd["index"] == subrace_index), None)
+        subrace_data = next(
+            (sd for sd in subraces_data if sd["index"] == subrace_index), None
+        )
         if subrace_data and "racial_traits" in subrace_data:
             for trait_obj in subrace_data["racial_traits"]:
                 trait_index = trait_obj["index"]
@@ -398,7 +415,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(trait_subrace)
                 else:
-                    print(f"Warning: Trait '{trait_index}' not found for subrace '{subrace_index}'.")
+                    print(
+                        f"Warning: Trait '{trait_index}' not found for subrace '{subrace_index}'."
+                    )
     await session.commit()
     print("Loaded SubraceTraitLink relationships.")
 
@@ -619,7 +638,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     # --- Load Classes ---
     class_map: Dict[str, Class] = {}
     for class_data in classes_data:
-        class_dict = {k: v for k, v in class_data.items() if k not in ["proficiencies", "saving_throws", "subclasses"]}
+        class_dict = {
+            k: v
+            for k, v in class_data.items()
+            if k not in ["proficiencies", "saving_throws", "subclasses"]
+        }
         dnd_class = Class(**class_dict)
         session.add(dnd_class)
         class_map[dnd_class.index] = dnd_class
@@ -628,7 +651,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
 
     # --- Load ClassProficiencyLink Junction Table ---
     for class_index, dnd_class in class_map.items():
-        class_data = next((cd for cd in classes_data if cd["index"] == class_index), None)
+        class_data = next(
+            (cd for cd in classes_data if cd["index"] == class_index), None
+        )
         if class_data and "proficiencies" in class_data:
             for prof_obj in class_data["proficiencies"]:
                 prof_index = prof_obj["index"]
@@ -639,13 +664,17 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(class_prof)
                 else:
-                    print(f"Warning: Proficiency '{prof_index}' not found for class '{class_index}'.")
+                    print(
+                        f"Warning: Proficiency '{prof_index}' not found for class '{class_index}'."
+                    )
     await session.commit()
     print("Loaded ClassProficiencyLink relationships.")
 
     # --- Load ClassSavingThrowLink Junction Table ---
     for class_index, dnd_class in class_map.items():
-        class_data = next((cd for cd in classes_data if cd["index"] == class_index), None)
+        class_data = next(
+            (cd for cd in classes_data if cd["index"] == class_index), None
+        )
         if class_data and "saving_throws" in class_data:
             for st_obj in class_data["saving_throws"]:
                 ability_index = st_obj["index"]
@@ -656,7 +685,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(class_st)
                 else:
-                    print(f"Warning: Ability '{ability_index}' not found for class '{class_index}'.")
+                    print(
+                        f"Warning: Ability '{ability_index}' not found for class '{class_index}'."
+                    )
     await session.commit()
     print("Loaded ClassSavingThrowLink relationships.")
 
@@ -674,7 +705,11 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
     # --- Load Spells ---
     spell_map: Dict[str, Spell] = {}
     for spell_data in spells_data:
-        spell_dict = {k: v for k, v in spell_data.items() if k not in ["school", "classes", "subclasses"]}
+        spell_dict = {
+            k: v
+            for k, v in spell_data.items()
+            if k not in ["school", "classes", "subclasses"]
+        }
         spell_dict["school_index"] = spell_data["school"]["index"]
         spell = Spell(**spell_dict)
         session.add(spell)
@@ -684,7 +719,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
 
     # --- Load SpellClassLink Junction Table ---
     for spell_index, spell in spell_map.items():
-        spell_data = next((sd for sd in spells_data if sd["index"] == spell_index), None)
+        spell_data = next(
+            (sd for sd in spells_data if sd["index"] == spell_index), None
+        )
         if spell_data and "classes" in spell_data:
             for class_obj in spell_data["classes"]:
                 class_index = class_obj["index"]
@@ -695,13 +732,17 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(spell_class)
                 else:
-                    print(f"Warning: Class '{class_index}' not found for spell '{spell_index}'.")
+                    print(
+                        f"Warning: Class '{class_index}' not found for spell '{spell_index}'."
+                    )
     await session.commit()
     print("Loaded SpellClassLink relationships.")
 
     # --- Load SpellSubclassLink Junction Table ---
     for spell_index, spell in spell_map.items():
-        spell_data = next((sd for sd in spells_data if sd["index"] == spell_index), None)
+        spell_data = next(
+            (sd for sd in spells_data if sd["index"] == spell_index), None
+        )
         if spell_data and "subclasses" in spell_data:
             for subclass_obj in spell_data["subclasses"]:
                 subclass_index = subclass_obj["index"]
@@ -712,7 +753,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
                     )
                     session.add(spell_subclass)
                 else:
-                    print(f"Warning: Subclass '{subclass_index}' not found for spell '{spell_index}'.")
+                    print(
+                        f"Warning: Subclass '{subclass_index}' not found for spell '{spell_index}'."
+                    )
     await session.commit()
     print("Loaded SpellSubclassLink relationships.")
 
@@ -759,7 +802,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
         for feature_ref in features_to_link:
             feature_index = feature_ref["index"]
             if feature_index in feature_map:
-                link = LevelFeatureLink(level_index=level.index, feature_index=feature_index)
+                link = LevelFeatureLink(
+                    level_index=level.index, feature_index=feature_index
+                )
                 session.add(link)
     await session.commit()
     print(f"Loaded {len(level_map)} levels and their feature links.")
@@ -791,7 +836,9 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
             else:
                 monster_dict["challenge_rating"] = float(cr_str)
         except (ValueError, ZeroDivisionError):
-            print(f"Warning: Could not parse challenge_rating '{cr_str}' for monster '{monster_dict['name']}'. Defaulting to 0.")
+            print(
+                f"Warning: Could not parse challenge_rating '{cr_str}' for monster '{monster_dict['name']}'. Defaulting to 0."
+            )
             monster_dict["challenge_rating"] = 0.0
 
         monster = Monster(**monster_dict)
@@ -808,11 +855,13 @@ async def load_srd_data(session: AsyncSession, srd_json_path: str = "srd/json_fi
             for cond_obj in monster_data["condition_immunities"]:
                 cond_index = cond_obj["index"]
                 if cond_index in condition_map and cond_index not in added_conditions:
-                    link = MonsterConditionImmunityLink(monster_index=monster_index, condition_index=cond_index)
-                    session.add(link)    
-                    added_conditions.add(cond_index)   
+                    link = MonsterConditionImmunityLink(
+                        monster_index=monster_index, condition_index=cond_index
+                    )
+                    session.add(link)
+                    added_conditions.add(cond_index)
                 else:
-                    print(f"Double link {cond_index}")        
+                    print(f"Double link {cond_index}")
     await session.commit()
     print("Loaded MonsterConditionImmunityLink relationships.")
 

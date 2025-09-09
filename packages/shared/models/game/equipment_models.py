@@ -7,11 +7,6 @@ from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, Relationship, SQLModel
 
-from packages.shared.models.game.base_models import (
-    BaseGameElement,
-    BaseGameElementWithDesc,
-)
-
 
 class EquipmentSlot(Enum):
     MAIN_HAND = "main_hand"
@@ -455,6 +450,7 @@ def set_json_field(field_list: List[str]) -> str:
     """Helper to set JSON field from Python list"""
     return json.dumps(field_list)
 
+
 class MagicItemRarity(SQLModel, table=True):
     """SQLModel for D&D magic item rarity"""
 
@@ -467,10 +463,16 @@ class MagicItem(SQLModel, table=True):
     """SQLModel for D&D magic items"""
 
     __tablename__ = "magic_items"
-    index: str = Field(primary_key=True, description="Unique identifier for the magic item")
+    index: str = Field(
+        primary_key=True, description="Unique identifier for the magic item"
+    )
     name: str = Field(description="Display name of the magic item")
-    desc: str = Field(description="Description of the magic item", sa_column=Column(JSON))
-    rarity_name: str = Field(foreign_key="magic_item_rarities.name", description="Rarity of the magic item")
+    desc: str = Field(
+        description="Description of the magic item", sa_column=Column(JSON)
+    )
+    rarity_name: str = Field(
+        foreign_key="magic_item_rarities.name", description="Rarity of the magic item"
+    )
     rarity: MagicItemRarity = Relationship(back_populates="magic_items")
     equipment_category_index: str = Field(
         foreign_key="equipment_categories.index",
@@ -479,14 +481,18 @@ class MagicItem(SQLModel, table=True):
     equipment_category: "EquipmentCategory" = Relationship(back_populates="magic_items")
     variants: List["MagicItemVariant"] = Relationship(back_populates="magic_item")
     variant: bool = Field(description="Is this a variant of another magic item")
-    image: Optional[str] = Field(default=None, description="Image URL for the magic item")
+    image: Optional[str] = Field(
+        default=None, description="Image URL for the magic item"
+    )
 
 
 class MagicItemVariant(SQLModel, table=True):
     """SQLModel for D&D magic item variants"""
 
     __tablename__ = "magic_item_variants"
-    index: str = Field(primary_key=True, description="Unique identifier for the variant")
+    index: str = Field(
+        primary_key=True, description="Unique identifier for the variant"
+    )
     name: str = Field(description="Display name of the variant")
     magic_item_index: str = Field(foreign_key="magic_items.index")
     magic_item: "MagicItem" = Relationship(back_populates="variants")

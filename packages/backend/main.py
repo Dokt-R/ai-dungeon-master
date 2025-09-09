@@ -39,7 +39,7 @@ from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.routes import API_PREFIX
 
 load_dotenv()
-configure_logging(log_to_file=True, path="logs/backend.log", level="ERROR")
+configure_logging(log_to_file=True, path="logs/backend.log", level="INFO")
 # configure_logging()
 
 # Create logger instance

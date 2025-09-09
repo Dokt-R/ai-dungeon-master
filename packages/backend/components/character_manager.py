@@ -10,6 +10,7 @@ from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
+from packages.shared.models.game.gameplay_models import Class as GameplayClass
 
 configure_logging(log_to_file=True, path="logs/character.log", level="ERROR")
 # configure_logging()
@@ -70,7 +71,7 @@ class CharacterManager:
         player_id: str,
         name: str,
         species: str,
-        class_field: str,
+        class_index: str,
         subclass: Optional[str],
         background: str,
         strength: int,
@@ -146,7 +147,7 @@ class CharacterManager:
             player_id=player_id,
             name=name,
             species=species,
-            class_field=class_field,
+            class_index=class_index,
             subclass=subclass,
             background=background,
             strength=strength,
@@ -184,6 +185,12 @@ class CharacterManager:
         await self.session.commit()
         await self.session.refresh(new_character)
         return new_character
+
+    async def get_classes(self) -> List[GameplayClass]:
+        """Get all available classes from the database."""
+        statement = select(GameplayClass)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
 
     async def update_character(
         self,

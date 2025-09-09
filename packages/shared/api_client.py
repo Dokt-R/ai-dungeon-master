@@ -315,6 +315,13 @@ class ApiClient:
         resp = await self._request("POST", url, json=req.model_dump())
         return await self._handle_response(resp)
 
+    async def get_classes(self) -> List[Dict[str, Any]]:
+        """Get all available classes."""
+        url = "/api/v1/characters/classes"
+        resp = await self._request("GET", url)
+        classes_data = await self._handle_response(resp)
+        return classes_data.get("classes", [])
+
     # ---------------------------
     # Player Management
     # ---------------------------

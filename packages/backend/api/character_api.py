@@ -35,7 +35,7 @@ async def create_character(
         player_id=req.player_id,
         name=req.name,
         species=req.species,
-        class_field=req.class_field,
+        class_index=req.class_index,
         subclass=req.subclass,
         background=req.background,
         strength=req.strength,
@@ -73,6 +73,12 @@ async def create_character(
         "message": "Character created successfully.",
         "character_id": character.character_id,
     }
+
+
+@router.get("/classes")
+async def get_classes(character_manager: CharacterManager = Depends()):
+    classes = await character_manager.get_classes()
+    return {"classes": classes}
 
 
 @router.post("/update")

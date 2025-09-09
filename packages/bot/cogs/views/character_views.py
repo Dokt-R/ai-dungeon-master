@@ -1,3 +1,5 @@
+from typing import Any, Dict, List
+
 import discord
 
 from packages.shared.logging_config import get_logger
@@ -11,17 +13,45 @@ from ..modals.character_modals import CharacterCreationModal
 logger = get_logger(__name__)
 
 
+class ClassSelect(discord.ui.Select):
+    def __init__(self, classes: List[Dict[str, Any]]):
+        options = [
+            discord.SelectOption(label=c["name"], value=c["index"]) for c in classes
+        ]
+        super().__init__(placeholder="Choose your character's class", options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.character_data["class_index"] = self.values[0]
+        self.view.update_to_character_modal()
+        await interaction.response.edit_message(
+            content="Next, provide your character's details.", view=self.view
+        )
+
+
 class CharacterCreationView(discord.ui.View):
     def __init__(self, cog):
         super().__init__(timeout=300)
         self.cog = cog
         self.character_data = {}
         self.ability_scores = {}
+
+    async def async_init(self):
+        await self.update_to_class_select()
+        return self
+
+    async def update_to_class_select(self):
+        self.clear_items()
+        # This will fail if get_classes is not implemented in the cog
+        classes = await self.cog.get_classes()
+        self.add_item(ClassSelect(classes))
+
+    def update_to_character_modal(self):
+        self.clear_items()
         self.add_item(self.get_start_button())
 
     def get_start_button(self):
         button = discord.ui.Button(
-            label="Create Your Character", style=discord.ButtonStyle.green
+            label="Enter Character Details", style=discord.ButtonStyle.green
         )
 
         async def callback(interaction: discord.Interaction):
@@ -36,14 +66,15 @@ class CharacterCreationView(discord.ui.View):
                 )
                 return
 
-            self.character_data = {
-                "player_id": str(interaction.user.id),
-                "name": modal.name.value,
-                "species": modal.species.value,
-                "class_field": modal.class_field.value,
-                "subclass": modal.subclass.value,
-                "background": modal.background.value,
-            }
+            self.character_data.update(
+                {
+                    "player_id": str(interaction.user.id),
+                    "name": modal.name.value,
+                    "species": modal.species.value,
+                    "subclass": modal.subclass.value,
+                    "background": modal.background.value,
+                }
+            )
 
             self.update_to_abilities_view_part1()
             await interaction.followup.edit_message(

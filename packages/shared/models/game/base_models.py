@@ -10,14 +10,18 @@ from sqlmodel import Column, Field, SQLModel
 
 class BaseGameElement(SQLModel):
     """Base class for most D&D game elements"""
-    
+
     # Common fields across most models
     index: str = Field(primary_key=True, description="Unique identifier")
     name: str = Field(description="Display name")
     url: str = Field(description="API endpoint URL")
 
+
 class BaseGameElementWithDesc(BaseGameElement):
     """Base class for most D&D game elements"""
-    desc: Optional[str] = Field(default = None, description="List of description paragraphs explaining",
+
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
         sa_column=Column(JSON),
     )

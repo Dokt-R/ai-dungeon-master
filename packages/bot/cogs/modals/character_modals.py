@@ -19,15 +19,9 @@ class CharacterCreationModal(Modal, title="Create Your Character"):
         required=True,
     )
 
-    class_field = TextInput(
-        label="Character Class",
-        placeholder="Enter your character's class",
-        required=True,
-    )
-
     subclass = TextInput(
         label="Subclass",
-        default="To Be Developed",
+        placeholder="Enter your character's subclass",
         required=False,
     )
 

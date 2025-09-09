@@ -226,7 +226,8 @@ class Character(SQLModel, table=True):
 
     # Creation Fields
     species: Optional[str] = SQLField(default=None, max_length=50)
-    class_field: Optional[str] = SQLField(default=None, max_length=50)
+    class_index: Optional[str] = SQLField(default=None, foreign_key="classes.index")
+    dnd_class: Optional["Class"] = Relationship(back_populates="characters")  # type: ignore  # noqa: F821
     subclass: Optional[str] = SQLField(default=None, max_length=50)
     background: Optional[str] = SQLField(default=None, max_length=1024)
 

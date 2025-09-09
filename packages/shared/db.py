@@ -1,10 +1,10 @@
-import os
+import os  # noqa: I001
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
+from packages.shared.models.game import *  # noqa: F403
 from packages.shared.models import *  # noqa: F403
-from packages.shared.models.game import *
 from packages.shared.models.not_utilized import *  # noqa: F403
 
 DEFAULT_DB_PATH = os.environ.get("DB_PATH", "server_settings.db")
@@ -39,19 +39,24 @@ async def initialize_schema(engine):
 
 _async_session_factory = None
 
+
 def get_async_session_factory():
     """Get an async session factory."""
     global _async_session_factory
     if _async_session_factory is None:
         engine = get_async_engine()
-        _async_session_factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+        _async_session_factory = async_sessionmaker(
+            engine, expire_on_commit=False, class_=AsyncSession
+        )
     return _async_session_factory
+
 
 async def get_async_session():
     """Get an async database session context manager."""
     async_session = get_async_session_factory()
     async with async_session() as session:
         yield session
+
 
 async def get_async_session_dependency():
     """Get an async database session for FastAPI dependency injection."""

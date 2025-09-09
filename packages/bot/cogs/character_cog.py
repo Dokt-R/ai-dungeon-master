@@ -29,10 +29,14 @@ class CharacterCog(commands.Cog):
         name="character", description="Manage your characters"
     )
 
+    async def get_classes(self):
+        """Get all available classes from the database."""
+        return await self.api_client.get_classes()
+
     @character.command(name="create", description="Create a new character.")
     @discord_error_handler()
     async def create(self, interaction: discord.Interaction):
-        view = CharacterCreationView(self)
+        view = await CharacterCreationView(self).async_init()
         await interaction.response.send_message(
             "Begin creating your character:", view=view, ephemeral=True
         )
@@ -75,7 +79,7 @@ class CharacterCog(commands.Cog):
         interaction: discord.Interaction,
         name: str,
         species: str,
-        class_field: str,
+        class_index: str,
         subclass: Optional[str],
         background: str,
     ):
@@ -84,7 +88,7 @@ class CharacterCog(commands.Cog):
             player_id=str(interaction.user.id),
             name=name,
             species=species,
-            class_field=class_field,
+            class_index=class_index,
             subclass=subclass,
             background=background,
         )
