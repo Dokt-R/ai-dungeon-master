@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Column, Field, SQLModel
 
 
-class BaseGameElement(SQLModel):
+class BaseGameModel(SQLModel):
     """Base class for most D&D game elements"""
 
     # Common fields across most models
@@ -17,7 +17,7 @@ class BaseGameElement(SQLModel):
     url: str = Field(description="API endpoint URL")
 
 
-class BaseGameElementWithDesc(BaseGameElement):
+class BaseGameModelWithDesc(BaseGameModel):
     """Base class for most D&D game elements"""
 
     desc: Optional[str] = Field(

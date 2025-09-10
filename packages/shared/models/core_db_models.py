@@ -25,22 +25,6 @@ from sqlmodel import Field as SQLField, Relationship, SQLModel
 
 from packages.shared.models.game.equipment_models import DamageType
 
-# # Enums for D&D 5e
-# class DamageType(Enum):
-#     SLASHING = "slashing"
-#     PIERCING = "piercing"
-#     BLUDGEONING = "bludgeoning"
-#     FIRE = "fire"
-#     COLD = "cold"
-#     ACID = "acid"
-#     POISON = "poison"
-#     PSYCHIC = "psychic"
-#     NECROTIC = "necrotic"
-#     RADIANT = "radiant"
-#     LIGHTNING = "lightning"
-#     THUNDER = "thunder"
-#     FORCE = "force"
-
 
 class Condition(Enum):
     BLINDED = "blinded"
