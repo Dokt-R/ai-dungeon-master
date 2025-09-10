@@ -4,122 +4,71 @@ from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped
 from sqlmodel import Column, Field, Relationship, SQLModel
 
-from packages.shared.models.game.base_models import BaseGameModel, BaseGameModelWithDesc
+from packages.shared.models.game.base_models import BaseGameplayModel
+from packages.shared.models.game.gameplay_links import (
+    AbilitySkillLink,
+    ClassProficiencyLink,
+    ClassSavingThrowLink,
+    LanguageRaceLink,
+    LevelFeatureLink,
+    MonsterConditionImmunityLink,
+    ProficiencyTraitLink,
+    RaceTraitLink,
+    SpellClassLink,
+    SpellSubclassLink,
+    SubraceTraitLink,
+)
 
 
-# Links
-
-class RaceTraitLink(SQLModel, table=True):
-    """Junction table for trait to race many-to-many relationship"""
-    __tablename__ = "race_trait_link"
-    trait_index: str = Field(foreign_key="traits.index", primary_key=True)
-    race_index: str = Field(foreign_key="races.index", primary_key=True)
-
-
-class SubraceTraitLink(SQLModel, table=True):
-    """Junction table for trait to subrace many-to-many relationship"""
-    __tablename__ = "subrace_trait_link"
-    trait_index: str = Field(foreign_key="traits.index", primary_key=True)
-    subrace_index: str = Field(foreign_key="subraces.index", primary_key=True)
-
-
-class ProficiencyTraitLink(SQLModel, table=True):
-    """Junction table for trait to proficiency many-to-many relationship"""
-    __tablename__ = "proficiency_trait_link"
-    trait_index: str = Field(foreign_key="traits.index", primary_key=True)
-    proficiency_index: str = Field(foreign_key="proficiencies.index", primary_key=True)
-
-
-class AbilitySkillLink(SQLModel, table=True):
-    """Junction table for ability score to skill relationships"""
-    __tablename__ = "ability_skill_link"
-    abilities_index: str = Field(foreign_key="abilities.index", primary_key=True)
-    skill_index: str = Field(foreign_key="skills.index", primary_key=True)
-    
-
-class LanguageRaceLink(SQLModel, table=True):
-    """Junction table for race to language many-to-many relationship"""
-    __tablename__ = "language_race_link"
-    race_index: str = Field(foreign_key="races.index", primary_key=True)
-    language_index: str = Field(foreign_key="languages.index", primary_key=True)
-
-
-class ClassProficiencyLink(SQLModel, table=True):
-    """Junction table for class to proficiency many-to-many relationship"""
-    __tablename__ = "class_proficiency_link"
-    class_index: str = Field(foreign_key="classes.index", primary_key=True)
-    proficiency_index: str = Field(foreign_key="proficiencies.index", primary_key=True)
-
-
-class ClassSavingThrowLink(SQLModel, table=True):
-    """Junction table for class to saving throw many-to-many relationship"""
-    __tablename__ = "class_saving_throw_link"
-    class_index: str = Field(foreign_key="classes.index", primary_key=True)
-    ability_index: str = Field(foreign_key="abilities.index", primary_key=True)
-
-
-class SpellClassLink(SQLModel, table=True):
-    """Junction table for spell to class many-to-many relationship"""
-    __tablename__ = "spell_class_link"
-    spell_index: str = Field(foreign_key="spells.index", primary_key=True)
-    class_index: str = Field(foreign_key="classes.index", primary_key=True)
-
-
-class SpellSubclassLink(SQLModel, table=True):
-    """Junction table for spell to subclass many-to-many relationship"""
-    __tablename__ = "spell_subclass_link"
-    spell_index: str = Field(foreign_key="spells.index", primary_key=True)
-    subclass_index: str = Field(foreign_key="subclasses.index", primary_key=True)
-
-
-class LevelFeatureLink(SQLModel, table=True):
-    """Junction table for level to feature many-to-many relationship"""
-    __tablename__ = "level_feature_link"
-    level_index: str = Field(foreign_key="levels.index", primary_key=True)
-    feature_index: str = Field(foreign_key="features.index", primary_key=True)
-
-
-class MonsterConditionImmunityLink(SQLModel, table=True):
-    """Junction table for monster to condition immunity many-to-many relationship"""
-    __tablename__ = "monster_condition_immunity_link"
-    monster_index: str = Field(foreign_key="monsters.index", primary_key=True)
-    condition_index: str = Field(foreign_key="conditions.index", primary_key=True)
-
-# Models
-
-class Ability(BaseGameModelWithDesc, table=True):
+class Ability(BaseGameplayModel, table=True):
     """SQLModel for D&D ability scores (STR, DEX, CON, INT, WIS, CHA)"""
     __tablename__ = "abilities"
     full_name: str = Field(description="Full name like 'Strength', 'Dexterity'")
     skills: Mapped[List['Skill']] = Relationship(back_populates="ability", link_model=AbilitySkillLink)
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
+        sa_column=Column(JSON),
+    )
 
 
-class Skill(BaseGameModelWithDesc, table=True):
+
+class Skill(BaseGameplayModel, table=True):
     """SQLModel for D&D skills"""
     __tablename__ = "skills"
     abilities_index: str = Field(foreign_key="abilities.index", description="Which ability score this skill uses")
     ability: Mapped['Ability'] = Relationship(back_populates="skills", link_model=AbilitySkillLink)
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
+        sa_column=Column(JSON),
+    )
 
 
-class Condition(BaseGameModelWithDesc, table=True):
+class Condition(BaseGameplayModel, table=True):
     """SQLModel for D&D conditions"""
     __tablename__ = "conditions"
     monsters: Mapped[List["Monster"]] = Relationship(back_populates="condition_immunities", link_model=MonsterConditionImmunityLink)
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
+        sa_column=Column(JSON),
+    )
 
     
-class Alignment(BaseGameModel, table=True):
+class Alignment(BaseGameplayModel, table=True):
     """SQLModel for D&D alignments"""
     abbreviation: str = Field(description="Short abbreviation like 'LG', 'CE'")
     desc: str = Field(description="Description explaining the alignment")
 
 
-class MagicSchool(BaseGameModel, table=True):
+class MagicSchool(BaseGameplayModel, table=True):
     """SQLModel for D&D magic schools"""
     __tablename__ = "magicschools"
     desc: str = Field(description="Description of the magic school")
 
 
-class Language(BaseGameModelWithDesc, table=True):
+class Language(BaseGameplayModel, table=True):
     """SQLModel for D&D languages"""
     __tablename__ = "languages"
     type: str = Field(description="Type of language (e.g., 'Standard', 'Exotic')")
@@ -128,9 +77,14 @@ class Language(BaseGameModelWithDesc, table=True):
     )
     script: Optional[str] = Field(default=None, description="Script used for the language")
     races: Mapped[List["Race"]] = Relationship(back_populates="languages", link_model=LanguageRaceLink)
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
+        sa_column=Column(JSON),
+    )
 
 
-class Trait(BaseGameModelWithDesc, table=True):
+class Trait(BaseGameplayModel, table=True):
     """SQLModel for D&D traits"""
     __tablename__ = "traits"
 
@@ -155,9 +109,14 @@ class Trait(BaseGameModelWithDesc, table=True):
     proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="traits", link_model=ProficiencyTraitLink)
     races: Mapped[List["Race"]] = Relationship(back_populates="traits", link_model=RaceTraitLink)
     subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=SubraceTraitLink)
+    desc: Optional[str] = Field(
+        default=None,
+        description="List of description paragraphs explaining",
+        sa_column=Column(JSON),
+    )
 
 
-class Proficiency(BaseGameModel, table=True):
+class Proficiency(BaseGameplayModel, table=True):
     """SQLModel for D&D proficiencies"""
     __tablename__= "proficiencies"
     type: str = Field(description="Type of proficiency (e.g., 'Armor', 'Weapons', 'Skills')")
@@ -167,7 +126,7 @@ class Proficiency(BaseGameModel, table=True):
     traits: Mapped[List["Trait"]] = Relationship(back_populates="proficiencies", link_model=ProficiencyTraitLink)
 
 
-class Race(BaseGameModel, table=True):
+class Race(BaseGameplayModel, table=True):
     """SQLModel for D&D races"""
     __tablename__ = "races"
     speed: int = Field(description="Base walking speed")
@@ -187,7 +146,7 @@ class Race(BaseGameModel, table=True):
     traits: Mapped[List["Trait"]] = Relationship(back_populates="races", link_model=RaceTraitLink)
 
 
-class Subrace(BaseGameModel, table=True):
+class Subrace(BaseGameplayModel, table=True):
     """SQLModel for D&D subraces"""
     __tablename__ = "subraces"
     race_index: str = Field(foreign_key="races.index", description="Parent race")
@@ -199,7 +158,7 @@ class Subrace(BaseGameModel, table=True):
     traits: Mapped[List["Trait"]] = Relationship(back_populates="subraces", link_model=SubraceTraitLink)
 
 
-class Background(BaseGameModel, table=True):
+class Background(BaseGameplayModel, table=True):
     """SQLModel for D&D backgrounds"""
     __tablename__ = "backgrounds"
     starting_proficiencies: List[Dict] = Field(description="List of starting proficiencies",
@@ -216,7 +175,7 @@ class Background(BaseGameModel, table=True):
     )
 
 
-class Class(BaseGameModel, table=True):
+class Class(BaseGameplayModel, table=True):
     """SQLModel for D&D classes"""
     __tablename__ = "classes"
     hit_die: int = Field(description="Hit die for the class")
@@ -237,7 +196,7 @@ class Class(BaseGameModel, table=True):
     characters: Mapped[List["core_db_models.Character"]] = Relationship(back_populates="dnd_class")
 
 
-class Subclass(BaseGameModel, table=True):
+class Subclass(BaseGameplayModel, table=True):
     """SQLModel for D&D subclasses"""
     __tablename__ = "subclasses"
     class_index: str = Field(foreign_key="classes.index", description="Parent class")
@@ -253,7 +212,7 @@ class Subclass(BaseGameModel, table=True):
     levels: List["Level"] = Relationship(back_populates="subclass")
 
 
-class Spell(BaseGameModel, table=True):
+class Spell(BaseGameplayModel, table=True):
     """SQLModel for D&D spells"""
     __tablename__ = "spells"
     desc: List[str] = Field(sa_column=Column(JSON))
@@ -281,14 +240,14 @@ class Spell(BaseGameModel, table=True):
     subclasses: Mapped[List["Subclass"]] = Relationship(link_model=SpellSubclassLink)
 
 
-class Feat(BaseGameModel, table=True):
+class Feat(BaseGameplayModel, table=True):
     """SQLModel for D&D feats"""
     __tablename__ = "feats"
     prerequisites: List[Dict] = Field(sa_column=Column(JSON))
     desc: List[str] = Field(sa_column=Column(JSON))
 
 
-class Feature(BaseGameModel, table=True):
+class Feature(BaseGameplayModel, table=True):
     """SQLModel for D&D features"""
     __tablename__ = "features"
     level: int
@@ -325,7 +284,7 @@ class Level(SQLModel, table=True):
     features: Mapped[List["Feature"]] = Relationship(back_populates="levels", link_model=LevelFeatureLink)
 
 
-class Monster(BaseGameModel, table=True):
+class Monster(BaseGameplayModel, table=True):
     """SQLModel for D&D monsters"""
     __tablename__ = "monsters"
     desc: Optional[str] = None
