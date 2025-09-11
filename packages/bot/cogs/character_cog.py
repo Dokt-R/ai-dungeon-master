@@ -32,6 +32,14 @@ class CharacterCog(commands.Cog):
     async def get_classes(self):
         """Get all available classes from the database."""
         return await self.api_client.get_classes()
+    
+    async def get_backgrounds(self):
+        """Get all available backgrounds from the database."""
+        return await self.api_client.get_backgrounds()
+    
+    async def get_races(self):
+        """Get all available races from the database."""
+        return await self.api_client.get_races()
 
     @character.command(name="create", description="Create a new character.")
     @discord_error_handler()

@@ -38,7 +38,7 @@ class Skill(BaseGameplayModel, table=True):
     __tablename__ = "skills"
     abilities_index: str = Field(foreign_key="abilities.index", description="Which ability score this skill uses")
     ability: Mapped['Ability'] = Relationship(back_populates="skills", link_model=AbilitySkillLink)
-    desc: Optional[str] = Field(
+    desc: Optional[List[str]] = Field(
         default=None,
         description="List of description paragraphs explaining",
         sa_column=Column(JSON),
@@ -49,7 +49,7 @@ class Condition(BaseGameplayModel, table=True):
     """SQLModel for D&D conditions"""
     __tablename__ = "conditions"
     monsters: Mapped[List["Monster"]] = Relationship(back_populates="condition_immunities", link_model=MonsterConditionImmunityLink)
-    desc: Optional[str] = Field(
+    desc: Optional[List[str]] = Field(
         default=None,
         description="List of description paragraphs explaining",
         sa_column=Column(JSON),
@@ -77,7 +77,7 @@ class Language(BaseGameplayModel, table=True):
     )
     script: Optional[str] = Field(default=None, description="Script used for the language")
     races: Mapped[List["Race"]] = Relationship(back_populates="languages", link_model=LanguageRaceLink)
-    desc: Optional[str] = Field(
+    desc: Optional[List[str]] = Field(
         default=None,
         description="List of description paragraphs explaining",
         sa_column=Column(JSON),
@@ -109,7 +109,7 @@ class Trait(BaseGameplayModel, table=True):
     proficiencies: Mapped[List["Proficiency"]] = Relationship(back_populates="traits", link_model=ProficiencyTraitLink)
     races: Mapped[List["Race"]] = Relationship(back_populates="traits", link_model=RaceTraitLink)
     subraces: Mapped[List["Subrace"]] = Relationship(back_populates="traits", link_model=SubraceTraitLink)
-    desc: Optional[str] = Field(
+    desc: Optional[List[str]] = Field(
         default=None,
         description="List of description paragraphs explaining",
         sa_column=Column(JSON),

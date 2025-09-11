@@ -2,7 +2,7 @@ import discord
 from discord.ui import Modal, TextInput
 
 
-class CharacterCreationModal(Modal, title="Create Your Character"):
+class CharacterCreationModal(Modal, title="Determine your Origin"):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.finished = False
@@ -13,23 +13,12 @@ class CharacterCreationModal(Modal, title="Create Your Character"):
         required=True,
     )
 
-    species = TextInput(
-        label="Character Species",
-        placeholder="Enter your character's species",
-        required=True,
-    )
 
-    subclass = TextInput(
-        label="Subclass",
-        placeholder="Enter your character's subclass",
-        required=False,
-    )
-
-    background = TextInput(
-        label="Background",
-        placeholder="Enter your character's background",
-        required=True,
-    )
+    # subclass = TextInput(
+    #     label="Subclass",
+    #     placeholder="Enter your character's subclass",
+    #     required=False,
+    # )
 
     async def on_submit(self, interaction: discord.Interaction):
         self.finished = True

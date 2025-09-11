@@ -22,6 +22,40 @@ class ClassSelect(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         self.view.character_data["class_index"] = self.values[0]
+        await self.view.update_to_background_select()
+        await interaction.response.edit_message(
+            content="Next, choose your character's background.", view=self.view
+        )
+
+
+class BackgroundSelect(discord.ui.Select):
+    def __init__(self, backgrounds: List[Dict[str, Any]]):
+        options = [
+            discord.SelectOption(label=b["name"], value=b["index"]) for b in backgrounds
+        ]
+        super().__init__(
+            placeholder="Choose your character's background", options=options
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.character_data["background_index"] = self.values[0]
+        await self.view.update_to_races_select()
+        await interaction.response.edit_message(
+            content="Next, choose your character's races.", view=self.view
+        )
+
+
+class SpeciesSelect(discord.ui.Select):
+    def __init__(self, races: List[Dict[str, Any]]):
+        options = [
+            discord.SelectOption(label=s["name"], value=s["index"]) for s in races
+        ]
+        super().__init__(
+            placeholder="Choose your character's races", options=options
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        self.view.character_data["races_index"] = self.values[0]
         self.view.update_to_character_modal()
         await interaction.response.edit_message(
             content="Next, provide your character's details.", view=self.view
@@ -44,6 +78,18 @@ class CharacterCreationView(discord.ui.View):
         # This will fail if get_classes is not implemented in the cog
         classes = await self.cog.get_classes()
         self.add_item(ClassSelect(classes))
+
+    async def update_to_background_select(self):
+        self.clear_items()
+        # This will fail if get_backgrounds is not implemented in the cog
+        backgrounds = await self.cog.get_backgrounds()
+        self.add_item(BackgroundSelect(backgrounds))
+
+    async def update_to_races_select(self):
+        self.clear_items()
+        # This will fail if get_races is not implemented in the cog
+        races = await self.cog.get_races()
+        self.add_item(SpeciesSelect(races))
 
     def update_to_character_modal(self):
         self.clear_items()
@@ -70,9 +116,7 @@ class CharacterCreationView(discord.ui.View):
                 {
                     "player_id": str(interaction.user.id),
                     "name": modal.name.value,
-                    "species": modal.species.value,
-                    "subclass": modal.subclass.value,
-                    "background": modal.background.value,
+                    # "subclass": modal.subclass.value,
                 }
             )
 
@@ -259,11 +303,41 @@ class CharacterCreationView(discord.ui.View):
                 abbreviated_name = SkillName[p.upper().replace(" ", "_")].value
                 proficiency_data[f"prof_{abbreviated_name}"] = True
 
+            # Retrieve full background and race objects to get their names
+            all_backgrounds = await self.cog.get_backgrounds()
+            all_races = await self.cog.get_races()
+
+            selected_background_index = self.character_data.get("background_index")
+            selected_race_index = self.character_data.get("races_index")
+
+            background_name = next(
+                (b["name"] for b in all_backgrounds if b["index"] == selected_background_index),
+                None,
+            )
+            species_name = next(
+                (r["name"] for r in all_races if r["index"] == selected_race_index),
+                None,
+            )
+
+            if not background_name or not species_name:
+                await interaction.followup.send(
+                    "Error: Could not retrieve full details for selected background or species. Please try again.",
+                    ephemeral=True,
+                )
+                self.stop()
+                return
+
             full_character_data = {
                 **self.character_data,
+                "background": background_name,
+                "species": species_name,
                 **{k.lower(): int(v) for k, v in self.ability_scores.items()},
                 **proficiency_data,
             }
+
+            # Remove the index fields as the model expects 'background' and 'species'
+            full_character_data.pop("background_index", None)
+            full_character_data.pop("races_index", None)
 
             logger.debug(
                 "full_character_data_before_api_call", data=full_character_data

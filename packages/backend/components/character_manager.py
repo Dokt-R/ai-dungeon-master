@@ -10,7 +10,25 @@ from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
-from packages.shared.models.game.gameplay_models import Class as GameplayClass
+from packages.shared.models.game.gameplay_models import (
+    Ability,
+    Alignment,
+    Background,
+    Class,
+    Condition,
+    Feat,
+    Feature,
+    Language,
+    MagicSchool,
+    Monster,
+    Proficiency,
+    Race,
+    Skill,
+    Spell,
+    Subclass,
+    Subrace,
+    Trait,
+)
 
 configure_logging(log_to_file=True, path="logs/character.log", level="ERROR")
 # configure_logging()
@@ -186,12 +204,108 @@ class CharacterManager:
         await self.session.refresh(new_character)
         return new_character
 
-    async def get_classes(self) -> List[GameplayClass]:
+    async def get_classes(self) -> List[Class]:
         """Get all available classes from the database."""
-        statement = select(GameplayClass)
+        statement = select(Class)
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
+    async def get_subclasses(self) -> List[Subclass]:
+        """Get all available subclasses from the database."""
+        statement = select(Subclass)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+        
+    async def get_backgrounds(self) -> List[Background]:
+        """Get all available backgrounds from the database."""
+        statement = select(Background)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_races(self) -> List[Race]:
+        """Get all available races from the database."""
+        statement = select(Race)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
+    async def get_subraces(self) -> List[Subrace]:
+        """Get all available subraces from the database."""
+        statement = select(Subrace)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_abilities(self) -> List[Ability]:
+        """Get all available abilities from the database."""
+        statement = select(Ability)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_skills(self) -> List[Skill]:
+        """Get all available skills from the database."""
+        statement = select(Skill)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_conditions(self) -> List[Condition]:
+        """Get all available conditions from the database."""
+        statement = select(Condition)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_alignments(self) -> List[Alignment]:
+        """Get all available alignments from the database."""
+        statement = select(Alignment)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_magic_schools(self) -> List[MagicSchool]:
+        """Get all available magic schools from the database."""
+        statement = select(MagicSchool)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_languages(self) -> List[Language]:
+        """Get all available languages from the database."""
+        statement = select(Language)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_traits(self) -> List[Trait]:
+        """Get all available traits from the database."""
+        statement = select(Trait)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_proficiencies(self) -> List[Proficiency]:
+        """Get all available proficiencies from the database."""
+        statement = select(Proficiency)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
+    async def get_spells(self) -> List[Spell]:
+        """Get all available spells from the database."""
+        statement = select(Spell)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
+    async def get_feats(self) -> List[Feat]:
+        """Get all available feats from the database."""
+        statement = select(Feat)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
+    async def get_features(self) -> List[Feature]:
+        """Get all available features from the database."""
+        statement = select(Feature)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
+    async def get_monsters(self) -> List[Monster]:
+        """Get all available monsters from the database."""
+        statement = select(Monster)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+    
     async def update_character(
         self,
         character_id: int,

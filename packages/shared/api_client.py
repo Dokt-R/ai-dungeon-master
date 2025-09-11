@@ -322,6 +322,125 @@ class ApiClient:
         classes_data = await self._handle_response(resp)
         return classes_data.get("classes", [])
 
+    async def get_subclasses(self) -> List[Dict[str, Any]]:
+        """Get all available subclasses."""
+        url = "/api/v1/characters/subclasses"
+        resp = await self._request("GET", url)
+        subclasses_data = await self._handle_response(resp)
+        return subclasses_data.get("subclasses", [])
+    
+    async def get_backgrounds(self) -> List[Dict[str, Any]]:
+        """Get all available backgrounds."""
+        url = "/api/v1/characters/backgrounds"
+        resp = await self._request("GET", url)
+        backgrounds_data = await self._handle_response(resp)
+        return backgrounds_data.get("backgrounds", [])
+
+    async def get_species(self) -> List[Dict[str, Any]]:
+        """Get all available species."""
+        url = "/api/v1/characters/species"
+        resp = await self._request("GET", url)
+        species_data = await self._handle_response(resp)
+        return species_data.get("species", [])
+
+    async def get_abilities(self) -> List[Dict[str, Any]]:
+        """Get all available abilities."""
+        url = "/api/v1/characters/abilities"
+        resp = await self._request("GET", url)
+        abilities_data = await self._handle_response(resp)
+        return abilities_data.get("abilities", [])
+
+    async def get_skills(self) -> List[Dict[str, Any]]:
+        """Get all available skills."""
+        url = "/api/v1/characters/skills"
+        resp = await self._request("GET", url)
+        skills_data = await self._handle_response(resp)
+        return skills_data.get("skills", [])
+
+    async def get_conditions(self) -> List[Dict[str, Any]]:
+        """Get all available conditions."""
+        url = "/api/v1/characters/conditions"
+        resp = await self._request("GET", url)
+        conditions_data = await self._handle_response(resp)
+        return conditions_data.get("conditions", [])
+
+    async def get_alignments(self) -> List[Dict[str, Any]]:
+        """Get all available alignments."""
+        url = "/api/v1/characters/alignments"
+        resp = await self._request("GET", url)
+        alignments_data = await self._handle_response(resp)
+        return alignments_data.get("alignments", [])
+
+    async def get_magic_schools(self) -> List[Dict[str, Any]]:
+        """Get all available magic schools."""
+        url = "/api/v1/characters/magic_schools"
+        resp = await self._request("GET", url)
+        magic_schools_data = await self._handle_response(resp)
+        return magic_schools_data.get("magic_schools", [])
+
+    async def get_languages(self) -> List[Dict[str, Any]]:
+        """Get all available languages."""
+        url = "/api/v1/characters/languages"
+        resp = await self._request("GET", url)
+        languages_data = await self._handle_response(resp)
+        return languages_data.get("languages", [])
+
+    async def get_traits(self) -> List[Dict[str, Any]]:
+        """Get all available traits."""
+        url = "/api/v1/characters/traits"
+        resp = await self._request("GET", url)
+        traits_data = await self._handle_response(resp)
+        return traits_data.get("traits", [])
+
+    async def get_proficiencies(self) -> List[Dict[str, Any]]:
+        """Get all available proficiencies."""
+        url = "/api/v1/characters/proficiencies"
+        resp = await self._request("GET", url)
+        proficiencies_data = await self._handle_response(resp)
+        return proficiencies_data.get("proficiencies", [])
+
+    async def get_races(self) -> List[Dict[str, Any]]:
+        """Get all available races."""
+        url = "/api/v1/characters/races"
+        resp = await self._request("GET", url)
+        races_data = await self._handle_response(resp)
+        return races_data.get("races", [])
+
+    async def get_subraces(self) -> List[Dict[str, Any]]:
+        """Get all available subraces."""
+        url = "/api/v1/characters/subraces"
+        resp = await self._request("GET", url)
+        subraces_data = await self._handle_response(resp)
+        return subraces_data.get("subraces", [])
+
+    async def get_spells(self) -> List[Dict[str, Any]]:
+        """Get all available spells."""
+        url = "/api/v1/characters/spells"
+        resp = await self._request("GET", url)
+        spells_data = await self._handle_response(resp)
+        return spells_data.get("spells", [])
+
+    async def get_feats(self) -> List[Dict[str, Any]]:
+        """Get all available feats."""
+        url = "/api/v1/characters/feats"
+        resp = await self._request("GET", url)
+        feats_data = await self._handle_response(resp)
+        return feats_data.get("feats", [])
+
+    async def get_features(self) -> List[Dict[str, Any]]:
+        """Get all available features."""
+        url = "/api/v1/characters/features"
+        resp = await self._request("GET", url)
+        features_data = await self._handle_response(resp)
+        return features_data.get("features", [])
+
+    async def get_monsters(self) -> List[Dict[str, Any]]:
+        """Get all available monsters."""
+        url = "/api/v1/characters/monsters"
+        resp = await self._request("GET", url)
+        monsters_data = await self._handle_response(resp)
+        return monsters_data.get("monsters", [])
+
     # ---------------------------
     # Player Management
     # ---------------------------
