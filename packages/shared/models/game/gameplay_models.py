@@ -144,6 +144,7 @@ class Race(BaseGameplayModel, table=True):
     languages: Mapped[List["Language"]] = Relationship(back_populates="races", link_model=LanguageRaceLink)
     subraces: List["Subrace"] = Relationship(back_populates="race")
     traits: Mapped[List["Trait"]] = Relationship(back_populates="races", link_model=RaceTraitLink)
+    characters: Mapped[List["core_db_models.Character"]] = Relationship(back_populates="dnd_races")
 
 
 class Subrace(BaseGameplayModel, table=True):
@@ -173,6 +174,7 @@ class Background(BaseGameplayModel, table=True):
     feature: Dict = Field(description="Background feature",
         sa_column=Column(JSON),
     )
+    characters: Mapped[List["core_db_models.Character"]] = Relationship(back_populates="dnd_background")
 
 
 class Class(BaseGameplayModel, table=True):
@@ -194,6 +196,7 @@ class Class(BaseGameplayModel, table=True):
     features: List["Feature"] = Relationship(back_populates="dnd_class")
     levels: List["Level"] = Relationship(back_populates="dnd_class")
     characters: Mapped[List["core_db_models.Character"]] = Relationship(back_populates="dnd_class")
+    
 
 
 class Subclass(BaseGameplayModel, table=True):

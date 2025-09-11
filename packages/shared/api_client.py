@@ -336,12 +336,12 @@ class ApiClient:
         backgrounds_data = await self._handle_response(resp)
         return backgrounds_data.get("backgrounds", [])
 
-    async def get_species(self) -> List[Dict[str, Any]]:
-        """Get all available species."""
-        url = "/api/v1/characters/species"
+    async def get_races(self) -> List[Dict[str, Any]]:
+        """Get all available races."""
+        url = "/api/v1/characters/races"
         resp = await self._request("GET", url)
-        species_data = await self._handle_response(resp)
-        return species_data.get("species", [])
+        races_data = await self._handle_response(resp)
+        return races_data.get("races", [])
 
     async def get_abilities(self) -> List[Dict[str, Any]]:
         """Get all available abilities."""

@@ -34,10 +34,10 @@ async def create_character(
     character = await character_manager.create_character(
         player_id=req.player_id,
         name=req.name,
-        species=req.species,
+        races_index=req.races_index,
         class_index=req.class_index,
         subclass=req.subclass,
-        background=req.background,
+        background_index=req.background_index,
         strength=req.strength,
         dexterity=req.dexterity,
         constitution=req.constitution,

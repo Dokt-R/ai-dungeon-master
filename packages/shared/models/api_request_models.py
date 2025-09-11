@@ -52,10 +52,10 @@ class CreateCharacterRequest(BaseModel):
         ..., min_length=3, max_length=64, pattern=r"^[\w\-]+$"
     )
     name: str = PydanticField(..., min_length=1, max_length=32, pattern=r"^[\w\- ]+$")
-    species: str = PydanticField(..., min_length=1, max_length=32)
+    races_index: str = PydanticField(..., min_length=1, max_length=32)
     class_index: str = PydanticField(..., min_length=1, max_length=32)
     subclass: str | None = None
-    background: str = PydanticField(..., min_length=1, max_length=1024)
+    background_index: str = PydanticField(..., min_length=1, max_length=1024)
     strength: int = PydanticField(..., ge=1, le=30)
     dexterity: int = PydanticField(..., ge=1, le=30)
     constitution: int = PydanticField(..., ge=1, le=30)

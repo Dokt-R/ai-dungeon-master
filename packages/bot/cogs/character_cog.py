@@ -86,7 +86,7 @@ class CharacterCog(commands.Cog):
         self,
         interaction: discord.Interaction,
         name: str,
-        species: str,
+        races: str,
         class_index: str,
         subclass: Optional[str],
         background: str,
@@ -95,7 +95,7 @@ class CharacterCog(commands.Cog):
         req = CreateCharacterRequest(
             player_id=str(interaction.user.id),
             name=name,
-            species=species,
+            races=races,
             class_index=class_index,
             subclass=subclass,
             background=background,

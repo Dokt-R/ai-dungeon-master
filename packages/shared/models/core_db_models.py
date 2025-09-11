@@ -24,6 +24,7 @@ from sqlalchemy.orm import (
 from sqlmodel import Field as SQLField, Relationship, SQLModel
 
 from packages.shared.models.game.equipment_models import DamageType
+# from packages.shared.models.game.gameplay_models import Background, Race
 
 
 class Condition(Enum):
@@ -209,11 +210,13 @@ class Character(SQLModel, table=True):
     )
 
     # Creation Fields
-    species: Optional[str] = SQLField(default=None, max_length=50)
+    races_index: Optional[str] = SQLField(default=None, foreign_key="races.index")
+    dnd_races: Optional["Race"] = Relationship(back_populates="characters") # type: ignore  # noqa: F821
     class_index: Optional[str] = SQLField(default=None, foreign_key="classes.index")
     dnd_class: Optional["Class"] = Relationship(back_populates="characters")  # type: ignore  # noqa: F821
     subclass: Optional[str] = SQLField(default=None, max_length=50)
-    background: Optional[str] = SQLField(default=None, max_length=1024)
+    background_index: Optional[str] = SQLField(default=None, foreign_key="backgrounds.index")
+    dnd_background: Optional["Background"] = Relationship(back_populates="characters") # type: ignore  # noqa: F821
 
     # Core D&D Stats
     level: int = SQLField(default=1, ge=1, le=20)
