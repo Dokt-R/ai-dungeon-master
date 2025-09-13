@@ -286,29 +286,27 @@ class CharacterCreationView(discord.ui.View):
 
             await interaction.response.defer()
 
-            # Initialize all proficiencies to False
-            proficiency_data = {
-                f"prof_{ability.value}_save": False for ability in AbilityName
-            }
-            for skill in SkillName:
-                proficiency_data[f"prof_{skill.value}"] = False
+            # Create a list of proficiency indices
+            proficiency_indices = []
 
-            # Set selected saving throw proficiencies to True
+            # Add saving throws
             for p in self.character_data.get("saving_throws", []):
-                abbreviated_name = AbilityName[p.upper()].value
-                proficiency_data[f"prof_{abbreviated_name}_save"] = True
+                ability_abbr = AbilityName[p.upper()].value
+                proficiency_indices.append(f"saving-throw-{ability_abbr}")
 
-            # Set selected skill proficiencies to True
+            # Add skills
             for p in self.character_data.get("skills", []):
-                abbreviated_name = SkillName[p.upper().replace(" ", "_")].value
-                proficiency_data[f"prof_{abbreviated_name}"] = True
+                skill_slug = SkillName[p.upper().replace(" ", "_")].value.replace(
+                    "_", "-"
+                )
+                proficiency_indices.append(f"skill-{skill_slug}")
 
             full_character_data = {
                 **self.character_data,
                 "races_index": self.character_data.get("races_index"),
                 "background_index": self.character_data.get("background_index"),
                 **{k.lower(): int(v) for k, v in self.ability_scores.items()},
-                **proficiency_data,
+                "proficiencies": proficiency_indices,  # Use the new list
             }
 
             logger.debug(

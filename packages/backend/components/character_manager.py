@@ -10,6 +10,7 @@ from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
+from packages.shared.models.game.gameplay_links import CharacterProficiencyLink
 from packages.shared.models.game.gameplay_models import (
     Ability,
     Alignment,
@@ -98,30 +99,7 @@ class CharacterManager:
         intelligence: int,
         wisdom: int,
         charisma: int,
-        prof_str_save: bool,
-        prof_dex_save: bool,
-        prof_con_save: bool,
-        prof_int_save: bool,
-        prof_wis_save: bool,
-        prof_cha_save: bool,
-        prof_acrobatics: bool,
-        prof_animal_handling: bool,
-        prof_arcana: bool,
-        prof_athletics: bool,
-        prof_deception: bool,
-        prof_history: bool,
-        prof_insight: bool,
-        prof_intimidation: bool,
-        prof_investigation: bool,
-        prof_medicine: bool,
-        prof_nature: bool,
-        prof_perception: bool,
-        prof_performance: bool,
-        prof_persuasion: bool,
-        prof_religion: bool,
-        prof_sleight_of_hand: bool,
-        prof_stealth: bool,
-        prof_survival: bool,
+        proficiencies: List[str],
     ) -> Character:
         """
         Create a new character for a player.
@@ -149,18 +127,6 @@ class CharacterManager:
                 },
             )
 
-        logger.debug(
-            "create_character_proficiencies_received",
-            player_id=player_id,
-            name=name,
-            prof_str_save=prof_str_save,
-            prof_dex_save=prof_dex_save,
-            prof_con_save=prof_con_save,
-            prof_int_save=prof_int_save,
-            prof_wis_save=prof_wis_save,
-            prof_cha_save=prof_cha_save,
-        )
-
         new_character = Character(
             player_id=player_id,
             name=name,
@@ -174,32 +140,18 @@ class CharacterManager:
             intelligence=intelligence,
             wisdom=wisdom,
             charisma=charisma,
-            prof_str_save=prof_str_save,
-            prof_dex_save=prof_dex_save,
-            prof_con_save=prof_con_save,
-            prof_int_save=prof_int_save,
-            prof_wis_save=prof_wis_save,
-            prof_cha_save=prof_cha_save,
-            prof_acrobatics=prof_acrobatics,
-            prof_animal_handling=prof_animal_handling,
-            prof_arcana=prof_arcana,
-            prof_athletics=prof_athletics,
-            prof_deception=prof_deception,
-            prof_history=prof_history,
-            prof_insight=prof_insight,
-            prof_intimidation=prof_intimidation,
-            prof_investigation=prof_investigation,
-            prof_medicine=prof_medicine,
-            prof_nature=prof_nature,
-            prof_perception=prof_perception,
-            prof_performance=prof_performance,
-            prof_persuasion=prof_persuasion,
-            prof_religion=prof_religion,
-            prof_sleight_of_hand=prof_sleight_of_hand,
-            prof_stealth=prof_stealth,
-            prof_survival=prof_survival,
         )
         self.session.add(new_character)
+        await self.session.flush()  # Flush to get the new_character.character_id
+
+        # Create proficiency links
+        for prof_index in proficiencies:
+            link = CharacterProficiencyLink(
+                character_id=new_character.character_id,
+                proficiency_index=prof_index,
+            )
+            self.session.add(link)
+
         await self.session.commit()
         await self.session.refresh(new_character)
         return new_character

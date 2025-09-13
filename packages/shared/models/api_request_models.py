@@ -3,7 +3,7 @@ API Request/Response Models
 Pydantic BaseModels for request/response validation.
 """
 
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field as PydanticField, SecretStr
 
@@ -62,30 +62,7 @@ class CreateCharacterRequest(BaseModel):
     intelligence: int = PydanticField(..., ge=1, le=30)
     wisdom: int = PydanticField(..., ge=1, le=30)
     charisma: int = PydanticField(..., ge=1, le=30)
-    prof_str_save: bool = PydanticField(default=False)
-    prof_dex_save: bool = PydanticField(default=False)
-    prof_con_save: bool = PydanticField(default=False)
-    prof_int_save: bool = PydanticField(default=False)
-    prof_wis_save: bool = PydanticField(default=False)
-    prof_cha_save: bool = PydanticField(default=False)
-    prof_acrobatics: bool = PydanticField(default=False)
-    prof_animal_handling: bool = PydanticField(default=False)
-    prof_arcana: bool = PydanticField(default=False)
-    prof_athletics: bool = PydanticField(default=False)
-    prof_deception: bool = PydanticField(default=False)
-    prof_history: bool = PydanticField(default=False)
-    prof_insight: bool = PydanticField(default=False)
-    prof_intimidation: bool = PydanticField(default=False)
-    prof_investigation: bool = PydanticField(default=False)
-    prof_medicine: bool = PydanticField(default=False)
-    prof_nature: bool = PydanticField(default=False)
-    prof_perception: bool = PydanticField(default=False)
-    prof_performance: bool = PydanticField(default=False)
-    prof_persuasion: bool = PydanticField(default=False)
-    prof_religion: bool = PydanticField(default=False)
-    prof_sleight_of_hand: bool = PydanticField(default=False)
-    prof_stealth: bool = PydanticField(default=False)
-    prof_survival: bool = PydanticField(default=False)
+    proficiencies: List[str] = PydanticField(default=[])
 
 
 class UpdateCharacterRequest(BaseModel):

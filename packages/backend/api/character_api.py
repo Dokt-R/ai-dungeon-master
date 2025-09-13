@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 
 from packages.backend.components.character_manager import CharacterManager
-from packages.shared.models import (
+from packages.shared.models.api_request_models import (
     AddCharacterRequest,
     CreateCharacterRequest,
     ListCharactersRequest,
@@ -44,30 +44,7 @@ async def create_character(
         intelligence=req.intelligence,
         wisdom=req.wisdom,
         charisma=req.charisma,
-        prof_str_save=req.prof_str_save,
-        prof_dex_save=req.prof_dex_save,
-        prof_con_save=req.prof_con_save,
-        prof_int_save=req.prof_int_save,
-        prof_wis_save=req.prof_wis_save,
-        prof_cha_save=req.prof_cha_save,
-        prof_acrobatics=req.prof_acrobatics,
-        prof_animal_handling=req.prof_animal_handling,
-        prof_arcana=req.prof_arcana,
-        prof_athletics=req.prof_athletics,
-        prof_deception=req.prof_deception,
-        prof_history=req.prof_history,
-        prof_insight=req.prof_insight,
-        prof_intimidation=req.prof_intimidation,
-        prof_investigation=req.prof_investigation,
-        prof_medicine=req.prof_medicine,
-        prof_nature=req.prof_nature,
-        prof_perception=req.prof_perception,
-        prof_performance=req.prof_performance,
-        prof_persuasion=req.prof_persuasion,
-        prof_religion=req.prof_religion,
-        prof_sleight_of_hand=req.prof_sleight_of_hand,
-        prof_stealth=req.prof_stealth,
-        prof_survival=req.prof_survival,
+        proficiencies=req.proficiencies,
     )
     return {
         "message": "Character created successfully.",
