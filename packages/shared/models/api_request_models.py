@@ -63,6 +63,7 @@ class CreateCharacterRequest(BaseModel):
     wisdom: int = PydanticField(..., ge=1, le=30)
     charisma: int = PydanticField(..., ge=1, le=30)
     proficiencies: List[str] = PydanticField(default=[])
+    inventory: Optional[List[dict]] = PydanticField(default=[])
 
 
 class UpdateCharacterRequest(BaseModel):

@@ -441,6 +441,23 @@ class ApiClient:
         monsters_data = await self._handle_response(resp)
         return monsters_data.get("monsters", [])
 
+    async def get_equipment(self, category_index: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get equipment, optionally filtered by category."""
+        url = "/api/v1/characters/equipment"
+        params = {}
+        if category_index:
+            params["category_index"] = category_index
+        resp = await self._request("GET", url, params=params)
+        equipment_data = await self._handle_response(resp)
+        return equipment_data.get("equipment", [])
+
+    async def get_pack_contents(self, pack_index: str) -> List[Dict[str, Any]]:
+        """Get the contents of an equipment pack."""
+        url = f"/api/v1/characters/equipment/pack/{pack_index}"
+        resp = await self._request("GET", url)
+        contents_data = await self._handle_response(resp)
+        return contents_data.get("contents", [])
+
     # ---------------------------
     # Player Management
     # ---------------------------

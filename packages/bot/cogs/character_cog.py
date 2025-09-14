@@ -32,21 +32,55 @@ class CharacterCog(commands.Cog):
     async def get_classes(self):
         """Get all available classes from the database."""
         return await self.api_client.get_classes()
-    
+
     async def get_backgrounds(self):
         """Get all available backgrounds from the database."""
         return await self.api_client.get_backgrounds()
-    
+
     async def get_races(self):
         """Get all available races from the database."""
         return await self.api_client.get_races()
 
+    async def get_class_by_index(self, index: str):
+        """Get a class by its index.
+        TODO: This is inefficient. It should be a direct API call.
+        """
+        classes = await self.get_classes()
+        for dnd_class in classes:
+            if dnd_class["index"] == index:
+                return dnd_class
+        return None
+
+    async def get_background_by_index(self, index: str):
+        """Get a background by its index.
+        TODO: This is inefficient. It should be a direct API call.
+        """
+        backgrounds = await self.get_backgrounds()
+        for background in backgrounds:
+            if background["index"] == index:
+                return background
+        return None
+
+    async def get_equipment_by_category(self, category_index: str):
+        """Gets all equipment in a given category from the API."""
+        return await self.api_client.get_equipment(category_index=category_index)
+
+    async def is_equipment_pack(self, item_index: str):
+        """Check if an item is an equipment pack by seeing if it has contents."""
+        contents = await self.get_pack_contents(item_index)
+        return len(contents) > 0
+
+    async def get_pack_contents(self, pack_index: str):
+        """Get the contents of an equipment pack from the API."""
+        return await self.api_client.get_pack_contents(pack_index)
+
     @character.command(name="create", description="Create a new character.")
     @discord_error_handler()
     async def create(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
         view = await CharacterCreationView(self).async_init()
-        await interaction.response.send_message(
-            "Begin creating your character:", view=view, ephemeral=True
+        await interaction.followup.send(
+            "Begin creating your character:", view=view
         )
 
     @character.command(name="add", description="Add a new character to your account.")

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 
 from packages.backend.components.character_manager import CharacterManager
@@ -45,6 +47,7 @@ async def create_character(
         wisdom=req.wisdom,
         charisma=req.charisma,
         proficiencies=req.proficiencies,
+        inventory=req.inventory,
     )
     return {
         "message": "Character created successfully.",
@@ -151,6 +154,26 @@ async def get_features(character_manager: CharacterManager = Depends()):
 async def get_monsters(character_manager: CharacterManager = Depends()):
     monsters = await character_manager.get_monsters()
     return {"monsters": monsters}
+
+@router.get("/equipment")
+async def get_equipment(
+    category_index: Optional[str] = None, character_manager: CharacterManager = Depends()
+):
+    """
+    Get equipment, optionally filtered by category.
+    """
+    equipment = await character_manager.get_equipment(category_index=category_index)
+    return {"equipment": equipment}
+
+@router.get("/equipment/pack/{pack_index}")
+async def get_pack_contents(
+    pack_index: str, character_manager: CharacterManager = Depends()
+):
+    """
+    Get the contents of an equipment pack.
+    """
+    contents = await character_manager.get_pack_contents(pack_index=pack_index)
+    return {"contents": contents}
 
 
 @router.post("/update")

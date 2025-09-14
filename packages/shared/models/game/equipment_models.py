@@ -1,11 +1,14 @@
 import json
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
-from sqlalchemy import Column
+from sqlalchemy import Column, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSON
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from packages.shared.models.core_db_models import Character
 
 
 class EquipmentSlot(Enum):
@@ -286,11 +289,21 @@ class MountAndVehicle(SQLModel, table=True):
 
 
 class CharacterEquipment(SQLModel, table=True):
-    character_id: str = Field(foreign_key="characters.character_id", primary_key=True)
-    equipment_index: str = Field(foreign_key="equipment.index", primary_key=True)
-    quantity: int = 1
-    equipped: bool = False
-    slot: Optional[str] = None  # "main_hand", "armor", "ring1", etc.
+    __tablename__ = "character_equipment"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    character_id: int = Field(foreign_key="characters.character_id")
+    equipment_index: str = Field(foreign_key="equipment.index")
+    quantity: int = Field(default=1)
+    equipped: bool = Field(default=False)
+    slot: Optional[str] = Field(default=None)
+    is_attuned: bool = Field(default=False)
+    custom_name: Optional[str] = Field(default=None)
+    custom_description: Optional[str] = Field(default=None)
+    meta: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSON))
+
+    character: "Character" = Relationship(back_populates="inventory")
+
+    __table_args__ = (UniqueConstraint("character_id", "equipment_index"),)
 
 
 # class EquipmentValidator:

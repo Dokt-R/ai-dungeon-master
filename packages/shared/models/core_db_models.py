@@ -6,7 +6,10 @@ SQLModel tables for the main entities in the system.
 import json
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+
+if TYPE_CHECKING:
+    from packages.shared.models.game.equipment_models import CharacterEquipment
 
 from pydantic import ConfigDict, SecretStr
 from sqlalchemy import (  # Import Integer and DateTime
@@ -97,61 +100,7 @@ class Attack(SQLModel, table=True):
         }
 
 
-# Item Model
-class Item(SQLModel, table=True):
-    model_config = ConfigDict(
-        ignored_types=(hybrid_property,)
-    )  # Ignore hybrid properties as fields
 
-    id: Optional[int] = SQLField(default=None, primary_key=True)
-    name: str = SQLField(..., min_length=1, max_length=100)
-    type: str = SQLField(..., max_length=50)
-    weight: float = SQLField(default=0.0, ge=0)
-    value: int = SQLField(default=0, ge=0, description="Value in copper pieces")
-    description: str = SQLField(default="")
-    source: str = SQLField(default="SRD", max_length=50)
-    quantity: int = SQLField(default=1, ge=1)
-    is_stackable: bool = SQLField(default=False)
-    rarity: str = SQLField(default="common", max_length=50)
-    requires_attunement: bool = SQLField(default=False)
-    effects: Optional[Dict[str, Any]] = SQLField(default=None, sa_column=Column(JSON))
-    interactions: Optional[Dict[str, Any]] = SQLField(
-        default=None, sa_column=Column(JSON)
-    )
-    properties: Optional[Dict[str, Any]] = SQLField(
-        default=None, sa_column=Column(JSON)
-    )
-    equipped: Optional[bool] = SQLField(default=False)
-
-    character_id: Optional[int] = SQLField(
-        default=None, foreign_key="characters.character_id"
-    )
-    character: Mapped[Optional["Character"]] = Relationship(back_populates="inventory")
-
-    @hybrid_property
-    def total_weight(self) -> float:
-        return self.weight * self.quantity
-
-    @hybrid_property
-    def total_value_cp(self) -> int:
-        return self.value * self.quantity
-
-    def get_effects(self) -> Dict[str, Any]:
-        return self.effects or {}
-
-    def get_interactions(self) -> Dict[str, Any]:
-        return self.interactions or {}
-
-    def get_properties(self) -> Dict[str, Any]:
-        return self.properties or {}
-
-    def model_dump_clean(self) -> Dict[str, Any]:
-        """Dump model without relationship fields that could cause circular references."""
-        return {
-            k: v
-            for k, v in self.model_dump().items()
-            if k not in ["character", "character_id"]
-        }
 
 
 # Server Configuration Model
@@ -349,26 +298,34 @@ class Character(SQLModel, table=True):
     )
 
     attacks: Mapped[List["Attack"]] = Relationship(back_populates="character")
-    inventory: Mapped[List["Item"]] = Relationship(back_populates="character")
+    inventory: Mapped[List["CharacterEquipment"]] = Relationship(back_populates="character")
     action_history: Mapped[List["ActionHistory"]] = Relationship(
         back_populates="character"
     )
 
-    # Computed properties for encumbrance
-    @hybrid_property
-    def total_carried_weight(self) -> float:
-        """Calculates the total weight of all items in inventory."""
-        return sum(item.total_weight for item in self.inventory)
+    # TODO: Fix total_carried_weight to work with CharacterEquipment and Equipment join.
+    # # Computed properties for encumbrance
+    # @hybrid_property
+    # def total_carried_weight(self) -> float:
+    #     """Calculates the total weight of all items in inventory."""
+    #     # This needs a session to join Equipment and get the weight.
+    #     # A simple sum like this won't work with the new structure.
+    #     return 0.0
+    #     # return sum(item.quantity * item.equipment.weight for item in self.inventory)
 
     @hybrid_property
     def is_encumbered(self) -> bool:
         """Checks if the character is encumbered (carrying capacity to 5x strength)."""
-        return self.total_carried_weight > self.strength * 5
+        # TODO: This is disabled until total_carried_weight is fixed.
+        return False
+        # return self.total_carried_weight > self.strength * 5
 
     @hybrid_property
     def is_heavily_encumbered(self) -> bool:
         """Checks if the character is heavily encumbered (carrying capacity to 10x strength)."""
-        return self.total_carried_weight > self.strength * 10
+        # TODO: This is disabled until total_carried_weight is fixed.
+        return False
+        # return self.total_carried_weight > self.strength * 10
 
     # Validation methods
     @validates("hp")

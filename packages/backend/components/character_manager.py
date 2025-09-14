@@ -10,6 +10,11 @@ from packages.shared.errors import ErrorCode
 from packages.shared.exceptions import NotFoundError, ValidationError
 from packages.shared.logging_config import configure_logging, get_logger
 from packages.shared.models import Character, Player
+from packages.shared.models.game.equipment_models import (
+    CharacterEquipment,
+    Equipment,
+    EquipmentPackContent,
+)
 from packages.shared.models.game.gameplay_links import CharacterProficiencyLink
 from packages.shared.models.game.gameplay_models import (
     Ability,
@@ -100,6 +105,7 @@ class CharacterManager:
         wisdom: int,
         charisma: int,
         proficiencies: List[str],
+        inventory: Optional[List[dict]] = None,
     ) -> Character:
         """
         Create a new character for a player.
@@ -151,6 +157,16 @@ class CharacterManager:
                 proficiency_index=prof_index,
             )
             self.session.add(link)
+
+        # Create inventory items
+        if inventory:
+            for item_data in inventory:
+                new_equipment_link = CharacterEquipment(
+                    character_id=new_character.character_id,
+                    equipment_index=item_data["index"],
+                    quantity=item_data["quantity"],
+                )
+                self.session.add(new_equipment_link)
 
         await self.session.commit()
         await self.session.refresh(new_character)
@@ -257,6 +273,28 @@ class CharacterManager:
         statement = select(Monster)
         result = await self.session.execute(statement)
         return list(result.scalars().all())
+
+    async def get_equipment(self, category_index: Optional[str] = None) -> List[Equipment]:
+        """Get all equipment, optionally filtered by category."""
+        statement = select(Equipment)
+        if category_index:
+            statement = statement.where(Equipment.equipment_category_index == category_index)
+        result = await self.session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_pack_contents(self, pack_index: str) -> List[dict]:
+        """Get the contents of an equipment pack."""
+        statement = select(EquipmentPackContent).where(
+            EquipmentPackContent.pack_index == pack_index
+        )
+        result = await self.session.execute(statement)
+        contents = result.scalars().all()
+
+        # The view expects a list of dicts with 'index' and 'quantity'
+        return [
+            {"index": content.item_index, "quantity": content.quantity}
+            for content in contents
+        ]
     
     async def update_character(
         self,
